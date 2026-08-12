@@ -57,6 +57,13 @@ export default function SignaturePad() {
         <p className="mt-1 font-sans text-sm text-emerald-600">
           Signed by <strong>{name}</strong>{position ? `, ${position}` : ''} on {date}
         </p>
+        <button
+          type="button"
+          onClick={() => { setAccepted(false); setSigned(false); setTimeout(() => padRef.current?.clear(), 50) }}
+          className="mt-4 font-sans text-xs text-emerald-600 underline underline-offset-2 hover:text-emerald-800"
+        >
+          Re-sign
+        </button>
       </div>
     )
   }

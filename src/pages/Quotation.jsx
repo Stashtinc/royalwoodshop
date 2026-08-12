@@ -138,11 +138,23 @@ export default function Quotation() {
 
         {/* Header */}
         <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="font-serif text-2xl font-bold text-royal-blue">PROPOSAL & QUOTATION</p>
-            <p className="mt-1 max-w-lg font-sans text-sm text-gray-500">
-              Website Rebuild — Product Catalogue & Content Management System
-            </p>
+          <div className="flex flex-1 items-start justify-between gap-4">
+            <div>
+              <p className="font-serif text-2xl font-bold text-royal-blue">PROPOSAL & QUOTATION</p>
+              <p className="mt-1 max-w-lg font-sans text-sm text-gray-500">
+                Website Rebuild — Product Catalogue & Content Management System
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="print:hidden shrink-0 flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 font-sans text-sm text-gray-600 shadow-sm transition-colors hover:border-royal-blue hover:text-royal-blue"
+            >
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3.5 5V2.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V5M3 10H2a.5.5 0 0 1-.5-.5v-4A.5.5 0 0 1 2 5h11a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5h-1M3.5 8h8v4.5a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V8z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Print
+            </button>
           </div>
           <div className="shrink-0 rounded-xl border border-gray-200 bg-white px-5 py-4 text-right font-sans text-sm">
             <div className="flex gap-8">
