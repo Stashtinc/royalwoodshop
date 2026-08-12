@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import SignaturePad from '../components/SignaturePad'
 
 const RATE = 500
@@ -128,6 +129,7 @@ const paymentRows = [
 const fmt = (n) => '$' + n.toLocaleString('en-US')
 
 export default function Quotation() {
+  const [signedBy, setSignedBy] = useState(null)
   const totalBuckets = lineItems.reduce((s, i) => s + (i.buckets ?? 0), 0)
   const subtotal = totalBuckets * RATE
   const optionalTotal = optionalItems.reduce((s, i) => s + i.buckets * RATE, 0)
@@ -399,10 +401,36 @@ export default function Quotation() {
           <p className="mb-6 font-sans text-sm text-gray-500">
             Signing below confirms acceptance of this quotation.
           </p>
-          <SignaturePad />
+          <SignaturePad onAccepted={setSignedBy} />
         </div>
 
       </div>
+
+      {/* Sticky signed bar */}
+      {signedBy && (
+        <div className="print:hidden fixed bottom-0 inset-x-0 z-50 border-t border-emerald-200 bg-emerald-50 shadow-lg">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-6 py-3">
+            <div className="flex items-center gap-3">
+              <svg className="h-5 w-5 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="font-sans text-sm text-emerald-800">
+                Signed by <strong>{signedBy.name}</strong>{signedBy.position ? `, ${signedBy.position}` : ''} · {signedBy.date}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="flex shrink-0 items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 font-sans text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+            >
+              <svg width="14" height="14" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3.5 5V2.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V5M3 10H2a.5.5 0 0 1-.5-.5v-4A.5.5 0 0 1 2 5h11a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5h-1M3.5 8h8v4.5a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V8z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Print
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

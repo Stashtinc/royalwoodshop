@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import SigPad from 'signature_pad'
 
-export default function SignaturePad() {
+export default function SignaturePad({ onAccepted }) {
   const canvasRef = useRef(null)
   const padRef = useRef(null)
   const [signed, setSigned] = useState(false)
@@ -40,11 +40,20 @@ export default function SignaturePad() {
     padRef.current?.clear()
     setSigned(false)
     setAccepted(false)
+    onAccepted?.(null)
   }
 
   function accept() {
     if (!signed || !name.trim()) return
     setAccepted(true)
+    onAccepted?.({ name, position, date })
+  }
+
+  function resign() {
+    setAccepted(false)
+    setSigned(false)
+    onAccepted?.(null)
+    setTimeout(() => padRef.current?.clear(), 50)
   }
 
   if (accepted) {
@@ -59,7 +68,7 @@ export default function SignaturePad() {
         </p>
         <button
           type="button"
-          onClick={() => { setAccepted(false); setSigned(false); setTimeout(() => padRef.current?.clear(), 50) }}
+          onClick={resign}
           className="mt-4 font-sans text-xs text-emerald-600 underline underline-offset-2 hover:text-emerald-800"
         >
           Re-sign
@@ -70,7 +79,6 @@ export default function SignaturePad() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Name + Position + Date */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           { label: 'Name', value: name, onChange: setName, placeholder: 'Full name', required: true },
@@ -92,26 +100,17 @@ export default function SignaturePad() {
         ))}
       </div>
 
-      {/* Canvas */}
       <div>
         <div className="mb-1 flex items-center justify-between">
           <label className="font-sans text-xs font-semibold uppercase tracking-widest text-gray-400">
             Signature<span className="ml-0.5 text-red-400">*</span>
           </label>
-          <button
-            type="button"
-            onClick={clear}
-            className="font-sans text-xs text-gray-400 underline underline-offset-2 hover:text-gray-600"
-          >
+          <button type="button" onClick={clear} className="font-sans text-xs text-gray-400 underline underline-offset-2 hover:text-gray-600">
             Clear
           </button>
         </div>
         <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white">
-          <canvas
-            ref={canvasRef}
-            className="h-36 w-full touch-none"
-            style={{ cursor: 'crosshair' }}
-          />
+          <canvas ref={canvasRef} className="h-36 w-full touch-none" style={{ cursor: 'crosshair' }} />
           {!signed && (
             <p className="pointer-events-none absolute inset-0 flex items-center justify-center font-sans text-sm text-gray-300">
               Sign here
