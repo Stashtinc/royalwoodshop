@@ -63,24 +63,9 @@ export default function AboutUs() {
           </div>
 
           <div className="flex flex-wrap gap-7">
-            <a
-              href="#map"
-              className="inline-flex w-fit items-center gap-2 rounded-lg border border-royal-blue bg-white px-4 py-4 font-sans text-base text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M8 15s5-4.5 5-8.5A5 5 0 0 0 3 6.5C3 10.5 8 15 8 15Z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinejoin="round"
-                />
-                <circle cx="8" cy="6.5" r="1.8" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-              View Map
-            </a>
             <Link
               to="/contact"
-              className="inline-flex w-fit items-center gap-2 rounded-lg border border-royal-blue bg-royal-blue px-4 py-4 font-sans text-base text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark"
+              className="inline-flex w-fit items-center gap-2 rounded-lg border border-royal-blue bg-white px-4 py-4 font-sans text-base text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5" />

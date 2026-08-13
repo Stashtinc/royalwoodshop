@@ -119,17 +119,19 @@ const optionalItems = [
 ]
 
 const paymentRows = [
-  { milestone: 'On acceptance', trigger: 'Development begins', pct: 0.3, due: true },
-  { milestone: 'Public website and catalogue delivered for review', trigger: 'End of Step 2', pct: 0.3, due: true },
+  { milestone: 'On acceptance', trigger: 'Development begins', pct: 0.3, paid: true },
+  { milestone: 'Public website and catalogue delivered for review', trigger: 'End of Step 2', pct: 0.3, paid: true },
   { milestone: 'Admin screen delivered for review', trigger: 'End of Step 3', pct: 0.2 },
   { milestone: 'On launch', trigger: 'Site live, redirects verified', pct: 0.2 },
 ]
+
+const HOURLY_PAID = true
 
 
 const fmt = (n) => '$' + n.toLocaleString('en-US')
 
 export default function Quotation() {
-  const [signedBy, setSignedBy] = useState(null)
+  const [signedBy, setSignedBy] = useState({ name: 'Brad Gerrits', position: 'The Royal Wood Shop', date: 'Aug 12, 2026' })
   const totalBuckets = lineItems.reduce((s, i) => s + (i.buckets ?? 0), 0)
   const subtotal = totalBuckets * RATE
   const optionalTotal = optionalItems.reduce((s, i) => s + i.buckets * RATE, 0)
@@ -315,6 +317,9 @@ export default function Quotation() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-gray-700">{row.milestone}</p>
+                    {row.paid && (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-sans text-xs font-semibold text-emerald-600">Paid</span>
+                    )}
                     {row.due && (
                       <span className="rounded-full bg-red-100 px-2 py-0.5 font-sans text-xs font-semibold text-red-600">Due</span>
                     )}
@@ -334,16 +339,16 @@ export default function Quotation() {
         </div>
 
         {/* Hourly hours alert + Amount Due */}
-        <div className="mb-10 overflow-hidden rounded-xl border border-amber-200">
-          <div className="bg-amber-50 px-5 py-4 font-sans text-sm text-amber-900">
-            <p className="font-semibold">Hourly time billed separately</p>
-            <p className="mt-1 text-amber-700">
-              Hours worked <span className="font-semibold">July 27 – Aug 12</span> are billed at the agreed hourly rate and are not included in the bucket total above.{' '}
+        <div className="mb-10 overflow-hidden rounded-xl border border-emerald-200">
+          <div className="bg-emerald-50 px-5 py-4 font-sans text-sm text-emerald-900">
+            <p className="font-semibold">Hourly time — paid</p>
+            <p className="mt-1 text-emerald-700">
+              Hours worked <span className="font-semibold">July 27 – Aug 12</span> (34 hrs @ $65 CAD) have been paid.{' '}
               <a
                 href="https://drive.google.com/file/d/1l3qxq6oATb6KiRKV8YR21Bm0Z5A7ZZg_/view?usp=sharing"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-semibold underline underline-offset-2 hover:text-amber-900"
+                className="font-semibold underline underline-offset-2 hover:text-emerald-900"
               >
                 View timesheet →
               </a>
@@ -353,45 +358,50 @@ export default function Quotation() {
           {/* Amount due breakdown */}
           <div className="border-t border-amber-200 bg-white">
             <p className="border-b border-gray-100 px-5 py-3 font-sans text-xs font-bold tracking-widest text-gray-400 uppercase">
-              Amount Due Now
+              Payment Summary
             </p>
-            {paymentRows.filter(r => r.due).map((row) => (
+            {paymentRows.filter(r => r.paid).map((row) => (
               <div key={row.milestone} className="flex items-center justify-between border-b border-gray-100 px-5 py-3 font-sans text-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-gray-600">{row.milestone}</span>
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600">Due</span>
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-600">Paid</span>
                 </div>
-                <span className="font-semibold text-gray-800">{fmt(subtotal * row.pct)} <span className="font-normal text-gray-400 text-xs">USD</span></span>
+                <span className="font-semibold text-gray-500 line-through">{fmt(subtotal * row.pct)} <span className="font-normal text-gray-400 text-xs">USD</span></span>
               </div>
             ))}
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3 font-sans text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Hourly time — 34 hrs @ $65</span>
+                {HOURLY_PAID && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-600">Paid</span>}
               </div>
-              <span className="font-semibold text-gray-800">{fmt(34 * 65)} <span className="font-normal text-gray-400 text-xs">CAD</span></span>
+              <span className={`font-semibold ${HOURLY_PAID ? 'text-gray-500 line-through' : 'text-gray-800'}`}>{fmt(34 * 65)} <span className="font-normal text-gray-400 text-xs">CAD</span></span>
             </div>
-            <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-5 py-3 font-sans text-sm text-gray-500">
-              <span>Bucket payments due</span>
-              <span className="font-semibold text-gray-700">{fmt(paymentRows.filter(r => r.due).reduce((s, r) => s + subtotal * r.pct, 0))} <span className="font-normal text-xs">USD</span></span>
-            </div>
-            <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50 px-5 py-3 font-sans text-sm text-gray-500">
-              <span>Hourly time (34 hrs @ $65)</span>
-              <span className="font-semibold text-gray-700">{fmt(34 * 65)} <span className="font-normal text-xs">CAD</span></span>
-            </div>
-            <div className="flex items-center justify-between border-t-2 border-amber-300 bg-amber-100 px-5 py-4 font-sans text-base font-bold text-amber-900">
-              <span>Total Due</span>
+            <div className="flex items-center justify-between border-t-2 border-emerald-200 bg-emerald-50 px-5 py-4 font-sans text-base font-bold text-emerald-800">
+              <div className="flex items-center gap-3">
+                <svg className="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Paid in Full</span>
+              </div>
               <div className="text-right">
-                <p>{fmt(paymentRows.filter(r => r.due).reduce((s, r) => s + subtotal * r.pct, 0))} <span className="text-sm font-normal text-amber-700">USD</span></p>
-                <p className="text-sm font-semibold text-amber-800">+ {fmt(34 * 65)} <span className="font-normal text-amber-700">CAD</span></p>
+                <p className="text-sm font-semibold text-emerald-700">{fmt(paymentRows.filter(r => r.paid).reduce((s, r) => s + subtotal * r.pct, 0))} <span className="font-normal text-emerald-600">USD</span></p>
+                <p className="text-sm font-semibold text-emerald-700">+ {fmt(34 * 65)} <span className="font-normal text-emerald-600">CAD</span></p>
               </div>
             </div>
-            <div className="flex items-center justify-between border-t border-amber-300 bg-amber-200 px-5 py-4 font-sans font-bold text-amber-900">
-              <div>
-                <p className="text-base">Grand Total Due</p>
-                <p className="text-xs font-normal text-amber-700">USD converted @ {CAD_RATE} + hourly CAD</p>
-              </div>
-              <p className="text-xl">{fmt(Math.round(paymentRows.filter(r => r.due).reduce((s, r) => s + subtotal * r.pct, 0) * CAD_RATE + 34 * 65))} <span className="text-sm font-normal">CAD</span></p>
-            </div>
+            {(() => {
+              const next = paymentRows.find(r => !r.paid && !r.due)
+              if (!next) return null
+              return (
+                <div className="flex items-center justify-between border-t border-royal-blue/20 bg-royal-blue/5 px-5 py-4 font-sans text-sm">
+                  <div>
+                    <p className="font-semibold text-royal-blue">Next Payment</p>
+                    <p className="mt-0.5 text-xs text-gray-500">{next.trigger}</p>
+                    <p className="mt-0.5 text-xs text-gray-400">{next.milestone}</p>
+                  </div>
+                  <p className="font-bold text-royal-blue">{fmt(subtotal * next.pct)} <span className="text-xs font-normal text-gray-400">USD</span></p>
+                </div>
+              )
+            })()}
           </div>
         </div>
 

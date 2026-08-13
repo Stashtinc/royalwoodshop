@@ -34,7 +34,7 @@ function MenuColumn({ heading, items }) {
 
 function HighlightColumn({ eyebrow, title, description, ctaLabel, ctaTo }) {
   return (
-    <div className="flex flex-col gap-3 bg-[#fbfbfb] p-5">
+    <div className="flex flex-col gap-3 bg-[#f0f0f0] p-5">
       {eyebrow && (
         <p className="font-body text-xs font-bold tracking-wide text-royal-blue uppercase">
           {eyebrow}
