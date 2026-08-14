@@ -1,0 +1,28 @@
+# Netlify deployment.
+#
+# The site is fully prerendered, so this is a static deploy — no functions, no
+# server runtime. Everything Netlify-specific lives in this file and the
+# generated _redirects; the contents of build/client are plain HTML, CSS,
+# JS and images that any static host will serve.
+
+[build]
+  command = "npm run build"
+  publish = "build/client"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # Canonical tags and sitemap. Must keep the VITE_ prefix.
+  VITE_SITE_URL = "https://www.royalwoodshop.com"
+
+# Hashed asset filenames never change contents, so they can be cached forever.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"

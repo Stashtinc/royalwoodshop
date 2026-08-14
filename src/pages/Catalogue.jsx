@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router'
 import {
-  catalogueProducts,
-  catalogueCategoryOrder,
-  catalogueMaterials,
-} from '../data/catalogueProducts'
+  productPath, catalogueProducts as snapshotProducts,
+  categoryTree, speciesFacet, availabilityFacet,
+} from '../data/catalogue'
 
 const PAGE_SIZE = 8
 
-// Counts never change (static catalogue), so compute once outside the component.
-const categoryCounts = catalogueProducts.reduce((counts, product) => {
+const countBy = (rows) => rows.reduce((counts, product) => {
   counts[product.category] = (counts[product.category] || 0) + 1
   const subKey = `${product.category}::${product.subcategory}`
   counts[subKey] = (counts[subKey] || 0) + 1
@@ -82,14 +80,17 @@ function PaginationControls({ page, totalPages, onChange }) {
 function ProductCard({ product }) {
   return (
     <Link
-      to={`/products/${product.id}`}
+      to={productPath(product)}
       className="group flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-lg"
     >
-      <div className="aspect-[4/5] w-full overflow-hidden bg-gray-100">
+      {/* Profile drawings are wide technical illustrations — contain, never
+          crop, or the detail a customer is reading gets cut off. */}
+      <div className="aspect-[4/3] w-full overflow-hidden bg-white p-4">
         <img
           src={product.image}
-          alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
+          loading="lazy"
+          className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
         />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
@@ -112,11 +113,11 @@ function ProductCard({ product }) {
 function ProductRow({ product }) {
   return (
     <Link
-      to={`/products/${product.id}`}
+      to={productPath(product)}
       className="group flex gap-5 rounded-2xl border border-gray-100 bg-white p-4 transition-shadow duration-300 hover:shadow-lg"
     >
-      <div className="h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-gray-100">
-        <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+      <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-white p-2">
+        <img src={product.image} alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`} loading="lazy" className="h-full w-full object-contain" />
       </div>
       <div className="flex flex-1 flex-col justify-center gap-1.5">
         <p className="font-sans text-xs font-bold tracking-wide text-royal-blue uppercase">
@@ -134,7 +135,7 @@ function ProductRow({ product }) {
           </p>
           <p>
             <span className="font-medium text-gray-700">Material </span>
-            {product.material}
+            {product.availabilityLabel ?? product.material}
           </p>
         </div>
       </div>
@@ -142,12 +143,20 @@ function ProductRow({ product }) {
   )
 }
 
-export default function Catalogue() {
+export default function Catalogue({ initialCategory = null, products = null }) {
+  // Products come from the loader (Postgres at build time). The snapshot is the
+  // fallback so this component still renders on its own.
+  const allProducts = products ?? snapshotProducts
+  const categoryCounts = useMemo(() => countBy(allProducts), [allProducts])
+  const catalogueCategoryOrder = useMemo(() => categoryTree(allProducts), [allProducts])
+  const speciesOptions = useMemo(() => speciesFacet(allProducts), [allProducts])
+  const availabilityOptions = useMemo(() => availabilityFacet(allProducts), [allProducts])
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [productCode, setProductCode] = useState(() => searchParams.get('code') || '')
   const [sizeCategory, setSizeCategory] = useState('All')
-  const [material, setMaterial] = useState('All')
+  const [species, setSpecies] = useState('All')
+  const [availability, setAvailability] = useState('All')
   const [selectedSubs, setSelectedSubs] = useState(() => new Set())
   const [page, setPage] = useState(1)
   const [view, setView] = useState('grid')
@@ -196,7 +205,8 @@ export default function Catalogue() {
     setSearch('')
     setProductCode('')
     setSizeCategory('All')
-    setMaterial('All')
+    setSpecies('All')
+    setAvailability('All')
     setSelectedSubs(new Set())
     setPage(1)
   }
@@ -205,14 +215,15 @@ export default function Catalogue() {
     Boolean(search.trim()) ||
     Boolean(productCode.trim()) ||
     sizeCategory !== 'All' ||
-    material !== 'All' ||
+    species !== 'All' ||
+    availability !== 'All' ||
     selectedSubs.size > 0
 
   const filtered = useMemo(() => {
     const searchTerm = search.trim().toLowerCase()
     const codeTerm = productCode.trim().toLowerCase()
 
-    return catalogueProducts.filter((product) => {
+    return allProducts.filter((product) => {
       if (
         searchTerm &&
         !product.name.toLowerCase().includes(searchTerm) &&
@@ -222,13 +233,14 @@ export default function Catalogue() {
       }
       if (codeTerm && !product.productCode.toLowerCase().includes(codeTerm)) return false
       if (sizeCategory !== 'All' && product.sizeCategory !== sizeCategory) return false
-      if (material !== 'All' && product.material !== material) return false
+      if (species !== 'All' && !(product.species ?? []).includes(species)) return false
+      if (availability !== 'All' && product.availability !== availability) return false
       if (selectedSubs.size > 0 && !selectedSubs.has(`${product.category}::${product.subcategory}`)) {
         return false
       }
       return true
     })
-  }, [search, productCode, sizeCategory, material, selectedSubs])
+  }, [allProducts, search, productCode, sizeCategory, species, availability, selectedSubs])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -329,34 +341,57 @@ export default function Catalogue() {
               />
             </div>
 
+            {/* Availability first — a contractor working to a date filters on
+                this before anything else. */}
+            {availabilityOptions.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <p className="font-serif text-base font-bold text-tundora">Availability</p>
+                <select
+                  value={availability}
+                  onChange={(e) => withPageReset(setAvailability)(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
+                >
+                  <option value="All">All</option>
+                  {availabilityOptions.map((o) => (
+                    <option key={o.key} value={o.key}>{o.value} ({o.count})</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="flex flex-col gap-3">
-              <p className="font-serif text-base font-bold text-tundora">Size</p>
+              <p className="font-serif text-base font-bold text-tundora">Width</p>
               <select
                 value={sizeCategory}
                 onChange={(e) => withPageReset(setSizeCategory)(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
               >
                 <option value="All">All</option>
-                <option value="Standard">Standard Sizes</option>
-                <option value="Custom">Custom Sizes</option>
+                <option value='Under 2&quot;'>Under 2&quot;</option>
+                <option value='2&quot; – 4&quot;'>2&quot; – 4&quot;</option>
+                <option value='4&quot; – 7&quot;'>4&quot; – 7&quot;</option>
+                <option value='Over 7&quot;'>Over 7&quot;</option>
+                <option value="Made to order">Made to order</option>
               </select>
             </div>
 
-            <div className="flex flex-col gap-3">
-              <p className="font-serif text-base font-bold text-tundora">Material</p>
-              <select
-                value={material}
-                onChange={(e) => withPageReset(setMaterial)(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
-              >
-                <option value="All">All</option>
-                {catalogueMaterials.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Hidden until the species sheet comes back — an empty filter is
+                worse than no filter. */}
+            {speciesOptions.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <p className="font-serif text-base font-bold text-tundora">Wood species</p>
+                <select
+                  value={species}
+                  onChange={(e) => withPageReset(setSpecies)(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
+                >
+                  <option value="All">All</option>
+                  {speciesOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.value} ({o.count})</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {hasActiveFilters && (
               <button

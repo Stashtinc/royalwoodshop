@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import logo from '../assets/images/logo.svg'
 
 const quickLinks = [

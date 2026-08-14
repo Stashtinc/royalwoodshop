@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
 import logo from '../assets/images/logo.svg'
 import heroLeft from '../assets/images/hero-left.png'
 import heroRight from '../assets/images/header-doors.jpg'
@@ -14,7 +14,7 @@ const PHOTO_STRIP_HEIGHT = 170
 const NAV_ROW_MAX_WIDTH = 820
 
 const navLinks = [
-  { label: 'Products', to: '/trim-doors-catalogue', menu: 'products' },
+  { label: 'Products', to: '/products', menu: 'products' },
   { label: 'Services', to: '/services', menu: 'services' },
   { label: 'About Royal', to: '/#about', menu: 'about' },
   { label: 'Contact Us', to: '/contact' },

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
 import NavDropdownPanel from './NavDropdownPanel'
 import SearchResultsList from './SearchResultsList'
 import useSiteSearch from '../hooks/useSiteSearch'
@@ -7,7 +7,7 @@ import { productsMenu, servicesMenu, aboutMenu, resourcesMenu } from '../data/na
 import logoBlue from '../assets/images/logo-blue.svg'
 
 const navLinks = [
-  { label: 'Products', to: '/trim-doors-catalogue', menu: 'products' },
+  { label: 'Products', to: '/products', menu: 'products' },
   { label: 'Services', to: '/services', menu: 'services' },
   { label: 'About Royal', to: '/#about', menu: 'about' },
   { label: 'Contact Us', to: '/contact' },

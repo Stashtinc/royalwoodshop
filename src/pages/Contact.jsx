@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import MapEmbed from '../components/MapEmbed'
+import MapEmbed from '../components/MapEmbedClient'
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false)

@@ -51,3 +51,48 @@ body {
   margin: 14px 16px !important;
   line-height: 1 !important;
 }
+
+/* ------------------------------------------------------------------------
+   Product spec sheet.
+
+   The "Download spec sheet" button on a product page calls window.print();
+   the browser's own "Save as PDF" does the rest. No PDF library, nothing to
+   keep in step with the page — the sheet is the page, minus the furniture.
+   ------------------------------------------------------------------------ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm 14mm 12mm;
+  }
+
+  html, body {
+    background: #fff !important;
+    min-height: 0 !important;
+  }
+
+  /* The site shell forces a full viewport height, which prints as a blank
+     page before any content appears. */
+  .min-h-screen {
+    min-height: 0 !important;
+  }
+
+  /* Site furniture never belongs on a spec sheet. */
+  header, footer, nav,
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  /* The sheet is one page. Keep it that way. */
+  .print\:block {
+    break-inside: avoid;
+  }
+
+  img {
+    break-inside: avoid;
+  }
+
+  /* Do not append URLs after links — the sheet carries its own address line. */
+  a::after {
+    content: none !important;
+  }
+}

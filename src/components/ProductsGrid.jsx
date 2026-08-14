@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { productCategories } from '../data/productCategories'
 
 export default function ProductsGrid() {
@@ -39,7 +39,7 @@ export default function ProductsGrid() {
                   <p className="font-sans text-xs text-white/90 sm:text-base">{category.description}</p>
                 </div>
                 <Link
-                  to="/trim-doors-catalogue"
+                  to="/products"
                   className="block text-right font-sans text-xs text-white sm:text-base"
                 >
                   View more <span aria-hidden="true">&rarr;</span>

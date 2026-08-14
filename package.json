@@ -4,27 +4,45 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "react-router dev",
+    "build": "react-router build && node scripts/post-build.mjs",
+    "start": "react-router-serve ./build/server/index.js",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "typecheck": "react-router typegen",
+    "sync:data": "node scripts/sync-data.mjs",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "import:products": "node scripts/import-products.mjs",
+    "import:redirects": "node scripts/import-redirects.mjs",
+    "import:species": "node scripts/import-species.mjs"
   },
   "dependencies": {
+    "@react-router/node": "^7.18.2",
+    "@react-router/serve": "^7.18.2",
+    "csv-parse": "^7.0.2",
     "fuse.js": "^7.5.0",
+    "isbot": "^5.2.1",
     "leaflet": "^1.9.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-leaflet": "^5.0.0",
-    "react-router-dom": "^7.18.2",
+    "react-router": "^7.18.2",
     "signature_pad": "^5.1.4"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.5",
+    "@react-router/dev": "^7.18.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
+    "drizzle-kit": "^0.28.1",
     "oxlint": "^1.75.0",
     "tailwindcss": "^4.3.3",
-    "vite": "^8.2.0"
+    "vite": "^8.2.0",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9",
+    "dotenv": "^17.4.2"
   }
 }

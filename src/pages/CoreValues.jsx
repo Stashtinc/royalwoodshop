@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import staffPhoto from '../assets/images/staff-photo-delivery-truck.jpg'
 
 const coreValues = [

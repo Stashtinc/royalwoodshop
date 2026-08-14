@@ -7,7 +7,7 @@ function entries(labels, path, group) {
 }
 
 export const searchIndex = [
-  { label: 'Products', path: '/trim-doors-catalogue', group: 'Pages' },
+  { label: 'Products', path: '/products', group: 'Pages' },
   { label: 'Services', path: '/services', group: 'Pages' },
   { label: 'About Royal', path: '/#about', group: 'Pages' },
   { label: 'Contact Us', path: '/contact', group: 'Pages' },
@@ -15,13 +15,13 @@ export const searchIndex = [
 
   ...entries(
     productCategories.map((category) => category.name),
-    '/trim-doors-catalogue',
+    '/products',
     'Products',
   ),
   ...productsMenu.groups.flatMap((group) =>
-    entries(group.items, '/trim-doors-catalogue', 'Products'),
+    entries(group.items, '/products', 'Products'),
   ),
-  ...entries(productsMenu.items, '/trim-doors-catalogue', 'Products'),
+  ...entries(productsMenu.items, '/products', 'Products'),
   ...entries(servicesMenu, '/services', 'Services'),
   ...entries(aboutMenu, '/#about', 'About Royal'),
   ...entries(resourcesMenu, '/resources', 'Resources'),
@@ -31,7 +31,7 @@ export const searchIndex = [
   ...catalogueProducts.map((product) => ({
     label: product.name,
     code: product.productCode,
-    path: `/trim-doors-catalogue?code=${encodeURIComponent(product.productCode)}`,
+    path: `/products?code=${encodeURIComponent(product.productCode)}`,
     group: 'Products',
   })),
 ]

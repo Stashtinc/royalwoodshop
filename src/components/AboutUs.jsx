@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import aboutUsImg from '../assets/images/about-us-cover.png'
 
 const youtubeVideoId = 'K6Qf7NK81Bo'

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
 import logo from '../assets/images/logo.svg'
 import heroLeft from '../assets/images/hero-left.png'
 import heroRight from '../assets/images/hero-right.jpg'
@@ -13,7 +13,7 @@ const PANEL_WIDTH = 612
 const NAV_ROW_MAX_WIDTH = 820
 
 const navLinks = [
-  { label: 'Products', to: '/trim-doors-catalogue', menu: 'products' },
+  { label: 'Products', to: '/products', menu: 'products' },
   { label: 'Services', to: '/services', menu: 'services' },
   { label: 'About Royal', to: '/#about', menu: 'about' },
   { label: 'Contact Us', to: '/contact' },
@@ -96,7 +96,7 @@ function ProductHotspot({ left, top, name, partNo, price, popoverSide = 'left' }
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <span className="font-sans text-sm font-medium text-royal-blue">{price}</span>
           <Link
-            to="/trim-doors-catalogue"
+            to="/products"
             className="rounded-md border border-royal-blue px-3 py-1.5 font-sans text-xs text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
           >
             View

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { productsMenu, servicesMenu, aboutMenu, resourcesMenu } from '../data/navMenus'
 
 const PANEL_WIDTH = 'w-[720px]'

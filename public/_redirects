@@ -1,1 +1,3 @@
-/* /index.html 200
+# Static prerendered pages are served directly.
+# Legacy URLs are handled by the redirect map (data/redirects.csv) — load these
+# into your host's redirect rules, or into the database-backed redirect table.

@@ -1,5 +1,5 @@
-import { Link, useParams, useNavigate } from 'react-router-dom'
-import { catalogueProducts } from '../data/catalogueProducts'
+import { Link, useParams, useNavigate } from 'react-router'
+import { catalogueProducts, productPath, relatedTo } from '../data/catalogue'
 
 function ChevronRight() {
   return (
@@ -9,17 +9,99 @@ function ChevronRight() {
   )
 }
 
+function DownloadIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8 1v9m0 0L4.5 6.5M8 10l3.5-3.5M1.5 11.5v1a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1"
+        stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+/**
+ * Print-only specification sheet.
+ *
+ * A purpose-built one-page layout rather than a restyled web page — the site
+ * layout uses min-h-screen and multi-column grids that do not translate to
+ * paper. Everything else on the page is hidden when printing.
+ */
+function SpecSheet({ product }) {
+  const rows = [
+    ['Product code', product.productCode],
+    ['Size', product.size],
+    ['Species', product.species?.length ? product.species.join(', ') : null],
+    ['Flexible version', product.flexAvailable ? 'Available' : null],
+    ['Category', product.category],
+    ['Type', product.subcategory],
+    ['Availability', product.availabilityLabel],
+    ['Lead time', product.leadTime],
+  ].filter(([, v]) => v)
+
+  return (
+    <div className="hidden print:block">
+      <div className="flex items-start justify-between border-b border-gray-400 pb-3">
+        <div>
+          <p className="font-serif text-xl font-bold text-black">The Royal Wood Shop</p>
+          <p className="font-sans text-[11px] text-gray-600">Product specification sheet</p>
+        </div>
+        <p className="font-sans text-[11px] text-gray-600">Since 1982 · royalwoodshop.com</p>
+      </div>
+
+      <h1 className="mt-5 font-serif text-2xl leading-tight font-bold text-black">{product.name}</h1>
+      {product.productCode && (
+        <p className="mt-1 font-sans text-sm tracking-wide text-gray-700">{product.productCode}</p>
+      )}
+
+      {product.image && (
+        <img
+          src={product.image}
+          alt={`${product.name} profile drawing`}
+          className="mx-auto my-5 max-h-[75mm] w-auto object-contain"
+        />
+      )}
+
+      <table className="w-full border-collapse">
+        <tbody>
+          {rows.map(([label, value]) => (
+            <tr key={label} className="border-b border-gray-200">
+              <th className="w-[38%] py-1.5 text-left align-top font-sans text-[11px] font-bold text-gray-700">
+                {label}
+              </th>
+              <td className="py-1.5 text-left align-top font-sans text-[11px] text-black">{value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {product.description && (
+        <p className="mt-4 font-sans text-[11px] leading-relaxed text-gray-800">{product.description}</p>
+      )}
+
+      <div className="mt-6 border-t border-gray-400 pt-3">
+        <p className="font-sans text-[10px] text-gray-700">
+          18237 Woodbine Ave, East Gwillimbury, ON L0G 1V0 · 905-727-1387 · info@royalwoodshop.com
+        </p>
+        <p className="font-sans text-[10px] text-gray-500">
+          royalwoodshop.com/products/{product.categorySlug}/{product.slug} · Sizes and availability
+          subject to change; confirm at time of order.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function RelatedCard({ product }) {
   return (
     <Link
-      to={`/products/${product.id}`}
+      to={productPath(product)}
       className="group flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-lg"
     >
-      <div className="aspect-[4/5] w-full overflow-hidden bg-gray-100">
+      <div className="aspect-[4/3] w-full overflow-hidden bg-white p-4">
         <img
           src={product.image}
-          alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
+          loading="lazy"
+          className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
         />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
@@ -39,10 +121,10 @@ function RelatedCard({ product }) {
   )
 }
 
-export default function ProductDetail() {
-  const { id } = useParams()
+export default function ProductDetail({ product: productProp = null, related: relatedProp = null }) {
+  const { slug } = useParams()
   const navigate = useNavigate()
-  const product = catalogueProducts.find((p) => p.id === id)
+  const product = productProp ?? catalogueProducts.find((p) => p.slug === slug)
 
   if (!product) {
     return (
@@ -50,7 +132,7 @@ export default function ProductDetail() {
         <p className="font-serif text-2xl font-bold text-tundora">Product not found</p>
         <p className="font-sans text-gray-500">The product you're looking for doesn't exist or has been removed.</p>
         <Link
-          to="/trim-doors-catalogue"
+          to="/products"
           className="rounded-lg border border-royal-blue bg-royal-blue px-6 py-3 font-sans text-sm text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark"
         >
           Back to Catalogue
@@ -59,27 +141,34 @@ export default function ProductDetail() {
     )
   }
 
-  const related = catalogueProducts.filter(
+  const related = relatedProp ?? catalogueProducts.filter(
     (p) => p.id !== product.id && p.subcategory === product.subcategory,
   ).slice(0, 4)
 
   const specs = [
     { label: 'Product Code', value: product.productCode },
     { label: 'Size', value: product.size },
-    { label: 'Material', value: product.material },
+    // Species comes from the sheet Royal Wood Shop are completing. Until a
+    // product has it, the row is omitted rather than showing a bare 'wood'.
+    { label: product.species?.length > 1 ? 'Available in' : 'Species',
+      value: product.species?.length ? product.species.join(', ') : null },
+    { label: 'Flexible version', value: product.flexAvailable ? 'Available' : null },
     { label: 'Category', value: product.category },
     { label: 'Type', value: product.subcategory },
-    { label: 'Availability', value: product.sizeCategory === 'Custom' ? 'Custom order' : 'In stock' },
-  ]
+    { label: 'Availability', value: product.availabilityLabel ?? null },
+    { label: 'Lead time', value: product.leadTime ?? null },
+  ].filter((s) => s.value)
 
   return (
     <div className="w-full bg-[#fbfbfb]">
+      <SpecSheet product={product} />
+      <div className="print:hidden">
       {/* Breadcrumb */}
       <div className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-[1280px] items-center gap-2 px-6 py-3 font-sans text-xs text-gray-400 lg:px-8">
           <Link to="/" className="transition-colors hover:text-royal-blue">Home</Link>
           <ChevronRight />
-          <Link to="/trim-doors-catalogue" className="transition-colors hover:text-royal-blue">Catalogue</Link>
+          <Link to="/products" className="transition-colors hover:text-royal-blue">Catalogue</Link>
           <ChevronRight />
           <span className="text-tundora">{product.name}</span>
         </div>
@@ -91,11 +180,12 @@ export default function ProductDetail() {
           <div className="flex flex-col gap-10 lg:flex-row lg:gap-16">
             {/* Image */}
             <div className="w-full shrink-0 lg:w-[480px]">
-              <div className="aspect-[4/5] w-full overflow-hidden rounded-2xl bg-gray-100">
+              {/* The main image is the profile itself. Show all of it. */}
+              <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl border border-gray-100 bg-white p-6">
                 <img
                   src={product.image}
-                  alt={product.name}
-                  className="h-full w-full object-cover"
+                  alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
+                  className="h-full w-full object-contain"
                 />
               </div>
             </div>
@@ -143,12 +233,24 @@ export default function ProductDetail() {
                 </Link>
                 <button
                   type="button"
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 font-sans text-sm font-medium text-tundora transition-colors hover:border-royal-blue hover:text-royal-blue print:hidden"
+                >
+                  <DownloadIcon />
+                  Spec sheet (PDF)
+                </button>
+                <button
+                  type="button"
                   onClick={() => navigate(-1)}
                   className="rounded-lg border border-gray-300 bg-white px-6 py-3 font-sans text-sm font-medium text-tundora transition-colors hover:border-royal-blue hover:text-royal-blue"
                 >
                   Back to Catalogue
                 </button>
               </div>
+
+              <p className="font-sans text-xs text-gray-400 print:hidden">
+                Spec sheet opens your print dialog — choose <span className="font-medium">Save as PDF</span> as the destination.
+              </p>
 
               <p className="font-sans text-xs text-gray-400">
                 Pricing is available upon request. Contact us for stock availability and delivery options across Toronto and the GTA.
@@ -160,7 +262,7 @@ export default function ProductDetail() {
 
       {/* Related products */}
       {related.length > 0 && (
-        <section className="border-t border-gray-200 py-12 lg:py-16">
+        <section className="border-t border-gray-200 py-12 print:hidden lg:py-16">
           <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
             <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -170,7 +272,7 @@ export default function ProductDetail() {
                 </h2>
               </div>
               <Link
-                to="/trim-doors-catalogue"
+                to="/products"
                 className="font-sans text-sm text-royal-blue underline underline-offset-2 hover:text-royal-blue-dark"
               >
                 View all products
@@ -203,6 +305,7 @@ export default function ProductDetail() {
           </Link>
         </div>
       </section>
+      </div>
     </div>
   )
 }
