@@ -11,8 +11,19 @@
 
 [build.environment]
   NODE_VERSION = "22"
-  # Canonical tags and sitemap. Must keep the VITE_ prefix.
+
+# Canonical tags and the sitemap are built from VITE_SITE_URL, so it must
+# differ per context. If a preview inherits the production value it emits
+# canonicals pointing at the live site, which tells Google those previews are
+# duplicates of pages it cannot verify.
+[context.production.environment]
   VITE_SITE_URL = "https://www.royalwoodshop.com"
+
+[context.branch-deploy.environment]
+  VITE_SITE_URL = "https://staging--royalwoodshop.netlify.app"
+
+[context.deploy-preview.environment]
+  VITE_SITE_URL = "https://deploy-preview--royalwoodshop.netlify.app"
 
 # Hashed asset filenames never change contents, so they can be cached forever.
 [[headers]]
