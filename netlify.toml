@@ -19,9 +19,6 @@
 [context.production.environment]
   VITE_SITE_URL = "https://www.royalwoodshop.com"
 
-[context.branch-deploy.environment]
-  VITE_SITE_URL = "https://staging--royalwoodshop.netlify.app"
-
 [context.deploy-preview.environment]
   VITE_SITE_URL = "https://deploy-preview--royalwoodshop.netlify.app"
 
