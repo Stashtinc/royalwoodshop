@@ -9,6 +9,10 @@ const STATIC_PAGES = [
 export default {
   appDirectory: 'src',
   ssr: true,
+  // All routes are prerendered, so embed the full route manifest in the
+  // initial HTML rather than lazily fetching /__manifest from a server that
+  // doesn't exist on a static Netlify deploy.
+  routeDiscovery: { mode: 'initial' },
   // Every page is rendered to static HTML at build time. Search engines and
   // social scrapers get complete markup without executing any JavaScript.
   async prerender() {
