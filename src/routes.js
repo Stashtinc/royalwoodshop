@@ -17,6 +17,15 @@ export default [
   route('resources', 'routes/resources.jsx'),
   route('quotation', 'routes/quotation.jsx'),
 
+  // Admin. Never prerendered — it runs on the server that holds the database.
+  route('admin/login', 'routes/admin/login.jsx'),
+  route('admin/logout', 'routes/admin/logout.js'),
+  route('admin', 'routes/admin/layout.jsx', [
+    index('routes/admin/dashboard.jsx'),
+    route('products', 'routes/admin/products.jsx'),
+    route('products/:id', 'routes/admin/product-edit.jsx'),
+  ]),
+
   route('404', 'routes/not-found.jsx'),
 
   route('sitemap.xml', 'routes/sitemap.js'),

@@ -15,11 +15,14 @@
     "db:studio": "drizzle-kit studio",
     "import:products": "node scripts/import-products.mjs",
     "import:redirects": "node scripts/import-redirects.mjs",
-    "import:species": "node scripts/import-species.mjs"
+    "import:species": "node scripts/import-species.mjs",
+    "db:setup": "node scripts/db-setup.mjs",
+    "admin:create-user": "node scripts/create-admin.mjs"
   },
   "dependencies": {
     "@react-router/node": "^7.18.2",
     "@react-router/serve": "^7.18.2",
+    "bcryptjs": "^2.4.3",
     "csv-parse": "^7.0.2",
     "fuse.js": "^7.5.0",
     "isbot": "^5.2.1",
@@ -28,7 +31,11 @@
     "react-dom": "^19.2.8",
     "react-leaflet": "^5.0.0",
     "react-router": "^7.18.2",
-    "signature_pad": "^5.1.4"
+    "signature_pad": "^5.1.4",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9",
+    "dotenv": "^17.4.2",
+    "@electric-sql/pglite": "^0.2.17"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.5",
@@ -40,9 +47,6 @@
     "drizzle-kit": "^0.28.1",
     "oxlint": "^1.75.0",
     "tailwindcss": "^4.3.3",
-    "vite": "^8.2.0",
-    "drizzle-orm": "^0.45.2",
-    "postgres": "^3.4.9",
-    "dotenv": "^17.4.2"
+    "vite": "^8.2.0"
   }
 }
