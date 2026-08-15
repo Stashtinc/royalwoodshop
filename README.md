@@ -70,11 +70,16 @@ Sign up at [neon.tech](https://neon.tech) (free at this size), create a project
 called `royalwoodshop`, and copy the **pooled** connection string. Paste it into
 `.env` as `DATABASE_URL`.
 
-### 3. Create the tables
+### 3. Create the tables and load the catalogue
 
 ```bash
-npm run db:push
+npm run db:setup
 ```
+
+**Stop the dev server first.** With no `DATABASE_URL` this uses an embedded
+PostgreSQL stored in `.data/pg`, and that allows only one process at a time —
+if the server is running it holds the database open and the migrations will not
+reach it. The script verifies every table exists before reporting success.
 
 Eleven tables. Use `npm run db:studio` any time you want to browse the data in a
 browser rather than a terminal.

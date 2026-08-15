@@ -16,6 +16,35 @@ import * as schema from '../db/schema.js'
  */
 let instance = null
 
+/**
+ * Applies any migration in drizzle/ that has not run yet.
+ *
+ * Only in embedded mode. The embedded database allows a single process, so a
+ * separate migration command cannot reach it while the server is running —
+ * the server has to own this. Against a real PostgreSQL, migrations stay a
+ * deliberate step (`npm run db:setup`) rather than something a deploy does
+ * silently.
+ */
+async function ensureSchema(db) {
+  const { readdirSync, readFileSync, existsSync } = await import('node:fs')
+  const { sql } = await import('drizzle-orm')
+  if (!existsSync('drizzle')) return
+
+  for (const file of readdirSync('drizzle').filter((f) => f.endsWith('.sql')).sort()) {
+    for (const stmt of readFileSync(`drizzle/${file}`, 'utf8').split('--> statement-breakpoint')) {
+      const s = stmt.trim()
+      if (!s) continue
+      try { await db.execute(sql.raw(s)) }
+      catch (e) {
+        const msg = `${e.message} ${e.cause?.message ?? ''}`
+        if (!/already exists|duplicate/i.test(msg)) {
+          console.error(`[db] migration statement failed in ${file}: ${e.cause?.message ?? e.message}`)
+        }
+      }
+    }
+  }
+}
+
 export async function getDb() {
   if (instance) return instance
 
@@ -33,6 +62,7 @@ export async function getDb() {
     await client.waitReady
     instance = drizzlePglite(client, { schema })
     instance.$mode = 'embedded'
+    await ensureSchema(instance)
   }
   return instance
 }

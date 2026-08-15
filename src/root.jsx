@@ -78,6 +78,15 @@ export default function Root() {
 
 export function ErrorBoundary({ error }) {
   const is404 = isRouteErrorResponse(error) && error.status === 404
+
+  // In development, show what actually failed. A friendly message with the
+  // cause hidden means guessing, and guessing is slow.
+  const detail = import.meta.env.DEV
+    ? (isRouteErrorResponse(error)
+        ? `${error.status} ${error.statusText}\n\n${typeof error.data === 'string' ? error.data : JSON.stringify(error.data, null, 2)}`
+        : (error?.stack || error?.message || String(error)))
+    : null
+
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-24 text-center">
       <h1 className="font-serif text-4xl font-bold text-tundora">
@@ -89,6 +98,12 @@ export function ErrorBoundary({ error }) {
           : 'Please try again, or contact us if the problem continues.'}
       </p>
       <a href="/products" className="font-sans font-medium text-tundora underline">Browse the catalogue</a>
+
+      {detail && (
+        <pre className="mt-6 max-h-[50vh] overflow-auto rounded-xl bg-red-950 p-4 text-left font-mono text-xs leading-relaxed whitespace-pre-wrap text-red-100">
+          {detail}
+        </pre>
+      )}
     </main>
   )
 }
