@@ -67,10 +67,12 @@ That writes the key into `.env` correctly and then tests it end to end — it
 authenticates with Google, confirms the service account can actually see the
 property, pulls 28 days of real figures, and prints them.
 
-Doing it by hand is possible but easy to get wrong: the private key contains
-real line breaks, and a `.env` value that spans lines is truncated at the first
-break, which produces a key that looks right in the file and is rejected by
-Google. The script JSON-escapes it onto one line.
+Doing it by hand is possible but easy to get wrong. The private key contains real
+line breaks, and a `.env` value that spans lines is truncated at the first break —
+producing a key that looks right in the file and is rejected by Google. The
+quoting is fussy too: dotenv expands escapes inside double quotes but does not
+understand `\"`, so a JSON payload has to be written in **single** quotes to be
+read back verbatim. The script handles both.
 
 If something is not right, the script says which thing:
 
