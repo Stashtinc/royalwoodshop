@@ -2,13 +2,17 @@ import { Link, Form, useLoaderData, useSearchParams } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { listProducts } from '../../lib/admin-queries.server'
 import { thumbSrc } from '../../lib/images'
+import Pagination from '../../components/admin/Pagination'
 
 export async function loader({ request }) {
   await requireUser(request)
   const url = new URL(request.url)
+  const allowed = [25, 50, 100]
+  const requested = Number(url.searchParams.get('perPage') ?? 25)
   return listProducts({
     q: url.searchParams.get('q') ?? '',
-    page: Number(url.searchParams.get('page') ?? 1),
+    page: Math.max(1, Number(url.searchParams.get('page') ?? 1)),
+    perPage: allowed.includes(requested) ? requested : 25,
     missing: url.searchParams.get('missing') ?? '',
   })
 }
@@ -20,16 +24,10 @@ const MISSING_LABEL = {
 }
 
 export default function Products() {
-  const { rows, total, page, pages } = useLoaderData()
+  const { rows, total, page, pages, perPage } = useLoaderData()
   const [params] = useSearchParams()
   const missing = params.get('missing') ?? ''
   const q = params.get('q') ?? ''
-
-  const pageLink = (n) => {
-    const p = new URLSearchParams(params)
-    p.set('page', String(n))
-    return `?${p}`
-  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -47,6 +45,8 @@ export default function Products() {
           className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue" />
         <button className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm hover:border-gray-400">Search</button>
       </Form>
+
+      <Pagination page={page} pages={pages} total={total} perPage={perPage} />
 
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
         <table className="w-full text-left text-sm">
@@ -112,13 +112,7 @@ export default function Products() {
         </table>
       </div>
 
-      {pages > 1 && (
-        <div className="flex items-center gap-3 text-sm">
-          {page > 1 && <Link to={pageLink(page - 1)} className="rounded-lg border border-gray-300 px-3 py-1.5">Previous</Link>}
-          <span className="text-gray-500">Page {page} of {pages}</span>
-          {page < pages && <Link to={pageLink(page + 1)} className="rounded-lg border border-gray-300 px-3 py-1.5">Next</Link>}
-        </div>
-      )}
+      <Pagination page={page} pages={pages} total={total} perPage={perPage} compact />
     </div>
   )
 }
