@@ -1,15 +1,9 @@
 import products from './src/data/products.json' with { type: 'json' }
-import { readFileSync } from 'node:fs'
+import articles from './src/data/posts.json' with { type: 'json' }
 
-/** Article slugs, read from the same export the database is loaded from. */
-function articleSlugs() {
-  try {
-    const text = readFileSync('data/posts.csv', 'utf8')
-    return text.split('\n').slice(1)
-      .map((line) => line.match(/^\d+,"?([a-z0-9-]+)"?,/)?.[1])
-      .filter(Boolean)
-  } catch { return [] }
-}
+/** Published articles keep the addresses WordPress used. */
+const articleSlugs = () =>
+  articles.filter((a) => a.status === 'published').map((a) => a.slug)
 
 const STATIC_PAGES = [
   '/', '/products', '/contact', '/the-royal-edge', '/core-values',

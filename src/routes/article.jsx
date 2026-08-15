@@ -1,10 +1,10 @@
 import { Link, useLoaderData } from 'react-router'
-import { getPostBySlug } from '../lib/posts.server'
+import { getPost } from '../data/blog'
 import { pageMeta, truncate, BASE, SITE } from '../seo'
 
-export async function loader({ params }) {
-  const post = await getPostBySlug(params.slug)
-  if (!post || post.status !== 'published') throw new Response('Not found', { status: 404 })
+export function loader({ params }) {
+  const post = getPost(params.slug)
+  if (!post) throw new Response('Not found', { status: 404 })
   return { post }
 }
 

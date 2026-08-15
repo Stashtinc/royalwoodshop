@@ -61,6 +61,24 @@ export async function getPostById(id) {
   return row ? shape(row) : null
 }
 
+/**
+ * Every article with its full content, for the snapshot the public site
+ * builds from. The list query deliberately omits the body — it is large and
+ * unused on a listing — so the snapshot needs its own query.
+ */
+export async function allPostsForSnapshot() {
+  const db = await getDb()
+  const rows = await db.select({
+    id: posts.id, slug: posts.slug, title: posts.title, excerpt: posts.excerpt,
+    contentHtml: posts.contentHtml, featuredImage: posts.featuredImage,
+    featuredImageAlt: posts.featuredImageAlt, status: posts.status,
+    seoTitle: posts.seoTitle, seoDescription: posts.seoDescription,
+    publishedAt: posts.publishedAt, updatedAt: posts.updatedAt,
+    categories: categoriesSubquery.as('categories'),
+  }).from(posts).orderBy(desc(posts.publishedAt), desc(posts.id))
+  return rows.map(shape)
+}
+
 export async function listCategories() {
   const db = await getDb()
   return db.select({

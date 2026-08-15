@@ -12,6 +12,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from '../src/db/schema.js'
 import { getAllProducts } from '../src/db/queries.js'
+import { allPostsForSnapshot } from '../src/lib/posts.server.js'
 
 const url = process.env.DATABASE_URL
 if (!url) { console.error('DATABASE_URL is not set'); process.exit(1) }
@@ -21,6 +22,13 @@ const rows = await getAllProducts(drizzle(client, { schema }))
 await client.end()
 
 writeFileSync('src/data/products.json', JSON.stringify(rows, null, 0))
+
+const articles = await allPostsForSnapshot()
+writeFileSync('src/data/posts.json', JSON.stringify(articles, null, 0))
+const published = articles.filter((a) => a.status === 'published').length
+console.log(`wrote ${articles.length} articles (${published} published)`)
+const noBody = articles.filter((a) => !a.contentHtml).length
+if (noBody) console.warn(`  ${noBody} have no content`)
 
 const withSpecies = rows.filter((p) => p.species.length).length
 const withAvail = rows.filter((p) => p.availability).length

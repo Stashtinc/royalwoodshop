@@ -1,10 +1,9 @@
 import { Link, useLoaderData } from 'react-router'
-import { listPosts } from '../lib/posts.server'
+import { publishedPosts } from '../data/blog'
 import { pageMeta, truncate } from '../seo'
 
-export async function loader() {
-  const { rows } = await listPosts({ perPage: 100 })
-  return { posts: rows }
+export function loader() {
+  return { posts: publishedPosts }
 }
 
 export const meta = () => pageMeta({
