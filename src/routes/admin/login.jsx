@@ -1,5 +1,6 @@
 import { Form, useActionData, useSearchParams } from 'react-router'
 import { login, createSession, getUser } from '../../lib/auth.server'
+import { log } from '../../lib/activity.server'
 
 export async function loader({ request }) {
   const user = await getUser(request)
@@ -16,6 +17,7 @@ export async function action({ request }) {
   if (!email || !password) return { error: 'Enter your email and password.' }
   const user = await login(email, password)
   if (!user) return { error: 'Those details were not recognised.' }
+  await log(user, 'auth.login', { entityType: 'user', entityId: user.id, entityLabel: user.name || user.email })
   return createSession(user.id, next.startsWith('/admin') ? next : '/admin')
 }
 

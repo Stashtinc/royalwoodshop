@@ -206,6 +206,28 @@ export const users = pgTable('users', {
   emailIdx: uniqueIndex('users_email_idx').on(t.email),
 }))
 
+/* --------------------------------------------------------- activity log */
+
+/** Who changed what, and when.
+ *
+ *  The actor's email is copied in rather than joined, so the history survives
+ *  a user being removed — an audit trail that disappears with the account is
+ *  not much of an audit trail. */
+export const activityLog = pgTable('activity_log', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id'),
+  userEmail: varchar('user_email', { length: 254 }),
+  action: varchar('action', { length: 60 }).notNull(),
+  entityType: varchar('entity_type', { length: 40 }),
+  entityId: integer('entity_id'),
+  entityLabel: varchar('entity_label', { length: 300 }),
+  details: text('details'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  createdIdx: index('activity_log_created_idx').on(t.createdAt),
+  entityIdx: index('activity_log_entity_idx').on(t.entityType, t.entityId),
+}))
+
 /* -------------------------------------------------------------- relations */
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({

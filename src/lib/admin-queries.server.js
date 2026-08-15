@@ -77,6 +77,35 @@ export async function getProduct(id) {
   return { ...row, species: Array.isArray(row.species) ? row.species : [] }
 }
 
+const LABELS = {
+  name: 'name', productCode: 'product code', description: 'description',
+  sizeDisplay: 'size', thicknessIn: 'thickness', widthIn: 'width',
+  availability: 'availability', leadTime: 'lead time', flexAvailable: 'flex',
+  status: 'status', seoTitle: 'page title', seoDescription: 'meta description',
+  species: 'species',
+}
+
+/** Compares the incoming form against what is stored, so the log records what
+ *  changed rather than only that something did. */
+export function diffProduct(before, data) {
+  const changed = []
+  for (const [key, label] of Object.entries(LABELS)) {
+    if (key === 'species') {
+      const a = [...(before.species ?? [])].sort().join('|')
+      const b = [...(data.species ?? [])].sort().join('|')
+      if (a !== b) changed.push({ field: label, from: a || '—', to: b || '—' })
+      continue
+    }
+    const a = before[key] ?? ''
+    const b = data[key] ?? ''
+    const norm = (v) => (typeof v === 'boolean' ? String(v) : String(v ?? '').trim())
+    if (norm(a) !== norm(b)) {
+      changed.push({ field: label, from: norm(a) || '—', to: norm(b) || '—' })
+    }
+  }
+  return changed
+}
+
 export async function saveProduct(id, data) {
   const db = await getDb()
 

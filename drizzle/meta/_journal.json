@@ -8,6 +8,13 @@
       "when": 1786664701638,
       "tag": "0000_last_blizzard",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786780698030,
+      "tag": "0001_dark_polaris",
+      "breakpoints": true
     }
   ]
 }

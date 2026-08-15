@@ -1,8 +1,10 @@
 import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import {
-  getProduct, saveProduct, listImages, addImage, updateImage, removeImage, moveImage,
+  getProduct, saveProduct, diffProduct, listImages, addImage, updateImage,
+  removeImage, moveImage,
 } from '../../lib/admin-queries.server'
+import { log } from '../../lib/activity.server'
 import { saveUpload, deleteUpload, describeLimits } from '../../lib/uploads.server'
 import { SPECIES, AVAILABILITY } from '../../lib/catalogue-constants'
 import ImageDropZone from '../../components/admin/ImageDropZone'
@@ -16,7 +18,7 @@ export async function loader({ request, params }) {
 }
 
 export async function action({ request, params }) {
-  await requireUser(request)
+  const user = await requireUser(request)
   const f = await request.formData()
   const intent = String(f.get('intent') ?? 'details')
 
@@ -37,6 +39,12 @@ export async function action({ request, params }) {
       })
       added++
     }
+    if (added) {
+      await log(user, 'image.added', {
+        entityType: 'product', entityId: params.id, entityLabel: product?.name,
+        details: { count: added },
+      })
+    }
     return errors.length
       ? { error: errors.join(' '), saved: added ? `${added} added.` : undefined }
       : { saved: `${added} image${added === 1 ? '' : 's'} added.` }
@@ -44,22 +52,41 @@ export async function action({ request, params }) {
 
   if (intent === 'image-alt') {
     await updateImage(f.get('imageId'), { altText: String(f.get('altText') ?? '') })
+    await log(user, 'image.updated', {
+      entityType: 'product', entityId: params.id,
+      entityLabel: (await getProduct(params.id))?.name,
+      details: { field: 'description', to: String(f.get('altText') ?? '') },
+    })
     return { saved: 'Description updated.' }
   }
 
   if (intent === 'image-role') {
     await updateImage(f.get('imageId'), { role: String(f.get('role') ?? 'product_photo') })
+    await log(user, 'image.updated', {
+      entityType: 'product', entityId: params.id,
+      entityLabel: (await getProduct(params.id))?.name,
+      details: { field: 'type', to: String(f.get('role')) },
+    })
     return { saved: 'Image type updated.' }
   }
 
   if (intent === 'image-move') {
     await moveImage(params.id, f.get('imageId'), String(f.get('direction')))
+    await log(user, 'image.reordered', {
+      entityType: 'product', entityId: params.id,
+      entityLabel: (await getProduct(params.id))?.name,
+    })
     return { saved: 'Order updated.' }
   }
 
   if (intent === 'image-delete') {
     const key = await removeImage(f.get('imageId'))
     if (key) await deleteUpload(key)
+    await log(user, 'image.deleted', {
+      entityType: 'product', entityId: params.id,
+      entityLabel: (await getProduct(params.id))?.name,
+      details: { file: key ?? 'external' },
+    })
     return { saved: 'Image removed.' }
   }
 
@@ -72,7 +99,8 @@ export async function action({ request, params }) {
     return t === '' || Number.isNaN(Number(t)) ? null : t
   }
 
-  await saveProduct(params.id, {
+  const before = await getProduct(params.id)
+  const payload = {
     name,
     productCode: String(f.get('productCode') ?? '').trim(),
     description: String(f.get('description') ?? '').trim(),
@@ -86,9 +114,18 @@ export async function action({ request, params }) {
     seoTitle: String(f.get('seoTitle') ?? '').trim(),
     seoDescription: String(f.get('seoDescription') ?? '').trim(),
     species: f.getAll('species').map(String),
-  })
+  }
 
-  return { saved: 'Saved.' }
+  const changed = diffProduct(before, payload)
+  await saveProduct(params.id, payload)
+  if (changed.length) {
+    await log(user, 'product.updated', {
+      entityType: 'product', entityId: params.id, entityLabel: payload.name,
+      details: { changed },
+    })
+  }
+
+  return { saved: changed.length ? `Saved — ${changed.map((c) => c.field).join(', ')} updated.` : 'No changes to save.' }
 }
 
 const field = 'rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue'

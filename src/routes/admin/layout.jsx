@@ -25,6 +25,13 @@ const DashboardIcon = () => (
   </svg>
 )
 
+const LogsIcon = () => (
+  <svg viewBox="0 0 20 20" className={icon} aria-hidden="true" {...stroke}>
+    <path d="M4.5 2.5h8l3 3v12h-11z" />
+    <path d="M7 8.5h6M7 11.5h6M7 14.5h4" />
+  </svg>
+)
+
 const ProductsIcon = () => (
   <svg viewBox="0 0 20 20" className={icon} aria-hidden="true" {...stroke}>
     <path d="M10 2.2 17.3 6v8L10 17.8 2.7 14V6z" />
@@ -56,6 +63,7 @@ const CloseIcon = () => (
 const NAV = [
   { to: '/admin', end: true, label: 'Dashboard', Icon: DashboardIcon },
   { to: '/admin/products', label: 'Products', Icon: ProductsIcon },
+  { to: '/admin/logs', label: 'Logs', Icon: LogsIcon },
 ]
 
 function SidebarContent({ user, onNavigate }) {
