@@ -93,14 +93,14 @@ function SidebarContent({ user, onNavigate }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-5 py-5">
-        <Link to="/admin" onClick={onNavigate} className="block">
+      <div className="px-5 py-6">
+        <Link to="/admin" onClick={onNavigate} className="flex flex-col items-center">
           <img
             src={logoBlue}
             alt="The Royal Wood Shop"
             className="h-auto w-[124px]"
           />
-          <span className="mt-2 block font-sans text-[11px] tracking-wide text-gray-400 uppercase">
+          <span className="mt-2.5 font-sans text-[11px] tracking-wide text-gray-400 uppercase">
             Backend admin
           </span>
         </Link>
