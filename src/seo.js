@@ -11,7 +11,10 @@ export const BASE =
 export function pageMeta({ title, description, path, image, jsonLd }) {
   const url = `${BASE}${path}`
   const tags = [
-    { title: title.includes(SITE) ? title : `${title} | ${SITE}` },
+    // Titles carried over from WordPress often already end in the business
+    // name, in one form or another. Appending it again reads badly and wastes
+    // characters Google will truncate.
+    { title: /royal\s*wood\s*shop/i.test(title) ? title : `${title} | ${SITE}` },
     { name: 'description', content: description },
     { tagName: 'link', rel: 'canonical', href: url },
     { property: 'og:title', content: title },

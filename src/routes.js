@@ -25,11 +25,20 @@ export default [
     route('products', 'routes/admin/products.jsx'),
     route('products/:id', 'routes/admin/product-edit.jsx'),
     route('logs', 'routes/admin/logs.jsx'),
+    route('posts', 'routes/admin/posts.jsx'),
+    route('posts/:id', 'routes/admin/post-edit.jsx'),
     route('import', 'routes/admin/import.jsx'),
   ]),
+
+  route('blog', 'routes/journal.jsx'),
 
   route('404', 'routes/not-found.jsx'),
 
   route('sitemap.xml', 'routes/sitemap.js'),
   route('robots.txt', 'routes/robots.js'),
+
+  // Articles keep the addresses WordPress used — royalwoodshop.com/what-is-
+  // wainscoting — because they are the best-ranking pages on the site.
+  // Declared last so every real route is matched first.
+  route(':slug', 'routes/article.jsx'),
 ]

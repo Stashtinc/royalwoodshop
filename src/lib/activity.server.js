@@ -19,6 +19,9 @@ const MILESTONE_ACTIONS = new Set([
   'setup.catalogue',
   'setup.redirects',
   'setup.schema',
+  'setup.posts',
+  'post.published',
+  'post.created',
 ])
 
 export const levelFor = (action) => (MILESTONE_ACTIONS.has(action) ? 'milestone' : 'detail')

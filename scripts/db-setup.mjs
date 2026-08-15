@@ -12,6 +12,7 @@ import { getDb } from '../src/lib/db.server.js'
 import { sql } from 'drizzle-orm'
 import { run as importProducts } from './import-products.mjs'
 import { run as importRedirects } from './import-redirects.mjs'
+import { run as importPosts } from './import-posts.mjs'
 
 const db = await getDb()
 const embedded = db.$mode === 'embedded'
@@ -47,7 +48,8 @@ console.log(`schema: ${files.length} migration(s), ${applied} applied, ${skipped
 const EXPECTED = [
   'categories', 'products', 'product_categories', 'attributes', 'attribute_values',
   'product_attributes', 'product_images', 'related_products', 'redirects',
-  'not_found_log', 'users', 'activity_log',
+  'not_found_log', 'users', 'activity_log', 'posts', 'post_categories',
+  'posts_to_categories',
 ]
 const missing = []
 for (const table of EXPECTED) {
@@ -66,6 +68,8 @@ console.log(`verified: all ${EXPECTED.length} tables present\n`)
 const productCount = await importProducts(db)
 console.log('')
 const redirectCount = await importRedirects(db)
+console.log('')
+const postCount = await importPosts(db)
 
 // Record what setup did, so the log reflects the real history of the site
 // rather than starting blank.
@@ -83,6 +87,11 @@ await log(null, 'setup.redirects', {
   entityType: 'redirects',
   entityLabel: 'Legacy URL redirects loaded',
   details: { redirects: redirectCount },
+})
+await log(null, 'setup.posts', {
+  entityType: 'blog',
+  entityLabel: 'Blog articles imported from WordPress',
+  details: { posts: postCount },
 })
 console.log('\ndone. next: npm run admin:create-user')
 process.exit(0)

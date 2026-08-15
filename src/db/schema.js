@@ -206,6 +206,45 @@ export const users = pgTable('users', {
   emailIdx: uniqueIndex('users_email_idx').on(t.email),
 }))
 
+/* ------------------------------------------------------------------ blog */
+
+export const postStatusEnum = pgEnum('post_status', ['draft', 'published'])
+
+/** Articles. Their web addresses are kept exactly as the WordPress site used
+ *  them — these are the best-ranking pages on the site and changing them would
+ *  cost hard-won position for no benefit. */
+export const posts = pgTable('posts', {
+  id: serial('id').primaryKey(),
+  legacyId: integer('legacy_id'),
+  slug: varchar('slug', { length: 220 }).notNull(),
+  title: varchar('title', { length: 300 }).notNull(),
+  excerpt: text('excerpt'),
+  contentHtml: text('content_html'),
+  featuredImage: text('featured_image'),
+  featuredImageAlt: varchar('featured_image_alt', { length: 300 }),
+  status: postStatusEnum('status').notNull().default('draft'),
+  seoTitle: varchar('seo_title', { length: 200 }),
+  seoDescription: text('seo_description'),
+  publishedAt: timestamp('published_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  slugIdx: uniqueIndex('posts_slug_idx').on(t.slug),
+  publishedIdx: index('posts_published_idx').on(t.publishedAt),
+  statusIdx: index('posts_status_idx').on(t.status),
+}))
+
+export const postCategories = pgTable('post_categories', {
+  id: serial('id').primaryKey(),
+  slug: varchar('slug', { length: 120 }).notNull(),
+  name: varchar('name', { length: 160 }).notNull(),
+}, (t) => ({ slugIdx: uniqueIndex('post_categories_slug_idx').on(t.slug) }))
+
+export const postsToCategories = pgTable('posts_to_categories', {
+  postId: integer('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+  categoryId: integer('category_id').notNull().references(() => postCategories.id, { onDelete: 'cascade' }),
+}, (t) => ({ pk: primaryKey({ columns: [t.postId, t.categoryId] }) }))
+
 /* --------------------------------------------------------- activity log */
 
 /** Who changed what, and when.

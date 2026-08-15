@@ -96,3 +96,56 @@ body {
     content: none !important;
   }
 }
+
+/* ------------------------------------------------------------------------
+   Article body.
+
+   Content comes from the WordPress export, which carries its own inline
+   styles and a mix of markup. These rules give it consistent typography
+   without needing every article rewritten.
+   ------------------------------------------------------------------------ */
+.prose-royal {
+  font-family: var(--font-body);
+  color: #3f3f3f;
+  line-height: 1.75;
+}
+.prose-royal > * + * { margin-top: 1.15em; }
+.prose-royal h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.6rem;
+  line-height: 1.25;
+  color: var(--color-tundora);
+  margin-top: 2em;
+}
+.prose-royal h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--color-tundora);
+  margin-top: 1.6em;
+}
+.prose-royal p { margin-bottom: 0; }
+.prose-royal a {
+  color: var(--color-royal-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-royal ul, .prose-royal ol { padding-left: 1.35em; }
+.prose-royal ul { list-style: disc; }
+.prose-royal ol { list-style: decimal; }
+.prose-royal li + li { margin-top: 0.4em; }
+.prose-royal img {
+  border-radius: 0.75rem;
+  height: auto;
+  max-width: 100%;
+}
+.prose-royal blockquote {
+  border-left: 3px solid var(--color-royal-blue);
+  padding-left: 1.1em;
+  font-style: italic;
+  color: #555;
+}
+.prose-royal strong { font-weight: 700; color: var(--color-tundora); }
+/* The export carries inline font sizes and colours that fight the page. */
+.prose-royal [style] { font-size: inherit !important; color: inherit !important; }

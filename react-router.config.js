@@ -1,4 +1,15 @@
 import products from './src/data/products.json' with { type: 'json' }
+import { readFileSync } from 'node:fs'
+
+/** Article slugs, read from the same export the database is loaded from. */
+function articleSlugs() {
+  try {
+    const text = readFileSync('data/posts.csv', 'utf8')
+    return text.split('\n').slice(1)
+      .map((line) => line.match(/^\d+,"?([a-z0-9-]+)"?,/)?.[1])
+      .filter(Boolean)
+  } catch { return [] }
+}
 
 const STATIC_PAGES = [
   '/', '/products', '/contact', '/the-royal-edge', '/core-values',
@@ -20,6 +31,8 @@ export default {
       ...STATIC_PAGES,
       ...[...new Set(products.map((p) => p.categorySlug))].map((c) => `/products/${c}`),
       ...products.map((p) => `/products/${p.categorySlug}/${p.slug}`),
+      '/blog',
+      ...articleSlugs().map((s) => `/${s}`),
       '/404',
       '/sitemap.xml',
       '/robots.txt',
