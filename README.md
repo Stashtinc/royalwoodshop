@@ -174,3 +174,13 @@ invisible no matter what robots.txt says.
 The admin dashboard shows a warning while indexing is off, so it cannot be
 forgotten. A site launched with noindex left on is the single most expensive
 mistake available here.
+
+
+## Branches
+
+`main` only, for now. The site is not on its final domain and is not indexed,
+so there is nothing a staging branch would protect — and a second branch that
+is never merged is just something else to forget.
+
+Worth adding a `staging` branch on the day the real domain goes live, so
+changes can be checked on a branch deploy before customers see them.
