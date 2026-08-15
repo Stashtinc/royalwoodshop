@@ -70,8 +70,8 @@ const CloseIcon = () => (
 const NAV = [
   { to: '/admin', end: true, label: 'Dashboard', Icon: DashboardIcon },
   { to: '/admin/products', label: 'Products', Icon: ProductsIcon },
-  { to: '/admin/logs', label: 'Logs', Icon: LogsIcon },
   { to: '/admin/import', label: 'Import', Icon: ImportIcon },
+  { to: '/admin/logs', label: 'Logs', Icon: LogsIcon },
 ]
 
 function SidebarContent({ user, onNavigate }) {
