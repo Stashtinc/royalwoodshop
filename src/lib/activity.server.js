@@ -22,6 +22,7 @@ const MILESTONE_ACTIONS = new Set([
   'setup.posts',
   'post.published',
   'post.created',
+  'user.renamed',
 ])
 
 export const levelFor = (action) => (MILESTONE_ACTIONS.has(action) ? 'milestone' : 'detail')

@@ -41,6 +41,10 @@ const ACTION_LABEL = {
   'image.deleted': 'Image removed',
   'image.reordered': 'Images reordered',
   'auth.login': 'Signed in',
+  'post.created': 'Article added',
+  'post.updated': 'Article edited',
+  'post.published': 'Article published',
+  'user.renamed': 'Sign-in address changed',
 }
 
 const TONE = {
@@ -56,6 +60,10 @@ const TONE = {
   'image.deleted': 'bg-red-50 text-red-800 ring-red-200',
   'image.reordered': 'bg-gray-100 text-gray-700 ring-gray-200',
   'auth.login': 'bg-purple-50 text-purple-800 ring-purple-200',
+  'post.created': 'bg-blue-50 text-blue-800 ring-blue-200',
+  'post.updated': 'bg-blue-50 text-blue-800 ring-blue-200',
+  'post.published': 'bg-emerald-50 text-emerald-800 ring-emerald-200',
+  'user.renamed': 'bg-purple-50 text-purple-800 ring-purple-200',
 }
 
 const dayFormat = new Intl.DateTimeFormat('en-CA', {
@@ -104,6 +112,13 @@ function describe(row) {
           </li>
         ))}
       </ul>
+    )
+  }
+  if (row.action === 'user.renamed') {
+    return (
+      <p className="mt-1 text-xs text-gray-600">
+        <span className="text-gray-400 line-through">{d.from}</span> → {d.to}
+      </p>
     )
   }
   if (row.action === 'image.added') return <p className="mt-1 text-xs text-gray-600">{d.count} file{d.count === 1 ? '' : 's'}</p>
