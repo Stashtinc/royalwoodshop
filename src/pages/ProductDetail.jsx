@@ -1,6 +1,6 @@
 import { Link, useParams, useNavigate } from 'react-router'
 import { catalogueProducts, productPath, relatedTo } from '../data/catalogue'
-import { srcSet, thumbSrc } from '../lib/images'
+import { srcSet, thumbSrc, imageFit } from '../lib/images'
 
 function ChevronRight() {
   return (
@@ -97,14 +97,14 @@ function RelatedCard({ product }) {
       to={productPath(product)}
       className="group flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-lg"
     >
-      <div className="aspect-[4/3] w-full overflow-hidden bg-white p-4">
+      <div className={`aspect-[4/3] w-full overflow-hidden bg-white ${imageFit(product.imageRole).pad ? 'p-4' : ''}`}>
         <img
           src={thumbSrc(product.image, product.imageWidth)}
           srcSet={srcSet(product.image, product.imageWidth) ?? undefined}
           sizes="(min-width: 1024px) 300px, 45vw"
           alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
           loading="lazy"
-          className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
+          className={`h-full w-full ${imageFit(product.imageRole).className} transition-transform duration-300 group-hover:scale-105`}
         />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
@@ -184,13 +184,13 @@ export default function ProductDetail({ product: productProp = null, related: re
             {/* Image */}
             <div className="w-full shrink-0 lg:w-[480px]">
               {/* The main image is the profile itself. Show all of it. */}
-              <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl border border-gray-100 bg-white p-6">
+              <div className={`aspect-[4/3] w-full overflow-hidden rounded-2xl border border-gray-100 bg-white ${imageFit(product.imageRole).pad ? 'p-6' : ''}`}>
                 <img
                   src={product.image}
                   srcSet={srcSet(product.image, product.imageWidth) ?? undefined}
                   sizes="(min-width: 1024px) 480px, 92vw"
                   alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
-                  className="h-full w-full object-contain"
+                  className={`h-full w-full ${imageFit(product.imageRole).className}`}
                 />
               </div>
             </div>

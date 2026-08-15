@@ -67,6 +67,9 @@ export async function getAllProducts(db) {
       imageWidth: sql`(select pi.width from ${productImages} pi
                   where pi.product_id = ${products.id}
                   order by pi.sort_order, pi.id limit 1)`.as('imageWidth'),
+      imageRole: sql`(select pi.role from ${productImages} pi
+                  where pi.product_id = ${products.id}
+                  order by pi.sort_order, pi.id limit 1)`.as('imageRole'),
     })
     .from(products)
     .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
@@ -103,6 +106,7 @@ function shape(r) {
     leadTime: r.leadTime ?? null,
     image: r.image ?? '',
     imageWidth: r.imageWidth ?? null,
+    imageRole: r.imageRole ?? 'profile_drawing',
     seoTitle: r.seoTitle ?? '',
     seoDescription: r.seoDescription ?? '',
     views: r.legacyViews ?? 0,

@@ -30,3 +30,17 @@ export function thumbSrc(storageKey, originalWidth) {
   if (!isLocal(storageKey) || storageKey.endsWith('.svg')) return storageKey
   return !originalWidth || originalWidth >= 320 ? variantPath(storageKey, 320) : storageKey
 }
+
+
+/**
+ * How an image should sit in its frame.
+ *
+ * Profile drawings are line art on white: show the whole thing, never crop, or
+ * the detail a customer is reading gets cut off. Photographs fill the frame —
+ * letterboxing a photograph on white looks like a mistake.
+ */
+export function imageFit(role) {
+  return role === 'profile_drawing' || !role
+    ? { className: 'object-contain', pad: true }
+    : { className: 'object-cover', pad: false }
+}

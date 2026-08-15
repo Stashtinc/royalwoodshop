@@ -99,9 +99,9 @@ const Label = ({ children, hint }) => (
 )
 
 const ROLE_LABEL = {
-  profile_drawing: 'Profile drawing',
-  product_photo: 'Photograph',
-  installed_photo: 'Installed',
+  profile_drawing: 'Profile drawing — shown whole, never cropped',
+  product_photo: 'Photograph — fills the frame',
+  installed_photo: 'Installed — fills the frame',
 }
 
 function ImagesSection() {
@@ -144,7 +144,7 @@ function ImagesSection() {
                 <Form method="post" className="flex-1">
                   <input type="hidden" name="intent" value="image-role" />
                   <input type="hidden" name="imageId" value={img.id} />
-                  <select name="role" defaultValue={img.role}
+                  <select name="role" defaultValue={img.role} title="Controls how this image is displayed on the site"
                     onChange={(e) => e.currentTarget.form.requestSubmit()}
                     className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs outline-none focus:border-royal-blue">
                     {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { srcSet, thumbSrc } from '../lib/images'
+import { srcSet, thumbSrc, imageFit } from '../lib/images'
 import {
   productPath, catalogueProducts as snapshotProducts,
   categoryTree, speciesFacet, availabilityFacet,
@@ -86,14 +86,14 @@ function ProductCard({ product }) {
     >
       {/* Profile drawings are wide technical illustrations — contain, never
           crop, or the detail a customer is reading gets cut off. */}
-      <div className="aspect-[4/3] w-full overflow-hidden bg-white p-4">
+      <div className={`aspect-[4/3] w-full overflow-hidden bg-white ${imageFit(product.imageRole).pad ? 'p-4' : ''}`}>
         <img
           src={product.image}
           srcSet={srcSet(product.image, product.imageWidth) ?? undefined}
           sizes="(min-width: 1024px) 300px, (min-width: 640px) 45vw, 90vw"
           alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
           loading="lazy"
-          className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
+          className={`h-full w-full ${imageFit(product.imageRole).className} transition-transform duration-300 group-hover:scale-105`}
         />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
