@@ -93,12 +93,16 @@ npm run import:redirects    # 2,732 legacy URLs
 
 ### 5. Load the species sheet, when it comes back
 
-Export the `TO DO — Species` tab from the audit workbook as CSV, save it to
-`data/species.csv`, then:
+In Google Sheets: **File → Download → Comma-separated values** with the
+`TO DO — Species` tab selected. Save it as `data/species.csv`, stop the dev
+server, then:
 
 ```bash
 npm run import:species
 ```
+
+The export includes the instruction rows above the headers; the importer finds
+the header row itself, so the file needs no tidying.
 
 Safe to run against a partly completed sheet — run it again each time Brad sends
 more. It reports which product codes it could not match and any value in the
