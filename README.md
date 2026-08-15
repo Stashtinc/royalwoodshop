@@ -123,3 +123,24 @@ Netlify runs step 6 for you on every push once the repository is connected.
 | `npm run build` | Prerender the whole site |
 
 
+
+
+## If the local database will not open
+
+The embedded database allows one process at a time and does not survive two
+writing at once — running a database script while the dev server is up can
+corrupt it. Symptom: `RuntimeError: Aborted()` from pglite on startup.
+
+Rebuild it. Nothing is lost that is not reproducible from `data/`:
+
+```bash
+# stop the dev server first
+rm -rf .data
+npm run db:setup
+npm run admin:create-user -- you@example.com "your password" "Your Name"
+npm run dev
+```
+
+This is a property of the embedded database, not of PostgreSQL. On a server
+with a real PostgreSQL, concurrent connections are the normal case and this
+cannot happen.

@@ -1,4 +1,5 @@
-import { Link, Form, useLoaderData, useSearchParams } from 'react-router'
+import { useEffect, useRef } from 'react'
+import { Link, Form, useLoaderData, useSearchParams, useSubmit, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { listProducts } from '../../lib/admin-queries.server'
 import { thumbSrc } from '../../lib/images'
@@ -29,6 +30,31 @@ export default function Products() {
   const missing = params.get('missing') ?? ''
   const q = params.get('q') ?? ''
 
+  const submit = useSubmit()
+  const navigation = useNavigation()
+  const timer = useRef(null)
+  const inputRef = useRef(null)
+
+  // Filters as you type. Debounced so a word is not five round trips, and
+  // replace: true so the back button steps out of the list rather than back
+  // through every keystroke.
+  function onSearchChange(e) {
+    const form = e.currentTarget.form
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => submit(form, { replace: true }), 250)
+  }
+
+  useEffect(() => () => clearTimeout(timer.current), [])
+
+  // Keep the cursor in the box after the results reload.
+  const searching = navigation.state !== 'idle' && navigation.location?.search !== undefined
+  useEffect(() => {
+    if (!searching && inputRef.current && document.activeElement !== inputRef.current) {
+      const wasTyping = inputRef.current.dataset.typing === 'true'
+      if (wasTyping) inputRef.current.focus()
+    }
+  }, [searching])
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-baseline gap-3">
@@ -39,16 +65,42 @@ export default function Products() {
         {missing && <Link to="/admin/products" className="text-sm text-royal-blue underline">clear filter</Link>}
       </div>
 
-      <Form method="get" className="flex gap-2">
+      <Form method="get" role="search" className="flex max-w-md gap-2">
         {missing && <input type="hidden" name="missing" value={missing} />}
-        <input name="q" defaultValue={q} placeholder="Search name, product code or slug"
-          className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue" />
-        <button className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm hover:border-gray-400">Search</button>
+        <div className="relative flex-1">
+          <input
+            ref={inputRef}
+            name="q"
+            type="search"
+            defaultValue={q}
+            onChange={(e) => { e.currentTarget.dataset.typing = 'true'; onSearchChange(e) }}
+            placeholder="Search name, product code or slug"
+            aria-label="Search products"
+            className="w-full rounded-lg border border-gray-300 py-2 pr-9 pl-9 text-sm outline-none focus:border-royal-blue"
+          />
+          <svg viewBox="0 0 18 18" aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+            fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <circle cx="8" cy="8" r="5.5" /><path d="M12.2 12.2 16 16" />
+          </svg>
+          {searching && (
+            <svg viewBox="0 0 20 20" aria-hidden="true"
+              className="absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400"
+              fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="10" cy="10" r="7" strokeOpacity="0.25" />
+              <path d="M17 10a7 7 0 0 0-7-7" strokeLinecap="round" />
+            </svg>
+          )}
+        </div>
+        {/* Still works without JavaScript. */}
+        <noscript>
+          <button className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm hover:border-gray-400">Search</button>
+        </noscript>
       </Form>
 
       <Pagination page={page} pages={pages} total={total} perPage={perPage} />
 
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className={`overflow-hidden rounded-2xl border border-gray-200 bg-white transition-opacity ${searching ? 'opacity-60' : ''}`}>
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-200 bg-gray-50 text-xs tracking-wide text-gray-600 uppercase">
             <tr>

@@ -104,17 +104,26 @@ export default function Footer() {
         <div className="flex flex-col items-center gap-6 border-t border-white/15 pt-8 sm:flex-row sm:justify-between">
           <p className="font-sans text-sm text-white/60">
             © {new Date().getFullYear()} The Royal Wood Shop Ltd. All rights reserved.
-            <span className="mx-2 text-white/25">·</span>
-            {/* Deliberately understated, and noindex/nofollow so it never
-                appears in search results or invites automated login attempts. */}
-            <Link
-              to="/admin"
-              rel="nofollow"
-              className="text-white/45 underline-offset-2 transition-colors hover:text-white/80 hover:underline"
-            >
-              Staff login
-            </Link>
           </p>
+
+          {/* Deliberately understated, and nofollow so it never invites
+              automated login attempts. */}
+          <Link
+            to="/admin"
+            rel="nofollow"
+            aria-label="Staff login"
+            className="inline-flex items-center gap-1.5 font-sans text-sm text-white/45 transition-colors hover:text-white"
+          >
+            <svg
+              width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"
+              fill="none" stroke="currentColor" strokeWidth="1.6"
+              strokeLinecap="round" strokeLinejoin="round"
+            >
+              <rect x="2.5" y="7" width="11" height="7" rx="1.5" />
+              <path d="M5 7V4.75a3 3 0 0 1 6 0V7" />
+            </svg>
+            Login
+          </Link>
 
           <div className="flex items-center gap-4">
             {socialLinks.map((social) => (

@@ -58,8 +58,30 @@ export async function getDb() {
     const { PGlite } = await import('@electric-sql/pglite')
     const { mkdirSync } = await import('node:fs')
     mkdirSync('.data/pg', { recursive: true })
-    const client = new PGlite('.data/pg')          // persisted to disk
-    await client.waitReady
+
+    let client
+    try {
+      client = new PGlite('.data/pg')            // persisted to disk
+      await client.waitReady
+    } catch (e) {
+      // The embedded engine allows one process at a time, and does not survive
+      // two writing at once. Say so plainly rather than leaving a WASM abort.
+      console.error(`
+[db] The local database at .data/pg could not be opened.
+
+This usually means two processes tried to use it at once — for example
+running a database script while the dev server was up.
+
+To rebuild it (the catalogue reloads from data/products.csv):
+
+  1. stop the dev server
+  2. rm -rf .data
+  3. npm run db:setup
+  4. npm run admin:create-user -- <email> "<password>" "<name>"
+  5. npm run dev
+`)
+      throw e
+    }
     instance = drizzlePglite(client, { schema })
     instance.$mode = 'embedded'
     await ensureSchema(instance)
