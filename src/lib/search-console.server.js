@@ -11,6 +11,7 @@
  * numbers, or an explanation.
  */
 
+import 'dotenv/config'
 import crypto from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
 import { getDb } from './db.server'

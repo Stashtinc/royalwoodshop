@@ -45,10 +45,22 @@ function readEnv() {
   return out
 }
 
-/** Replaces a key in place if present, appends it if not, leaving every other
- *  line — including comments — exactly as it was. */
+/**
+ * Replaces a key in place if present, appends it if not, leaving every other
+ * line — including comments — exactly as it was.
+ *
+ * Single quotes, deliberately. dotenv strips surrounding double quotes and then
+ * expands escapes inside them, but it does not understand `\"` — so a JSON
+ * payload written double-quoted comes back with stray backslashes and fails to
+ * parse. Inside single quotes dotenv takes the text verbatim, which is what a
+ * JSON blob needs.
+ */
 function setEnv(key, value) {
-  const line = `${key}=${JSON.stringify(value)}`
+  if (value.includes("'")) {
+    die(`Cannot write ${key}: the value contains a single quote.`,
+      'Service-account keys never do — this file is probably not one.')
+  }
+  const line = `${key}='${value}'`
   let text = existsSync(ENV) ? readFileSync(ENV, 'utf8') : ''
   const re = new RegExp(`^\\s*${key}\\s*=.*$`, 'm')
   if (re.test(text)) {

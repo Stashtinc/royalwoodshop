@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { drizzle as drizzlePg } from 'drizzle-orm/postgres-js'
 import { drizzle as drizzlePglite } from 'drizzle-orm/pglite'
 import * as schema from '../db/schema.js'
