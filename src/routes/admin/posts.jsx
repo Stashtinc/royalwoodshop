@@ -2,6 +2,7 @@ import { Link, Form, useLoaderData, useSearchParams } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { listPosts } from '../../lib/posts.server'
 import Pagination from '../../components/admin/Pagination'
+import Toast from '../../components/admin/Toast'
 
 export async function loader({ request }) {
   await requireUser(request)
@@ -20,10 +21,19 @@ const dateFormat = new Intl.DateTimeFormat('en-CA', { day: 'numeric', month: 'sh
 
 export default function Posts() {
   const { rows, total, page, pages, perPage } = useLoaderData()
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
+  const saved = params.get('saved')
+
+  /** Clear the message from the address bar so a refresh does not replay it. */
+  const clearSaved = () => {
+    const next = new URLSearchParams(params)
+    next.delete('saved')
+    setParams(next, { replace: true, preventScrollReset: true })
+  }
 
   return (
     <div className="flex flex-col gap-5">
+      <Toast message={saved} onDismiss={clearSaved} />
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="font-serif text-2xl font-bold text-tundora">Blog</h1>
         <p className="text-sm text-gray-500">{total} articles</p>

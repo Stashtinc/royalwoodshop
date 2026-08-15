@@ -89,8 +89,14 @@ export async function action({ request, params }) {
     await log(user, 'post.updated', { entityType: 'post', entityId: id, entityLabel: title })
   }
 
-  if (isNew) throw new Response(null, { status: 302, headers: { Location: `/admin/posts/${id}` } })
-  return { saved: status === 'published' ? 'Saved and published.' : 'Saved as a draft.' }
+  const verb = isNew ? 'created' : 'saved'
+  const note = status === 'published'
+    ? `“${title}” ${verb} and published.`
+    : `“${title}” ${verb} as a draft.`
+  throw new Response(null, {
+    status: 302,
+    headers: { Location: `/admin/posts?saved=${encodeURIComponent(note)}` },
+  })
 }
 
 const field = 'rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue'
@@ -167,7 +173,6 @@ export default function PostEdit() {
         getEditorState={getEditorState}
       />
 
-      {data?.saved && <p className="rounded-lg bg-green-50 px-4 py-2.5 text-sm text-green-800">{data.saved}</p>}
       {data?.error && <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-800">{data.error}</p>}
 
       <Form ref={formRef} method="post" encType="multipart/form-data" className="flex flex-col gap-6">
