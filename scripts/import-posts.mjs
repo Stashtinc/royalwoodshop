@@ -10,9 +10,24 @@ import { connect } from '../src/db/client.mjs'
 import { posts, postCategories, postsToCategories } from '../src/db/schema.js'
 import { readCsv, slugify, nonEmpty } from './_lib.mjs'
 
+/**
+ * Most articles were never given a featured image in WordPress, but their
+ * bodies contain photographs. Rather than showing a grey box on the listing,
+ * fall back to the first image in the article itself.
+ */
+function firstBodyImage(html) {
+  const m = String(html ?? '').match(/<img[^>]+src=["']([^"']+)["']/i)
+  const src = m?.[1]
+  if (!src) return null
+  // Skip spacers and tracking pixels the old theme left behind.
+  if (/blank\.gif|spacer|1x1|pixel/i.test(src)) return null
+  return src
+}
+
 export async function run(db, file = 'data/posts.csv') {
   const rows = readCsv(file)
   console.log(`read ${rows.length} articles`)
+  let derived = 0
 
   const catIds = new Map()
   for (const r of rows) {
@@ -27,13 +42,19 @@ export async function run(db, file = 'data/posts.csv') {
   }
 
   for (const r of rows) {
+    let featured = nonEmpty(r.featured_image)
+    if (!featured) {
+      featured = firstBodyImage(r.content_html)
+      if (featured) derived++
+    }
+
     const values = {
       legacyId: Number(r.legacy_id) || null,
       slug: r.slug.trim(),
       title: r.title,
       excerpt: nonEmpty(r.excerpt),
       contentHtml: r.content_html,
-      featuredImage: nonEmpty(r.featured_image),
+      featuredImage: featured,
       status: 'published',
       seoTitle: nonEmpty(r.seo_title),
       seoDescription: nonEmpty(r.seo_description),
@@ -52,6 +73,9 @@ export async function run(db, file = 'data/posts.csv') {
 
   const [{ count }] = await db.select({ count: sql`count(*)::int` }).from(posts)
   console.log(`${count} articles in the database, ${catIds.size} categories`)
+  if (derived) console.log(`${derived} took their image from the first one in the article`)
+  const withoutImage = rows.length - rows.filter((r) => nonEmpty(r.featured_image) || firstBodyImage(r.content_html)).length
+  if (withoutImage) console.log(`${withoutImage} have no image at all — add one in the editor`)
   return count
 }
 

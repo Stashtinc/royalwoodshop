@@ -29,12 +29,14 @@ export default function Journal() {
           {posts.map((p) => (
             <article key={p.id} className="flex flex-col">
               <Link to={`/${p.slug}`} className="group flex flex-1 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow hover:shadow-lg">
-                {p.featuredImage && (
-                  <div className="aspect-[3/2] overflow-hidden bg-gray-100">
-                    <img src={p.featuredImage} alt="" loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                  </div>
-                )}
+                <div className="aspect-[3/2] overflow-hidden bg-gray-100">
+                  {p.featuredImage
+                    ? <img src={p.featuredImage} alt="" loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    : <div className="flex h-full w-full items-center justify-center bg-royal-blue/5">
+                        <span className="font-serif text-3xl text-royal-blue/30">RWS</span>
+                      </div>}
+                </div>
                 <div className="flex flex-1 flex-col gap-2 p-5">
                   {p.categories.length > 0 && (
                     <p className="font-sans text-xs font-bold tracking-wide text-royal-blue uppercase">

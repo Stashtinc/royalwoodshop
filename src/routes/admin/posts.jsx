@@ -59,7 +59,9 @@ export default function Posts() {
                   {p.featuredImage
                     ? <img src={p.featuredImage} alt="" loading="lazy"
                         className="h-11 w-14 rounded object-cover ring-1 ring-gray-200" />
-                    : <div className="h-11 w-14 rounded bg-gray-100 ring-1 ring-gray-200" />}
+                    : <div className="flex h-11 w-14 items-center justify-center rounded bg-amber-50 text-[9px] leading-tight text-amber-700 ring-1 ring-amber-200">
+                        no<br />image
+                      </div>}
                 </td>
                 <td className="px-4 py-2.5">
                   <Link to={`/admin/posts/${p.id}`} className="font-medium text-tundora hover:text-royal-blue">
