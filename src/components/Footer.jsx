@@ -104,6 +104,16 @@ export default function Footer() {
         <div className="flex flex-col items-center gap-6 border-t border-white/15 pt-8 sm:flex-row sm:justify-between">
           <p className="font-sans text-sm text-white/60">
             © {new Date().getFullYear()} The Royal Wood Shop Ltd. All rights reserved.
+            <span className="mx-2 text-white/25">·</span>
+            {/* Deliberately understated, and noindex/nofollow so it never
+                appears in search results or invites automated login attempts. */}
+            <Link
+              to="/admin"
+              rel="nofollow"
+              className="text-white/45 underline-offset-2 transition-colors hover:text-white/80 hover:underline"
+            >
+              Staff login
+            </Link>
           </p>
 
           <div className="flex items-center gap-4">

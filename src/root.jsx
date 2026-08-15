@@ -58,13 +58,20 @@ export function Layout({ children }) {
 export default function Root() {
   const { pathname } = useLocation()
   const isHome = pathname === '/'
-  const isQuotation = pathname === '/quotation'
+
+  // Pages that render standalone, without the site header, banner or footer.
+  // The admin has its own chrome, and the quotation page is a printable
+  // document, so wrapping either in the marketing layout is wrong.
+  const isBare = pathname === '/quotation' || pathname.startsWith('/admin')
+
+  if (isBare) return <Outlet />
+
   return (
     <div className="flex min-h-screen flex-col">
-      {!isQuotation && <div data-print="hide"><Header /></div>}
-      {!isHome && !isQuotation && <div data-print="hide"><PageHeader {...pageHeaderImages[pathname]} /></div>}
+      <div data-print="hide"><Header /></div>
+      {!isHome && <div data-print="hide"><PageHeader {...pageHeaderImages[pathname]} /></div>}
       <Outlet />
-      {!isQuotation && <div data-print="hide"><Footer /></div>}
+      <div data-print="hide"><Footer /></div>
     </div>
   )
 }

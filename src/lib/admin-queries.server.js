@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, ilike, or, sql, inArray } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import {
-  products, categories, attributes, attributeValues, productAttributes,
+  products, categories, attributes, attributeValues, productAttributes, productImages,
 } from '../db/schema.js'
 
 import { SPECIES, AVAILABILITY } from './catalogue-constants.js'
@@ -42,6 +42,11 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
     sizeDisplay: products.sizeDisplay,
     category: categories.name,
     species: speciesSubquery.as('species'),
+    image: sql`(select pi.storage_key from product_images pi
+                where pi.product_id = products.id
+                order by pi.sort_order, pi.id limit 1)`.as('image'),
+    imageCount: sql`(select count(*)::int from product_images pi
+                     where pi.product_id = products.id)`.as('imageCount'),
   })
     .from(products)
     .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
@@ -132,4 +137,67 @@ export async function dashboardStats() {
     flex: sql`count(*) filter (where ${products.flexAvailable})::int`,
   }).from(products)
   return r
+}
+
+
+/* ------------------------------------------------------------------ images */
+
+export async function listImages(productId) {
+  const db = await getDb()
+  return db.select({
+    id: productImages.id,
+    storageKey: productImages.storageKey,
+    altText: productImages.altText,
+    role: productImages.role,
+    sortOrder: productImages.sortOrder,
+  }).from(productImages)
+    .where(eq(productImages.productId, Number(productId)))
+    .orderBy(asc(productImages.sortOrder), asc(productImages.id))
+}
+
+export async function addImage(productId, { storageKey, altText, role = 'product_photo' }) {
+  const db = await getDb()
+  const [{ next }] = await db.select({
+    next: sql`coalesce(max(${productImages.sortOrder}), -1) + 1`,
+  }).from(productImages).where(eq(productImages.productId, Number(productId)))
+
+  await db.insert(productImages).values({
+    productId: Number(productId),
+    storageKey,
+    altText: altText || 'Product image',
+    role,
+    sortOrder: Number(next) || 0,
+  })
+}
+
+export async function updateImage(imageId, { altText, role }) {
+  const db = await getDb()
+  const set = {}
+  if (altText !== undefined) set.altText = altText || 'Product image'
+  if (role !== undefined) set.role = role
+  if (Object.keys(set).length) {
+    await db.update(productImages).set(set).where(eq(productImages.id, Number(imageId)))
+  }
+}
+
+export async function removeImage(imageId) {
+  const db = await getDb()
+  const [row] = await db.select({ storageKey: productImages.storageKey })
+    .from(productImages).where(eq(productImages.id, Number(imageId))).limit(1)
+  await db.delete(productImages).where(eq(productImages.id, Number(imageId)))
+  return row?.storageKey ?? null
+}
+
+/** Moves an image up or down and renumbers the whole set. */
+export async function moveImage(productId, imageId, direction) {
+  const db = await getDb()
+  const rows = await listImages(productId)
+  const i = rows.findIndex((r) => r.id === Number(imageId))
+  if (i === -1) return
+  const j = direction === 'up' ? i - 1 : i + 1
+  if (j < 0 || j >= rows.length) return
+  ;[rows[i], rows[j]] = [rows[j], rows[i]]
+  for (const [order, r] of rows.entries()) {
+    await db.update(productImages).set({ sortOrder: order }).where(eq(productImages.id, r.id))
+  }
 }

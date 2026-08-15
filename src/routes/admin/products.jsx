@@ -51,6 +51,7 @@ export default function Products() {
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-200 bg-gray-50 text-xs tracking-wide text-gray-600 uppercase">
             <tr>
+              <th className="w-14 px-4 py-2.5" />
               <th className="px-4 py-2.5">Code</th>
               <th className="px-4 py-2.5">Name</th>
               <th className="px-4 py-2.5">Category</th>
@@ -62,6 +63,24 @@ export default function Products() {
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-b border-gray-100 last:border-0">
+                <td className="py-2 pl-4">
+                  <Link to={`/admin/products/${r.id}`} className="block">
+                    {r.image ? (
+                      <div className="relative h-11 w-11 overflow-hidden rounded-lg bg-white ring-1 ring-gray-200">
+                        <img src={r.image} alt="" className="h-full w-full object-contain p-0.5" />
+                        {r.imageCount > 1 && (
+                          <span className="absolute right-0 bottom-0 rounded-tl bg-gray-900/70 px-1 text-[9px] leading-tight text-white">
+                            {r.imageCount}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-50 text-[9px] leading-tight text-amber-700 ring-1 ring-amber-200">
+                        no<br />image
+                      </div>
+                    )}
+                  </Link>
+                </td>
                 <td className="px-4 py-2.5 font-mono text-xs text-gray-600">{r.productCode || '—'}</td>
                 <td className="px-4 py-2.5">
                   <Link to={`/admin/products/${r.id}`} className="font-medium text-tundora hover:text-royal-blue">
@@ -86,7 +105,7 @@ export default function Products() {
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
             )}
           </tbody>
         </table>
