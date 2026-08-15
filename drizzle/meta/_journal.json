@@ -15,6 +15,13 @@
       "when": 1786780698030,
       "tag": "0001_dark_polaris",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786784074485,
+      "tag": "0002_wonderful_bloodstorm",
+      "breakpoints": true
     }
   ]
 }

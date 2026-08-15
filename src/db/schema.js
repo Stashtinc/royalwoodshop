@@ -218,6 +218,10 @@ export const activityLog = pgTable('activity_log', {
   userId: integer('user_id'),
   userEmail: varchar('user_email', { length: 254 }),
   action: varchar('action', { length: 60 }).notNull(),
+  /** 'milestone' — changed many things at once, or changed what the public
+   *  sees. 'detail' — a single field, an image, a sign-in. Milestones are the
+   *  default view and are kept indefinitely; detail is pruned after 90 days. */
+  level: varchar('level', { length: 12 }).notNull().default('detail'),
   entityType: varchar('entity_type', { length: 40 }),
   entityId: integer('entity_id'),
   entityLabel: varchar('entity_label', { length: 300 }),

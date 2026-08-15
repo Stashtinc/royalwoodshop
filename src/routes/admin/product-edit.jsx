@@ -118,11 +118,24 @@ export async function action({ request, params }) {
 
   const changed = diffProduct(before, payload)
   await saveProduct(params.id, payload)
+
   if (changed.length) {
-    await log(user, 'product.updated', {
-      entityType: 'product', entityId: params.id, entityLabel: payload.name,
-      details: { changed },
-    })
+    // Whether a product is visible to customers is a milestone; everything
+    // else about it is detail.
+    const statusChange = changed.find((c) => c.field === 'status')
+    if (statusChange) {
+      await log(user, 'product.status', {
+        entityType: 'product', entityId: params.id, entityLabel: payload.name,
+        details: { from: statusChange.from, to: statusChange.to },
+      })
+    }
+    const rest = changed.filter((c) => c.field !== 'status')
+    if (rest.length) {
+      await log(user, 'product.updated', {
+        entityType: 'product', entityId: params.id, entityLabel: payload.name,
+        details: { changed: rest },
+      })
+    }
   }
 
   return { saved: changed.length ? `Saved — ${changed.map((c) => c.field).join(', ')} updated.` : 'No changes to save.' }

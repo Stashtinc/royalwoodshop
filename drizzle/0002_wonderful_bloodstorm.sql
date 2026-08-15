@@ -1,0 +1,1 @@
+ALTER TABLE "activity_log" ADD COLUMN "level" varchar(12) DEFAULT 'detail' NOT NULL;
