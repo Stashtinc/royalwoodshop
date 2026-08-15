@@ -33,3 +33,4 @@ build
 .env.*.local
 .data/
 public/uploads/
+.data/imports/

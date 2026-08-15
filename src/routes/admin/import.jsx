@@ -1,0 +1,274 @@
+import { useRef, useState } from 'react'
+import { Form, Link, useActionData, useNavigation } from 'react-router'
+import { requireUser } from '../../lib/auth.server'
+import { parseSheet, analyse, apply } from '../../lib/species-import.server'
+import { log } from '../../lib/activity.server'
+import { SPECIES } from '../../lib/catalogue-constants'
+
+export async function loader({ request }) {
+  await requireUser(request)
+  return null
+}
+
+/** Where an uploaded sheet waits between preview and apply. */
+const STAGING = '.data/imports'
+
+export async function action({ request }) {
+  const user = await requireUser(request)
+  const form = await request.formData()
+  const intent = String(form.get('intent') ?? 'preview')
+  const { mkdir, writeFile, readFile, unlink } = await import('node:fs/promises')
+  const { randomBytes } = await import('node:crypto')
+
+  if (intent === 'preview') {
+    const file = form.get('file')
+    if (!file || typeof file === 'string' || file.size === 0) {
+      return { error: 'Choose a CSV file first.' }
+    }
+    if (file.size > 8 * 1024 * 1024) return { error: 'That file is larger than 8 MB.' }
+
+    let text
+    try { text = new TextDecoder('utf-8').decode(await file.arrayBuffer()) }
+    catch { return { error: 'That file could not be read as text. Export it as CSV, not Excel.' } }
+
+    let parsedSheet
+    try { parsedSheet = parseSheet(text) }
+    catch (e) { return { error: e.message } }
+
+    const { summary } = await analyse(parsedSheet.rows)
+
+    // Hold the file so applying it uses exactly what was previewed.
+    await mkdir(STAGING, { recursive: true })
+    const token = randomBytes(8).toString('hex')
+    await writeFile(`${STAGING}/${token}.csv`, text)
+
+    return {
+      stage: 'preview',
+      token,
+      fileName: file.name,
+      skipped: parsedSheet.skipped,
+      missingColumns: parsedSheet.missingColumns,
+      summary,
+    }
+  }
+
+  if (intent === 'apply') {
+    const token = String(form.get('token') ?? '')
+    if (!/^[a-f0-9]{16}$/.test(token)) return { error: 'That upload has expired. Please choose the file again.' }
+
+    let text
+    try { text = await readFile(`${STAGING}/${token}.csv`, 'utf8') }
+    catch { return { error: 'That upload has expired. Please choose the file again.' } }
+
+    const { rows } = parseSheet(text)
+    const result = await apply(rows)
+    await unlink(`${STAGING}/${token}.csv`).catch(() => {})
+
+    await log(user, 'import.species', {
+      entityType: 'import',
+      entityLabel: String(form.get('fileName') ?? 'species sheet'),
+      details: {
+        updated: result.written,
+        species: result.willSetSpecies,
+        availability: result.willSetAvailability,
+        unmatched: result.unmatched.length,
+      },
+    })
+
+    return { stage: 'done', result }
+  }
+
+  return { error: 'Unrecognised action.' }
+}
+
+/* ------------------------------------------------------------------- view */
+
+function Stat({ label, value, tone = 'default' }) {
+  const tones = {
+    default: 'border-gray-200 bg-white',
+    good: 'border-green-300 bg-green-50',
+    warn: 'border-amber-300 bg-amber-50',
+  }
+  return (
+    <div className={`rounded-xl border p-4 ${tones[tone]}`}>
+      <p className="text-2xl font-bold text-tundora">{value}</p>
+      <p className="mt-0.5 text-xs text-gray-600">{label}</p>
+    </div>
+  )
+}
+
+function DropArea() {
+  const ref = useRef(null)
+  const [over, setOver] = useState(false)
+  const [name, setName] = useState('')
+
+  return (
+    <div
+      onDragOver={(e) => { e.preventDefault(); setOver(true) }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault(); setOver(false)
+        const f = e.dataTransfer?.files?.[0]
+        if (!f || !ref.current) return
+        const dt = new DataTransfer(); dt.items.add(f)
+        ref.current.files = dt.files
+        setName(f.name)
+      }}
+      onClick={() => ref.current?.click()}
+      className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+        over ? 'border-royal-blue bg-blue-50' : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+      }`}
+    >
+      <input ref={ref} type="file" name="file" accept=".csv,text/csv"
+        onChange={(e) => setName(e.target.files?.[0]?.name ?? '')} className="hidden" />
+      <p className="text-sm font-medium text-gray-700">Drop the CSV here, or click to choose</p>
+      <p className="mt-1 text-xs text-gray-500">
+        In Google Sheets: File → Download → Comma-separated values
+      </p>
+      {name && <p className="mt-3 inline-block rounded bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-gray-200">{name}</p>}
+    </div>
+  )
+}
+
+export default function Import() {
+  const data = useActionData()
+  const nav = useNavigation()
+  const busy = nav.state === 'submitting'
+  const s = data?.summary
+  const r = data?.result
+
+  return (
+    <div className="flex max-w-3xl flex-col gap-6">
+      <div>
+        <h1 className="font-serif text-2xl font-bold text-tundora">Import species sheet</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Upload the completed <span className="font-medium">TO DO — Species</span> tab. You will see
+          what it changes before anything is saved.
+        </p>
+      </div>
+
+      {data?.error && (
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">{data.error}</p>
+      )}
+
+      {/* Step 1 */}
+      {(!data || data.error) && (
+        <Form method="post" encType="multipart/form-data" className="flex flex-col gap-4">
+          <input type="hidden" name="intent" value="preview" />
+          <DropArea />
+          <button disabled={busy}
+            className="w-fit rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
+            {busy ? 'Reading…' : 'Check the file'}
+          </button>
+        </Form>
+      )}
+
+      {/* Step 2 — preview */}
+      {data?.stage === 'preview' && s && (
+        <div className="flex flex-col gap-5">
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">{data.fileName}</span> — {s.rows} product rows
+              {data.skipped > 0 && <> (ignored {data.skipped} instruction row{data.skipped === 1 ? '' : 's'} above the headers)</>}
+            </p>
+          </div>
+
+          {data.missingColumns?.length > 0 && (
+            <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              These species columns were not in the file, so they will be ignored:{' '}
+              {data.missingColumns.join(', ')}
+            </p>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-4">
+            <Stat label="Products matched" value={s.matched} tone="good" />
+            <Stat label="Will get species" value={s.willSetSpecies} tone="good" />
+            <Stat label="Will get availability" value={s.willSetAvailability} tone="good" />
+            <Stat label="Rows still blank" value={s.blank} tone={s.blank ? 'warn' : 'default'} />
+          </div>
+
+          {s.unmatched.length > 0 && (
+            <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">{s.unmatched.length} product code(s) not found, and will be skipped:</p>
+              <p className="mt-1 font-mono text-xs">{s.unmatched.slice(0, 20).join(', ')}{s.unmatched.length > 20 ? ` … and ${s.unmatched.length - 20} more` : ''}</p>
+            </div>
+          )}
+
+          {s.unknownOther.length > 0 && (
+            <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">Values in the OTHER column that are not a recognised species:</p>
+              <p className="mt-1 text-xs">{s.unknownOther.slice(0, 10).join(' · ')}</p>
+              <p className="mt-1 text-xs text-amber-700">These are ignored. Recognised species are: {SPECIES.join(', ')}.</p>
+            </div>
+          )}
+
+          {s.tooManyAvailability.length > 0 && (
+            <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">More than one availability ticked — availability will be left unchanged for:</p>
+              <p className="mt-1 font-mono text-xs">{s.tooManyAvailability.join(', ')}</p>
+            </div>
+          )}
+
+          {s.changes.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+              <p className="border-b border-gray-100 bg-gray-50 px-4 py-2 text-xs tracking-wide text-gray-600 uppercase">
+                A sample of what will change
+              </p>
+              <ul>
+                {s.changes.map((c) => (
+                  <li key={c.code} className="flex flex-wrap items-baseline gap-2 border-b border-gray-100 px-4 py-2 text-sm last:border-0">
+                    <span className="font-mono text-xs text-gray-500">{c.code}</span>
+                    <span className="text-gray-800">{c.name}</span>
+                    <span className="ml-auto text-xs text-gray-600">
+                      {c.species.join(', ') || '—'}
+                      {c.flex && ' · flex'}
+                      {c.availability && ` · ${c.availability.replace('_', ' ')}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <Form method="post">
+              <input type="hidden" name="intent" value="apply" />
+              <input type="hidden" name="token" value={data.token} />
+              <input type="hidden" name="fileName" value={data.fileName} />
+              <button disabled={busy}
+                className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
+                {busy ? 'Applying…' : `Apply to ${s.matched} products`}
+              </button>
+            </Form>
+            <Link to="/admin/import" className="text-sm text-gray-600 hover:underline">Choose a different file</Link>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3 — done */}
+      {data?.stage === 'done' && r && (
+        <div className="flex flex-col gap-5">
+          <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-900">
+            Imported. {r.written} product{r.written === 1 ? '' : 's'} updated.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Stat label="Products with species, in total" value={r.totals.withSpecies} tone="good" />
+            <Stat label="Products with availability, in total" value={r.totals.withAvail} tone="good" />
+          </div>
+          <p className="text-sm text-gray-600">
+            The species and availability filters on the public site show only values that have
+            products behind them, so they will reflect this the next time the site is published.
+          </p>
+          <div className="flex gap-3">
+            <Link to="/admin/products" className="rounded-lg bg-royal-blue px-5 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark">
+              View products
+            </Link>
+            <Link to="/admin/import" className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm hover:border-gray-400">
+              Import another
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
