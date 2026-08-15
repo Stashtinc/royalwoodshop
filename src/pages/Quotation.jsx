@@ -405,14 +405,16 @@ export default function Quotation() {
           </div>
         </div>
 
-        {/* Acceptance */}
-        <div className="mb-16 rounded-xl border border-gray-200 bg-white px-5 py-6">
-          <p className="mb-1 font-sans text-xs font-bold tracking-widest text-gray-400 uppercase">Acceptance</p>
-          <p className="mb-6 font-sans text-sm text-gray-500">
-            Signing below confirms acceptance of this quotation.
-          </p>
-          <SignaturePad onAccepted={setSignedBy} />
-        </div>
+        {/* Acceptance — hidden once signed; the sticky band below carries the record */}
+        {!signedBy && (
+          <div className="mb-16 rounded-xl border border-gray-200 bg-white px-5 py-6">
+            <p className="mb-1 font-sans text-xs font-bold tracking-widest text-gray-400 uppercase">Acceptance</p>
+            <p className="mb-6 font-sans text-sm text-gray-500">
+              Signing below confirms acceptance of this quotation.
+            </p>
+            <SignaturePad onAccepted={setSignedBy} />
+          </div>
+        )}
 
       </div>
 
