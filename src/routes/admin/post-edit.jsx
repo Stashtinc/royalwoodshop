@@ -105,6 +105,10 @@ export default function PostEdit() {
   const saving = nav.state === 'submitting' && nav.formData?.get('intent') == null
 
   const [assistOpen, setAssistOpen] = useState(false)
+  // The slug warning is only true once the address actually differs from the
+  // one that is live. Showing it permanently trained the eye to ignore it.
+  const [slug, setSlug] = useState(post?.slug ?? '')
+  const slugChanged = !isNew && slug.trim() !== (post?.slug ?? '')
   const editorApi = useRef(null)
   const formRef = useRef(null)
 
@@ -195,7 +199,7 @@ export default function PostEdit() {
               <h2 className="font-serif font-bold text-tundora">Publishing</h2>
               <label className="flex flex-col gap-1.5">
                 <span className="text-xs font-medium text-gray-600">Status</span>
-                <select name="status" defaultValue={post?.status ?? 'draft'} className={field}>
+                <select name="status" defaultValue={post?.status ?? 'published'} className={field}>
                   <option value="draft">Draft — not on the site</option>
                   <option value="published">Published</option>
                 </select>
@@ -203,16 +207,29 @@ export default function PostEdit() {
               <label className="flex flex-col gap-1.5">
                 <span className="text-xs font-medium text-gray-600">Date</span>
                 <input type="date" name="publishedAt" className={field}
-                  defaultValue={post?.publishedAt ? new Date(post.publishedAt).toISOString().slice(0, 10) : ''} />
+                  defaultValue={
+                    post?.publishedAt
+                      ? new Date(post.publishedAt).toISOString().slice(0, 10)
+                      : new Date().toISOString().slice(0, 10)
+                  } />
               </label>
               <label className="flex flex-col gap-1.5">
                 <span className="text-xs font-medium text-gray-600">
                   Web address <span className="font-normal text-gray-400">royalwoodshop.com/…</span>
                 </span>
-                <input name="slug" defaultValue={post?.slug ?? ''} placeholder="from the title" className={field} />
-                {!isNew && (
-                  <span className="text-[11px] text-amber-700">
-                    Changing this breaks existing links to the article.
+                <input name="slug" value={slug} onChange={(e) => setSlug(e.target.value)}
+                  placeholder="from the title" className={field} />
+                {slugChanged && (
+                  <span className="flex items-start gap-1.5 rounded-md bg-amber-50 px-2 py-1.5 text-[11px] text-amber-800">
+                    <svg viewBox="0 0 16 16" className="mt-px h-3.5 w-3.5 shrink-0" fill="none"
+                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                      <circle cx="8" cy="8" r="6.25" /><path d="M8 5v3.5" />
+                      <circle cx="8" cy="10.8" r="0.35" fill="currentColor" stroke="none" />
+                    </svg>
+                    <span>
+                      Anyone who has linked to <strong>/{post.slug}</strong> will get a
+                      &ldquo;not found&rdquo; page after this is saved.
+                    </span>
                   </span>
                 )}
               </label>
