@@ -1,5 +1,6 @@
 import { Link, useParams, useNavigate } from 'react-router'
 import { catalogueProducts, productPath, relatedTo } from '../data/catalogue'
+import { srcSet, thumbSrc } from '../lib/images'
 
 function ChevronRight() {
   return (
@@ -98,7 +99,9 @@ function RelatedCard({ product }) {
     >
       <div className="aspect-[4/3] w-full overflow-hidden bg-white p-4">
         <img
-          src={product.image}
+          src={thumbSrc(product.image, product.imageWidth)}
+          srcSet={srcSet(product.image, product.imageWidth) ?? undefined}
+          sizes="(min-width: 1024px) 300px, 45vw"
           alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
           loading="lazy"
           className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
@@ -184,6 +187,8 @@ export default function ProductDetail({ product: productProp = null, related: re
               <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl border border-gray-100 bg-white p-6">
                 <img
                   src={product.image}
+                  srcSet={srcSet(product.image, product.imageWidth) ?? undefined}
+                  sizes="(min-width: 1024px) 480px, 92vw"
                   alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
                   className="h-full w-full object-contain"
                 />

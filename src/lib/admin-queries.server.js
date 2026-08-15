@@ -45,6 +45,9 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
     image: sql`(select pi.storage_key from product_images pi
                 where pi.product_id = products.id
                 order by pi.sort_order, pi.id limit 1)`.as('image'),
+    imageWidth: sql`(select pi.width from product_images pi
+                where pi.product_id = products.id
+                order by pi.sort_order, pi.id limit 1)`.as('imageWidth'),
     imageCount: sql`(select count(*)::int from product_images pi
                      where pi.product_id = products.id)`.as('imageCount'),
   })
@@ -149,13 +152,15 @@ export async function listImages(productId) {
     storageKey: productImages.storageKey,
     altText: productImages.altText,
     role: productImages.role,
+    width: productImages.width,
+    height: productImages.height,
     sortOrder: productImages.sortOrder,
   }).from(productImages)
     .where(eq(productImages.productId, Number(productId)))
     .orderBy(asc(productImages.sortOrder), asc(productImages.id))
 }
 
-export async function addImage(productId, { storageKey, altText, role = 'product_photo' }) {
+export async function addImage(productId, { storageKey, altText, role = 'product_photo', width = null, height = null }) {
   const db = await getDb()
   const [{ next }] = await db.select({
     next: sql`coalesce(max(${productImages.sortOrder}), -1) + 1`,
@@ -166,6 +171,8 @@ export async function addImage(productId, { storageKey, altText, role = 'product
     storageKey,
     altText: altText || 'Product image',
     role,
+    width,
+    height,
     sortOrder: Number(next) || 0,
   })
 }

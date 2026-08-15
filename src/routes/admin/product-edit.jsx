@@ -6,6 +6,7 @@ import {
 import { saveUpload, deleteUpload, describeLimits } from '../../lib/uploads.server'
 import { SPECIES, AVAILABILITY } from '../../lib/catalogue-constants'
 import ImageDropZone from '../../components/admin/ImageDropZone'
+import { thumbSrc } from '../../lib/images'
 
 export async function loader({ request, params }) {
   await requireUser(request)
@@ -30,6 +31,8 @@ export async function action({ request, params }) {
       if (res.error) { errors.push(res.error); continue }
       await addImage(params.id, {
         storageKey: res.storageKey,
+        width: res.width,
+        height: res.height,
         altText: `${product?.name ?? 'Product'} photo`,
       })
       added++
@@ -118,12 +121,15 @@ function ImagesSection() {
           {images.map((img, i) => (
             <li key={img.id} className="flex flex-col gap-2 rounded-xl border border-gray-200 p-3">
               <div className="aspect-[4/3] overflow-hidden rounded-lg bg-white ring-1 ring-gray-100">
-                <img src={img.storageKey} alt={img.altText} className="h-full w-full object-contain" />
+                <img src={thumbSrc(img.storageKey, img.width)} alt={img.altText} loading="lazy" className="h-full w-full object-contain" />
               </div>
 
               <Form method="post" className="flex flex-col gap-1.5">
                 <input type="hidden" name="intent" value="image-alt" />
                 <input type="hidden" name="imageId" value={img.id} />
+                {img.width && (
+                  <p className="text-[10px] text-gray-400">{img.width}×{img.height} · responsive set generated</p>
+                )}
                 <label className="text-[11px] font-medium text-gray-600">
                   Description <span className="font-normal text-gray-400">(read aloud by screen readers, and used by Google)</span>
                 </label>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
+import { srcSet, thumbSrc } from '../lib/images'
 import {
   productPath, catalogueProducts as snapshotProducts,
   categoryTree, speciesFacet, availabilityFacet,
@@ -88,6 +89,8 @@ function ProductCard({ product }) {
       <div className="aspect-[4/3] w-full overflow-hidden bg-white p-4">
         <img
           src={product.image}
+          srcSet={srcSet(product.image, product.imageWidth) ?? undefined}
+          sizes="(min-width: 1024px) 300px, (min-width: 640px) 45vw, 90vw"
           alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
           loading="lazy"
           className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
@@ -117,7 +120,7 @@ function ProductRow({ product }) {
       className="group flex gap-5 rounded-2xl border border-gray-100 bg-white p-4 transition-shadow duration-300 hover:shadow-lg"
     >
       <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-white p-2">
-        <img src={product.image} alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`} loading="lazy" className="h-full w-full object-contain" />
+        <img src={thumbSrc(product.image, product.imageWidth)} alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`} loading="lazy" className="h-full w-full object-contain" />
       </div>
       <div className="flex flex-1 flex-col justify-center gap-1.5">
         <p className="font-sans text-xs font-bold tracking-wide text-royal-blue uppercase">

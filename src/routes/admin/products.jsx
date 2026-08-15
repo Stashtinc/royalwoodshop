@@ -1,6 +1,7 @@
 import { Link, Form, useLoaderData, useSearchParams } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { listProducts } from '../../lib/admin-queries.server'
+import { thumbSrc } from '../../lib/images'
 
 export async function loader({ request }) {
   await requireUser(request)
@@ -67,7 +68,7 @@ export default function Products() {
                   <Link to={`/admin/products/${r.id}`} className="block">
                     {r.image ? (
                       <div className="relative h-11 w-11 overflow-hidden rounded-lg bg-white ring-1 ring-gray-200">
-                        <img src={r.image} alt="" className="h-full w-full object-contain p-0.5" />
+                        <img src={thumbSrc(r.image, r.imageWidth)} alt="" loading="lazy" className="h-full w-full object-contain p-0.5" />
                         {r.imageCount > 1 && (
                           <span className="absolute right-0 bottom-0 rounded-tl bg-gray-900/70 px-1 text-[9px] leading-tight text-white">
                             {r.imageCount}

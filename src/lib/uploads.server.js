@@ -1,6 +1,8 @@
 import { mkdir, writeFile, unlink } from 'node:fs/promises'
 import { join, extname } from 'node:path'
 import { randomBytes } from 'node:crypto'
+import sharp from 'sharp'
+import { WIDTHS, variantPath } from './images.js'
 
 /**
  * Uploaded images are written to public/uploads.
@@ -27,7 +29,16 @@ export function describeLimits() {
   return { types: Object.keys(ALLOWED), maxMb: MAX_BYTES / 1024 / 1024 }
 }
 
-/** Returns { storageKey } or { error }. */
+/**
+ * Saves an upload and generates the responsive set.
+ *
+ * Everything raster is converted to WebP — typically 25–35% smaller than JPEG
+ * at the same quality — and written at each width up to the original. Nothing
+ * is ever upscaled. SVGs are stored as-is; they are already resolution
+ * independent and re-encoding them would only make them worse.
+ *
+ * Returns { storageKey, width, height } or { error }.
+ */
 export async function saveUpload(file, { slug = 'product' } = {}) {
   if (!file || typeof file === 'string' || file.size === 0) return { error: 'No file received.' }
   if (!ALLOWED[file.type]) {
@@ -38,18 +49,54 @@ export async function saveUpload(file, { slug = 'product' } = {}) {
   }
 
   await mkdir(UPLOAD_DIR, { recursive: true })
-  const ext = ALLOWED[file.type] || extname(file.name) || '.bin'
   const safeSlug = String(slug).toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 60)
-  const name = `${safeSlug}-${randomBytes(5).toString('hex')}${ext}`
+  const stem = `${safeSlug}-${randomBytes(5).toString('hex')}`
+  const buffer = Buffer.from(await file.arrayBuffer())
 
-  await writeFile(join(UPLOAD_DIR, name), Buffer.from(await file.arrayBuffer()))
-  return { storageKey: `${PUBLIC_PREFIX}/${name}` }
+  // SVG: store untouched.
+  if (file.type === 'image/svg+xml') {
+    await writeFile(join(UPLOAD_DIR, `${stem}.svg`), buffer)
+    return { storageKey: `${PUBLIC_PREFIX}/${stem}.svg`, width: null, height: null }
+  }
+
+  let image
+  try {
+    image = sharp(buffer, { failOn: 'error' }).rotate()   // honours EXIF orientation
+  } catch {
+    return { error: `${file.name} could not be read as an image.` }
+  }
+
+  const meta = await image.metadata()
+  if (!meta.width || !meta.height) return { error: `${file.name} has no readable dimensions.` }
+
+  const storageKey = `${PUBLIC_PREFIX}/${stem}.webp`
+
+  // Full-size, compressed.
+  await writeFile(
+    join(UPLOAD_DIR, `${stem}.webp`),
+    await image.clone().webp({ quality: 82 }).toBuffer(),
+  )
+
+  // One file per width, never larger than the original.
+  for (const w of WIDTHS) {
+    if (w > meta.width) continue
+    const key = variantPath(storageKey, w)
+    await writeFile(
+      join(UPLOAD_DIR, key.slice(PUBLIC_PREFIX.length + 1)),
+      await image.clone().resize({ width: w, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer(),
+    )
+  }
+
+  return { storageKey, width: meta.width, height: meta.height }
 }
 
 /** Only removes files this app wrote — never anything carried over from the
  *  old site, which are absolute URLs pointing at royalwoodshop.com. */
 export async function deleteUpload(storageKey) {
   if (!storageKey?.startsWith(`${PUBLIC_PREFIX}/`)) return
-  try { await unlink(join(UPLOAD_DIR, storageKey.slice(PUBLIC_PREFIX.length + 1))) }
-  catch { /* already gone */ }
+  const paths = [storageKey, ...WIDTHS.map((w) => variantPath(storageKey, w))]
+  for (const p of paths) {
+    try { await unlink(join(UPLOAD_DIR, p.slice(PUBLIC_PREFIX.length + 1))) }
+    catch { /* already gone */ }
+  }
 }
