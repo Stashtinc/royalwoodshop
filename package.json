@@ -18,7 +18,8 @@
     "import:species": "node scripts/import-species.mjs",
     "db:setup": "node scripts/db-setup.mjs",
     "admin:create-user": "node scripts/create-admin.mjs",
-    "import:posts": "node scripts/import-posts.mjs"
+    "import:posts": "node scripts/import-posts.mjs",
+    "gsc:connect": "node scripts/gsc-connect.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",

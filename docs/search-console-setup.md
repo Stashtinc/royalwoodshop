@@ -54,33 +54,36 @@ Copy that address — the next step needs it.
 Search Analytics API. It grants no ability to change the site — it is a Search
 Console permission, not a website one.
 
-## Step 4 — Put both values in the environment
+## Step 4 — Install the key
 
-Two variables, in the admin server's `.env`:
+Put the downloaded JSON file in the project's `.secrets/` folder (gitignored),
+then run one command:
 
 ```sh
-# The property exactly as Google names it.
-GSC_SITE_URL="http://www.cbeckermann.com/"
-
-# The entire JSON key file, on one line, in single quotes.
-GSC_SERVICE_ACCOUNT_JSON='{"type":"service_account","project_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...","client_email":"...", ...}'
+npm run gsc:connect -- .secrets/royal-wood-shop-site-abc123.json
 ```
 
-**`GSC_SITE_URL` has to match Google exactly.** `http://` and `https://` are
-different properties to Google, and so are `www.` and bare. The safest way to get
-it right is to copy the `resource_id` from the Search Console address bar and
-URL-decode it:
+That writes the key into `.env` correctly and then tests it end to end — it
+authenticates with Google, confirms the service account can actually see the
+property, pulls 28 days of real figures, and prints them.
 
-```
-https://search.google.com/search-console?resource_id=http%3A%2F%2Fwww.cbeckermann.com%2F
-                                                     └──────────── this ─────────────┘
-                                          decodes to:  http://www.cbeckermann.com/
-```
+Doing it by hand is possible but easy to get wrong: the private key contains
+real line breaks, and a `.env` value that spans lines is truncated at the first
+break, which produces a key that looks right in the file and is rejected by
+Google. The script JSON-escapes it onto one line.
 
-A domain property looks different again — `sc-domain:royalwoodshop.com`. Use it
-verbatim if that is what you have.
+If something is not right, the script says which thing:
 
-Restart the admin server. The panel appears on the dashboard.
+- key rejected → the file is damaged, create a fresh one
+- account sees no properties → not added in Search Console yet, or added as
+  Restricted rather than Full
+- account sees other properties but not this one → `GSC_SITE_URL` does not match;
+  it lists the ones it can see so you can copy the exact spelling
+
+Delete the file from `.secrets/` once it reports Connected — the key now lives in
+`.env`. Then restart the server.
+
+To re-test later without a file: `npm run gsc:connect`.
 
 ## When Royal Wood Shop goes live
 

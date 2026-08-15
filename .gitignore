@@ -34,3 +34,10 @@ build
 .data/
 public/uploads/
 .data/imports/
+
+# Google service-account keys. Drop them in .secrets/ — never commit one.
+.secrets/
+*.iam.gserviceaccount.com.json
+*-service-account*.json
+gcp-*.json
+.env.backup
