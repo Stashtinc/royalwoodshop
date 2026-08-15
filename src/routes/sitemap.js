@@ -1,10 +1,16 @@
 import { catalogueProducts } from '../data/catalogue'
-import { BASE } from '../seo'
+import { BASE, INDEXING_ENABLED } from '../seo'
 
 const STATIC = ['/', '/products', '/contact', '/the-royal-edge', '/core-values',
                 '/environmental-commitment', '/services', '/resources']
 
 export function loader() {
+  // No point publishing a sitemap for a site that disallows crawling.
+  if (!INDEXING_ENABLED) {
+    return new Response('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>', {
+      headers: { 'Content-Type': 'application/xml', 'X-Robots-Tag': 'noindex' },
+    })
+  }
   const cats = [...new Set(catalogueProducts.map((p) => p.categorySlug))]
   const urls = [
     ...STATIC.map((p) => ({ loc: p, priority: p === '/' ? '1.0' : '0.8' })),

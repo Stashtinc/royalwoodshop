@@ -1,28 +1,24 @@
-import { BASE } from '../seo'
+import { BASE, INDEXING_ENABLED } from '../seo'
 
 /**
- * Only the production domain invites crawling.
+ * Crawling is off unless switched on deliberately.
  *
- * Staging and preview builds get a blanket Disallow, so a branch deploy can
- * never compete with the live site in search results. This keys off
- * VITE_SITE_URL, which netlify.toml sets per context.
+ * The site will move hosts before launch, and a temporary address that gets
+ * indexed becomes a duplicate of the real site that is awkward to remove.
+ * Requiring an explicit VITE_SEARCH_INDEXING=on means no deploy can start
+ * inviting crawlers by accident.
  */
-const PRODUCTION = 'https://www.royalwoodshop.com'
-
 export function loader() {
-  // Checked against the raw variable, not BASE — BASE falls back to the
-  // production URL, so an unset variable would read as production. An
-  // unconfigured deploy should be treated as staging, not published.
-  const isProduction = import.meta.env.VITE_SITE_URL === PRODUCTION
-
-  const body = isProduction
+  const body = INDEXING_ENABLED
     ? `User-agent: *
 Allow: /
 Disallow: /quotation
+Disallow: /admin
 
 Sitemap: ${BASE}/sitemap.xml
 `
-    : `# Non-production deploy (${BASE}) — indexing disallowed.
+    : `# Indexing is switched off for this deploy.
+# Set VITE_SEARCH_INDEXING=on, on the final domain only, to allow crawling.
 User-agent: *
 Disallow: /
 `
@@ -30,7 +26,7 @@ Disallow: /
   return new Response(body, {
     headers: {
       'Content-Type': 'text/plain',
-      'X-Robots-Tag': isProduction ? 'all' : 'noindex, nofollow',
+      'X-Robots-Tag': INDEXING_ENABLED ? 'all' : 'noindex, nofollow',
     },
   })
 }

@@ -18,6 +18,9 @@
 # duplicates of pages it cannot verify.
 [context.production.environment]
   VITE_SITE_URL = "https://www.royalwoodshop.com"
+  # Crawling stays off until the site is on its final host and the real
+  # domain is attached. Set this to "on" then, and not before.
+  VITE_SEARCH_INDEXING = "off"
 
 [context.deploy-preview.environment]
   VITE_SITE_URL = "https://deploy-preview--royalwoodshop.netlify.app"
@@ -31,6 +34,9 @@
 [[headers]]
   for = "/*"
   [headers.values]
+    # Belt and braces alongside robots.txt: robots.txt asks crawlers not to
+    # look, this tells them not to index what they already fetched.
+    X-Robots-Tag = "noindex, nofollow"
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "SAMEORIGIN"
     Referrer-Policy = "strict-origin-when-cross-origin"

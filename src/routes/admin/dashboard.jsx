@@ -1,6 +1,7 @@
 import { Link, useLoaderData } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { dashboardStats, ensureSpecies } from '../../lib/admin-queries.server'
+import { INDEXING_ENABLED } from '../../seo'
 
 export async function loader({ request }) {
   await requireUser(request)
@@ -28,6 +29,24 @@ export default function Dashboard() {
   const { stats } = useLoaderData()
   return (
     <div className="flex flex-col gap-8">
+      {!INDEXING_ENABLED && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+          <svg viewBox="0 0 20 20" className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" fill="none"
+            stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <circle cx="10" cy="10" r="7.5" /><path d="M10 6.5v4.5" />
+            <circle cx="10" cy="13.6" r="0.4" fill="currentColor" stroke="none" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-amber-900">Hidden from search engines</p>
+            <p className="mt-0.5 text-sm text-amber-800">
+              This site is set to noindex, so Google will not list it. That is deliberate while it
+              is on a temporary address. Set <code className="rounded bg-amber-100 px-1 text-xs">VITE_SEARCH_INDEXING=on</code>{' '}
+              once it is on the final domain — nothing will rank until you do.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="font-serif text-2xl font-bold text-tundora">Catalogue</h1>
         <p className="mt-1 text-sm text-gray-500">

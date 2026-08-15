@@ -5,6 +5,15 @@ export const SITE = 'The Royal Wood Shop'
 export const BASE =
   import.meta.env.VITE_SITE_URL || 'https://www.royalwoodshop.com'
 
+/**
+ * Search engines are kept out until this is switched on deliberately.
+ *
+ * Defaults to off, so a preview, a staging copy, or a temporary host can
+ * never quietly start competing with the live site. Turn it on by setting
+ * VITE_SEARCH_INDEXING=on, and only on the final domain.
+ */
+export const INDEXING_ENABLED = import.meta.env.VITE_SEARCH_INDEXING === 'on'
+
 /** Every page gets a unique title, a description and a self-referencing
  *  canonical. The absence of these on the old site is why several hundred
  *  product pages could not rank. */
@@ -16,6 +25,8 @@ export function pageMeta({ title, description, path, image, jsonLd }) {
     // characters Google will truncate.
     { title: /royal\s*wood\s*shop/i.test(title) ? title : `${title} | ${SITE}` },
     { name: 'description', content: description },
+    // Off unless explicitly enabled, so no temporary host gets indexed.
+    ...(INDEXING_ENABLED ? [] : [{ name: 'robots', content: 'noindex, nofollow' }]),
     { tagName: 'link', rel: 'canonical', href: url },
     { property: 'og:title', content: title },
     { property: 'og:description', content: description },

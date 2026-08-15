@@ -148,3 +148,29 @@ npm run dev
 This is a property of the embedded database, not of PostgreSQL. On a server
 with a real PostgreSQL, concurrent connections are the normal case and this
 cannot happen.
+
+
+## Search engine indexing
+
+Crawling is **off by default**. Every page carries `noindex, nofollow`,
+`robots.txt` disallows everything, the sitemap is empty, and Netlify sends an
+`X-Robots-Tag: noindex` header.
+
+That is deliberate: the site will move hosts before launch, and a temporary
+address that gets indexed becomes a duplicate of the real site which is
+awkward to remove afterwards.
+
+**To go live**, on the final domain only:
+
+```
+VITE_SEARCH_INDEXING=on
+VITE_SITE_URL=https://www.royalwoodshop.com
+```
+
+Remove the `X-Robots-Tag` header from `netlify.toml` at the same time — the
+header overrides everything else, so leaving it in place would keep the site
+invisible no matter what robots.txt says.
+
+The admin dashboard shows a warning while indexing is off, so it cannot be
+forgotten. A site launched with noindex left on is the single most expensive
+mistake available here.
