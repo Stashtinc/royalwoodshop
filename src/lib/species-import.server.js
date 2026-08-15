@@ -119,6 +119,7 @@ export async function analyse(rows) {
   const summary = {
     rows: parsed.length,
     matched: 0,
+    willChange: 0,
     unmatched: [],
     willSetSpecies: 0,
     willSetAvailability: 0,
@@ -137,13 +138,14 @@ export async function analyse(rows) {
     if (p.species.length) summary.willSetSpecies++
     if (p.availability) summary.willSetAvailability++
     if (p.flex) summary.willSetFlex++
-    if (!p.species.length && !p.availability && !p.flex) summary.blank++
+    if (p.species.length || p.availability || p.flex) summary.willChange++
+    else summary.blank++
     if (p.tooManyAvailability) summary.tooManyAvailability.push(p.code)
     for (const o of p.other) {
       if (!known.has(o.toLowerCase())) summary.unknownOther.push(`${p.code}: ${o}`)
     }
 
-    if (summary.changes.length < 12 && (p.species.length || p.availability || p.flex)) {
+    if (summary.changes.length < 40 && (p.species.length || p.availability || p.flex)) {
       summary.changes.push({
         code: p.code,
         name: product.name,

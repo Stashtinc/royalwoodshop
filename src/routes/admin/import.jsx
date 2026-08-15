@@ -184,11 +184,17 @@ export default function Import() {
           )}
 
           <div className="grid gap-3 sm:grid-cols-4">
-            <Stat label="Products matched" value={s.matched} tone="good" />
-            <Stat label="Will get species" value={s.willSetSpecies} tone="good" />
-            <Stat label="Will get availability" value={s.willSetAvailability} tone="good" />
-            <Stat label="Rows still blank" value={s.blank} tone={s.blank ? 'warn' : 'default'} />
+            <Stat label="Products will change" value={s.willChange} tone={s.willChange ? 'good' : 'warn'} />
+            <Stat label="of them gain species" value={s.willSetSpecies} />
+            <Stat label="of them gain availability" value={s.willSetAvailability} />
+            <Stat label="Rows left untouched" value={s.blank} />
           </div>
+
+          <p className="text-sm text-gray-600">
+            {s.matched} rows in the file matched a product. {s.blank} of those have nothing
+            ticked yet and are left exactly as they are — sending the sheet back in batches
+            never undoes work already done.
+          </p>
 
           {s.unmatched.length > 0 && (
             <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -215,7 +221,9 @@ export default function Import() {
           {s.changes.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
               <p className="border-b border-gray-100 bg-gray-50 px-4 py-2 text-xs tracking-wide text-gray-600 uppercase">
-                A sample of what will change
+                {s.changes.length >= s.willChange
+                  ? `All ${s.willChange} change${s.willChange === 1 ? '' : 's'}`
+                  : `First ${s.changes.length} of ${s.willChange} changes`}
               </p>
               <ul>
                 {s.changes.map((c) => (
@@ -238,9 +246,13 @@ export default function Import() {
               <input type="hidden" name="intent" value="apply" />
               <input type="hidden" name="token" value={data.token} />
               <input type="hidden" name="fileName" value={data.fileName} />
-              <button disabled={busy}
+              <button disabled={busy || s.willChange === 0}
                 className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
-                {busy ? 'Applying…' : `Apply to ${s.matched} products`}
+                {busy
+                  ? 'Applying…'
+                  : s.willChange === 0
+                    ? 'Nothing to apply'
+                    : `Apply ${s.willChange} change${s.willChange === 1 ? '' : 's'}`}
               </button>
             </Form>
             <Link to="/admin/import" className="text-sm text-gray-600 hover:underline">Choose a different file</Link>
