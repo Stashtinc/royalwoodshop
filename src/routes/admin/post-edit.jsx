@@ -1,9 +1,12 @@
+import { useRef, useState } from 'react'
 import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { getPostById, savePost, listCategories, slugTaken } from '../../lib/posts.server'
 import { saveUpload } from '../../lib/uploads.server'
 import { log } from '../../lib/activity.server'
+import { draftArticle, draftMetadata, isConfigured as aiConfigured } from '../../lib/ai.server'
 import RichText from '../../components/admin/RichText'
+import AiAssist from '../../components/admin/AiAssist'
 
 const slugify = (s) => String(s).toLowerCase().trim()
   .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 200)
@@ -13,13 +16,36 @@ export async function loader({ request, params }) {
   const isNew = params.id === 'new'
   const post = isNew ? null : await getPostById(params.id)
   if (!isNew && !post) throw new Response('Not found', { status: 404 })
-  return { post, categories: await listCategories(), isNew }
+  return { post, categories: await listCategories(), isNew, aiEnabled: aiConfigured() }
 }
 
 export async function action({ request, params }) {
   const user = await requireUser(request)
   const f = await request.formData()
   const isNew = params.id === 'new'
+
+  // AI Assist posts to this same action. Handled first and returned early:
+  // generating a draft must never write anything.
+  const intent = String(f.get('intent') ?? '')
+  if (intent === 'ai-article' || intent === 'ai-metadata') {
+    try {
+      if (intent === 'ai-article') {
+        const draft = await draftArticle({
+          topic: String(f.get('topic') ?? ''),
+          notes: String(f.get('notes') ?? ''),
+          length: String(f.get('length') ?? 'medium'),
+        })
+        return { ai: { kind: 'article', ...draft } }
+      }
+      const meta = await draftMetadata({
+        title: String(f.get('title') ?? ''),
+        contentHtml: String(f.get('contentHtml') ?? ''),
+      })
+      return { ai: { kind: 'metadata', ...meta } }
+    } catch (e) {
+      return { aiError: e.message }
+    }
+  }
 
   const title = String(f.get('title') ?? '').trim()
   if (!title) return { error: 'An article needs a title.' }
@@ -70,27 +96,77 @@ export async function action({ request, params }) {
 const field = 'rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue'
 
 export default function PostEdit() {
-  const { post, categories, isNew } = useLoaderData()
+  const { post, categories, isNew, aiEnabled } = useLoaderData()
   const data = useActionData()
   const nav = useNavigation()
-  const saving = nav.state === 'submitting'
+  // The AI fetcher also drives nav.state on this route, so distinguish a real
+  // save from a generation — otherwise the Save button reads "Saving…" while
+  // an article is being written.
+  const saving = nav.state === 'submitting' && nav.formData?.get('intent') == null
+
+  const [assistOpen, setAssistOpen] = useState(false)
+  const editorApi = useRef(null)
+  const formRef = useRef(null)
+
+  /** Reads the live form so the assistant sees unsaved edits, not the last save. */
+  const getEditorState = () => ({
+    title: formRef.current?.elements.title?.value ?? '',
+    contentHtml: editorApi.current?.getHtml() ?? '',
+  })
+
+  const useArticle = ({ title, html }) => {
+    editorApi.current?.setHtml(html)
+    const titleInput = formRef.current?.elements.title
+    // Never clobber a title the author has already chosen.
+    if (titleInput && !titleInput.value.trim() && title) titleInput.value = title
+  }
+
+  const useMetadata = ({ excerpt, seoTitle, seoDescription }) => {
+    const el = formRef.current?.elements
+    if (!el) return
+    if (el.excerpt) el.excerpt.value = excerpt
+    if (el.seoTitle) el.seoTitle.value = seoTitle
+    if (el.seoDescription) el.seoDescription.value = seoDescription
+  }
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
         <Link to="/admin/posts" className="text-sm text-royal-blue hover:underline">← Blog</Link>
-        {post && (
-          <a href={`/${post.slug}`} target="_blank" rel="noreferrer"
-            className="ml-auto text-sm text-gray-500 hover:text-royal-blue">
-            View on site ↗
-          </a>
-        )}
+
+        <div className="ml-auto flex items-center gap-4">
+          <button type="button" onClick={() => setAssistOpen(true)} disabled={!aiEnabled}
+            title={aiEnabled ? 'Draft or summarise with Claude' : 'Set ANTHROPIC_API_KEY to enable — see docs/ai-assist-setup.md'}
+            className="flex items-center gap-2 rounded-lg border border-royal-blue px-3.5 py-2 text-sm font-medium text-royal-blue transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent">
+            <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"
+              strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 2.5l1.6 4.3 4.4 1.7-4.4 1.7L10 14.5 8.4 10.2 4 8.5l4.4-1.7L10 2.5z" />
+              <path d="M15.5 13.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7.7-1.8z" />
+            </svg>
+            AI Assist
+          </button>
+
+          {post && (
+            <a href={`/${post.slug}`} target="_blank" rel="noreferrer"
+              className="text-sm text-gray-500 hover:text-royal-blue">
+              View on site ↗
+            </a>
+          )}
+        </div>
       </div>
+
+      <AiAssist
+        open={assistOpen}
+        onClose={() => setAssistOpen(false)}
+        onUseArticle={useArticle}
+        onUseMetadata={useMetadata}
+        getEditorState={getEditorState}
+      />
 
       {data?.saved && <p className="rounded-lg bg-green-50 px-4 py-2.5 text-sm text-green-800">{data.saved}</p>}
       {data?.error && <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-800">{data.error}</p>}
 
-      <Form method="post" encType="multipart/form-data" className="flex flex-col gap-6">
+      <Form ref={formRef} method="post" encType="multipart/form-data" className="flex flex-col gap-6">
         <input type="hidden" name="featuredImageExisting" defaultValue={post?.featuredImage ?? ''} />
 
         <label className="flex flex-col gap-1.5">
@@ -103,7 +179,7 @@ export default function PostEdit() {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-gray-700">Article</span>
-              <RichText name="contentHtml" defaultValue={post?.contentHtml ?? ''} />
+              <RichText name="contentHtml" defaultValue={post?.contentHtml ?? ''} apiRef={editorApi} />
             </div>
 
             <label className="flex flex-col gap-1.5">

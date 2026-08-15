@@ -34,7 +34,7 @@ function Btn({ onClick, title, active, children }) {
   )
 }
 
-export default function RichText({ name = 'contentHtml', defaultValue = '', onDirty }) {
+export default function RichText({ name = 'contentHtml', defaultValue = '', onDirty, apiRef }) {
   const editor = useRef(null)
   const hidden = useRef(null)
   const [block, setBlock] = useState('p')
@@ -49,6 +49,24 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
     if (hidden.current && editor.current) hidden.current.value = editor.current.innerHTML
     onDirty?.()
   }
+
+  /**
+   * A handle for callers that need to read or replace the content — the AI
+   * Assist dialog. The editor stays uncontrolled: making it a controlled React
+   * component would re-render on every keystroke and move the caret.
+   */
+  useEffect(() => {
+    if (!apiRef) return
+    apiRef.current = {
+      getHtml: () => editor.current?.innerHTML ?? '',
+      setHtml: (html) => {
+        if (!editor.current) return
+        editor.current.innerHTML = html || '<p></p>'
+        sync()
+      },
+    }
+    return () => { apiRef.current = null }
+  })
 
   const exec = (command, value = null) => {
     document.execCommand(command, false, value)
