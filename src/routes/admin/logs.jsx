@@ -123,7 +123,11 @@ export default function Logs() {
     return `?${p}`
   }
   const tab = (isOn) =>
-    `rounded-lg px-3 py-1.5 text-sm ${isOn ? 'bg-royal-blue text-white' : 'border border-gray-300 bg-white text-gray-700 hover:border-gray-400'}`
+    `-mb-px border-b-2 px-1 pb-2.5 text-sm transition-colors ${
+      isOn
+        ? 'border-royal-blue font-medium text-tundora'
+        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+    }`
 
   const filterLink = (a) => {
     const p = new URLSearchParams(params)
@@ -151,15 +155,42 @@ export default function Logs() {
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-6 border-b border-gray-200">
         <Link to={levelLink('milestone')} className={tab(level === 'milestone')}>
-          Milestones <span className="opacity-60">{totals.milestones}</span>
+          Milestones <span className="ml-0.5 text-gray-400">{totals.milestones}</span>
         </Link>
         <Link to={levelLink('all')} className={tab(level === 'all')}>
-          Everything <span className="opacity-60">{totals.milestones + totals.detail}</span>
+          Everything <span className="ml-0.5 text-gray-400">{totals.milestones + totals.detail}</span>
         </Link>
+
+        <details className="group relative -mb-px pb-2.5">
+          <summary
+            aria-label="What counts as a milestone?"
+            className="flex cursor-pointer list-none items-center text-gray-400 hover:text-gray-600 [&::-webkit-details-marker]:hidden"
+          >
+            <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true"
+              fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <circle cx="10" cy="10" r="7.5" />
+              <path d="M10 9v4.5" /><circle cx="10" cy="6.6" r="0.35" fill="currentColor" stroke="none" />
+            </svg>
+          </summary>
+          <div className="absolute top-8 left-0 z-20 w-80 rounded-xl border border-gray-200 bg-white p-4 text-sm shadow-lg">
+            <p className="font-medium text-tundora">What counts as a milestone?</p>
+            <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-4 text-xs leading-relaxed text-gray-600">
+              <li>Anything that changed <strong>many products at once</strong> — importing the species sheet, publishing the site.</li>
+              <li>Anything that changed <strong>what customers see</strong> — a product being published, hidden or archived.</li>
+              <li>Setup events, such as the catalogue and redirects first being loaded.</li>
+            </ul>
+            <p className="mt-2.5 text-xs leading-relaxed text-gray-500">
+              Everything else — editing one field, changing an image, signing in — is recorded
+              under <strong>Everything</strong>, and kept for 90 days. Runs of edits by one person
+              are grouped into a single line.
+            </p>
+          </div>
+        </details>
+
         {level === 'all' && (
-          <span className="ml-2 text-xs text-gray-400">Detailed entries are kept for 90 days</span>
+          <span className="pb-2.5 text-xs text-gray-400">Detailed entries are kept for 90 days</span>
         )}
       </div>
 
