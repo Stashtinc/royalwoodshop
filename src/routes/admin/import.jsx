@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Form, Link, useActionData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { parseSheet, analyse, apply } from '../../lib/species-import.server'
+import { parseUpload, analyse, apply } from '../../lib/species-import.server'
 import { log } from '../../lib/activity.server'
 import { SPECIES } from '../../lib/catalogue-constants'
 
@@ -27,12 +27,10 @@ export async function action({ request }) {
     }
     if (file.size > 8 * 1024 * 1024) return { error: 'That file is larger than 8 MB.' }
 
-    let text
-    try { text = new TextDecoder('utf-8').decode(await file.arrayBuffer()) }
-    catch { return { error: 'That file could not be read as text. Export it as CSV, not Excel.' } }
+    const buffer = await file.arrayBuffer()
 
     let parsedSheet
-    try { parsedSheet = parseSheet(text) }
+    try { parsedSheet = await parseUpload(buffer, file.name) }
     catch (e) { return { error: e.message } }
 
     const { summary } = await analyse(parsedSheet.rows)
@@ -40,7 +38,7 @@ export async function action({ request }) {
     // Hold the file so applying it uses exactly what was previewed.
     await mkdir(STAGING, { recursive: true })
     const token = randomBytes(8).toString('hex')
-    await writeFile(`${STAGING}/${token}.csv`, text)
+    await writeFile(`${STAGING}/${token}`, Buffer.from(buffer))
 
     return {
       stage: 'preview',
@@ -48,6 +46,7 @@ export async function action({ request }) {
       fileName: file.name,
       skipped: parsedSheet.skipped,
       missingColumns: parsedSheet.missingColumns,
+      sheetName: parsedSheet.sheetName,
       summary,
     }
   }
@@ -56,13 +55,13 @@ export async function action({ request }) {
     const token = String(form.get('token') ?? '')
     if (!/^[a-f0-9]{16}$/.test(token)) return { error: 'That upload has expired. Please choose the file again.' }
 
-    let text
-    try { text = await readFile(`${STAGING}/${token}.csv`, 'utf8') }
+    let buffer
+    try { buffer = await readFile(`${STAGING}/${token}`) }
     catch { return { error: 'That upload has expired. Please choose the file again.' } }
 
-    const { rows } = parseSheet(text)
+    const { rows } = await parseUpload(buffer, String(form.get('fileName') ?? ''))
     const result = await apply(rows)
-    await unlink(`${STAGING}/${token}.csv`).catch(() => {})
+    await unlink(`${STAGING}/${token}`).catch(() => {})
 
     await log(user, 'import.species', {
       entityType: 'import',
@@ -119,11 +118,12 @@ function DropArea() {
         over ? 'border-royal-blue bg-blue-50' : 'border-gray-300 bg-gray-50 hover:border-gray-400'
       }`}
     >
-      <input ref={ref} type="file" name="file" accept=".csv,text/csv"
+      <input ref={ref} type="file" name="file"
+        accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         onChange={(e) => setName(e.target.files?.[0]?.name ?? '')} className="hidden" />
-      <p className="text-sm font-medium text-gray-700">Drop the CSV here, or click to choose</p>
+      <p className="text-sm font-medium text-gray-700">Drop the spreadsheet here, or click to choose</p>
       <p className="mt-1 text-xs text-gray-500">
-        In Google Sheets: File → Download → Comma-separated values
+        The Excel workbook itself, or a CSV export — either works
       </p>
       {name && <p className="mt-3 inline-block rounded bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-gray-200">{name}</p>}
     </div>
@@ -142,8 +142,9 @@ export default function Import() {
       <div>
         <h1 className="font-serif text-2xl font-bold text-tundora">Import species sheet</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Upload the completed <span className="font-medium">TO DO — Species</span> tab. You will see
-          what it changes before anything is saved.
+          Upload the workbook, or a CSV export of the{' '}
+          <span className="font-medium">TO DO — Species</span> tab. You will see what it changes
+          before anything is saved.
         </p>
       </div>
 
@@ -168,7 +169,9 @@ export default function Import() {
         <div className="flex flex-col gap-5">
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <p className="text-sm text-gray-700">
-              <span className="font-medium">{data.fileName}</span> — {s.rows} product rows
+              <span className="font-medium">{data.fileName}</span>
+              {data.sheetName && <> · sheet <span className="font-medium">{data.sheetName}</span></>}
+              {' '}— {s.rows} product rows
               {data.skipped > 0 && <> (ignored {data.skipped} instruction row{data.skipped === 1 ? '' : 's'} above the headers)</>}
             </p>
           </div>

@@ -9,19 +9,18 @@ const FLEX = 'Flex'
 const ticked = (v) => String(v ?? '').trim() !== ''
 
 /**
- * Reads an exported sheet, skipping whatever sits above the header row.
+ * Turns a grid of cells into rows, skipping whatever sits above the headers.
  *
- * The workbook carries instructions in its first rows, so an export does not
- * begin with headers. Rather than asking anyone to tidy the file, find the row
- * containing PRODUCT CODE and start there.
+ * The workbook carries instructions in its first rows, so neither an export
+ * nor the workbook itself begins with headers. Rather than asking anyone to
+ * tidy the file, find the row containing PRODUCT CODE and start there.
  */
-export function parseSheet(text) {
-  const all = parse(text, { skip_empty_lines: false, relax_column_count: true, bom: true })
+function parseGrid(all, { sheetName = null } = {}) {
   const headerIndex = all.findIndex((row) =>
     row.some((cell) => String(cell).trim().toUpperCase() === 'PRODUCT CODE'))
 
   if (headerIndex === -1) {
-    throw new Error('No PRODUCT CODE column found. Make sure the "TO DO — Species" tab was the one exported.')
+    throw new Error('No PRODUCT CODE column found. Is this the "TO DO — Species" tab?')
   }
 
   const headers = all[headerIndex].map((h) => String(h).trim())
@@ -31,7 +30,53 @@ export function parseSheet(text) {
     .filter((row) => row.some((c) => String(c).trim() !== ''))
     .map((row) => Object.fromEntries(headers.map((h, i) => [h, row[i] ?? ''])))
 
-  return { rows, skipped: headerIndex, missingColumns }
+  return { rows, skipped: headerIndex, missingColumns, sheetName }
+}
+
+const isZip = (buf) => buf.length > 1 && buf[0] === 0x50 && buf[1] === 0x4b   // 'PK' — xlsx is a zip
+
+/**
+ * Accepts the workbook itself or a CSV export.
+ *
+ * Brad works in a spreadsheet, so requiring a CSV export first is a step that
+ * exists only for the software's convenience. Given an .xlsx, the species tab
+ * is found by name.
+ */
+export async function parseUpload(buffer, fileName = '') {
+  const buf = Buffer.from(buffer)
+
+  if (isZip(buf) || /\.xlsx?$/i.test(fileName)) {
+    const XLSX = (await import('xlsx')).default
+    let book
+    try { book = XLSX.read(buf, { type: 'buffer' }) }
+    catch { throw new Error('That spreadsheet could not be read. Try File → Download → Comma-separated values instead.') }
+
+    // Prefer the species tab; fall back to any sheet with a PRODUCT CODE column.
+    const preferred = book.SheetNames.find((n) => /species/i.test(n))
+    const order = preferred ? [preferred, ...book.SheetNames.filter((n) => n !== preferred)] : book.SheetNames
+
+    let lastError
+    for (const name of order) {
+      const grid = XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, blankrows: true, defval: '' })
+      try { return parseGrid(grid, { sheetName: name }) }
+      catch (e) { lastError = e }
+    }
+    throw new Error(
+      `No sheet in that workbook has a PRODUCT CODE column. Sheets found: ${book.SheetNames.join(', ')}.`,
+    )
+  }
+
+  let text
+  try { text = new TextDecoder('utf-8', { fatal: false }).decode(buf) }
+  catch { throw new Error('That file could not be read.') }
+
+  const grid = parse(text, { skip_empty_lines: false, relax_column_count: true, bom: true })
+  return parseGrid(grid)
+}
+
+/** CSV only — used by the command-line importer. */
+export function parseSheet(text) {
+  return parseGrid(parse(text, { skip_empty_lines: false, relax_column_count: true, bom: true }))
 }
 
 /** Turns a sheet row into the change it represents. */
