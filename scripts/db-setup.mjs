@@ -49,7 +49,7 @@ const EXPECTED = [
   'categories', 'products', 'product_categories', 'attributes', 'attribute_values',
   'product_attributes', 'product_images', 'related_products', 'redirects',
   'not_found_log', 'users', 'activity_log', 'posts', 'post_categories',
-  'posts_to_categories',
+  'posts_to_categories', 'search_console_cache',
 ]
 const missing = []
 for (const table of EXPECTED) {

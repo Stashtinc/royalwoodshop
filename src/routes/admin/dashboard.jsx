@@ -1,12 +1,34 @@
 import { Link, useLoaderData } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { dashboardStats, ensureSpecies } from '../../lib/admin-queries.server'
+import { getSearchConsole, refresh as refreshSearchConsole } from '../../lib/search-console.server'
+import SearchConsolePanel from '../../components/admin/SearchConsolePanel'
 import { INDEXING_ENABLED } from '../../seo'
 
 export async function loader({ request }) {
   await requireUser(request)
   await ensureSpecies()
-  return { stats: await dashboardStats() }
+
+  const [stats, search] = await Promise.all([dashboardStats(), getSearchConsole()])
+
+  // Top up in the background when the cache has gone stale. Deliberately not
+  // awaited — the dashboard must not wait on Google to render.
+  if (search.configured && (search.stale || search.empty)) {
+    refreshSearchConsole().catch(() => {})
+  }
+
+  return { stats, search }
+}
+
+export async function action({ request }) {
+  await requireUser(request)
+  const form = await request.formData()
+  if (form.get('intent') === 'refresh-search-console') {
+    // Awaited here, unlike the loader: the user pressed Refresh and is waiting
+    // for new numbers, so returning before they land would be a lie.
+    await refreshSearchConsole({ force: true })
+  }
+  return { ok: true }
 }
 
 function Card({ label, value, tone = 'default', to, hint }) {
@@ -26,7 +48,7 @@ function Card({ label, value, tone = 'default', to, hint }) {
 }
 
 export default function Dashboard() {
-  const { stats } = useLoaderData()
+  const { stats, search } = useLoaderData()
   return (
     <div className="flex flex-col gap-8">
       {!INDEXING_ENABLED && (
@@ -63,6 +85,8 @@ export default function Dashboard() {
         <Card label="No description" value={stats.noDescription} tone={stats.noDescription ? 'warn' : 'good'}
           to="/admin/products?missing=description" hint="Blank pages cannot rank" />
       </div>
+
+      <SearchConsolePanel search={search} />
 
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <h2 className="font-serif text-lg font-bold text-tundora">Publishing</h2>

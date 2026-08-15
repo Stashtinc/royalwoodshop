@@ -271,6 +271,29 @@ export const activityLog = pgTable('activity_log', {
   entityIdx: index('activity_log_entity_idx').on(t.entityType, t.entityId),
 }))
 
+/* ------------------------------------------- search console (Google) cache */
+
+/** Google's Search Analytics API is slow (1–3s) and rate limited, and its data
+ *  only settles after ~2 days. So we never call it from a page load: a cached
+ *  row is served immediately and refreshed in the background once it is older
+ *  than the TTL. One row per (property, report) pair; payload is the raw JSON
+ *  we shaped for the dashboard. */
+export const searchConsoleCache = pgTable('search_console_cache', {
+  id: serial('id').primaryKey(),
+  /** The GSC property, exactly as Google names it, e.g.
+   *  'http://www.cbeckermann.com/' or 'sc-domain:royalwoodshop.com'. */
+  siteUrl: varchar('site_url', { length: 300 }).notNull(),
+  /** 'summary' | 'trend' | 'queries' | 'pages' | 'coverage' */
+  report: varchar('report', { length: 40 }).notNull(),
+  payload: text('payload').notNull(),
+  /** Null when the last refresh succeeded. Holds the message when it did not,
+   *  so the dashboard can say what is wrong instead of showing nothing. */
+  error: text('error'),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniq: uniqueIndex('search_console_cache_key_idx').on(t.siteUrl, t.report),
+}))
+
 /* -------------------------------------------------------------- relations */
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
