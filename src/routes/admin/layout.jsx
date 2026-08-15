@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Outlet, Link, NavLink, Form, useLoaderData, useLocation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
+import logoBlue from '../../assets/images/logo-blue.svg'
 
 export async function loader({ request }) {
   return { user: await requireUser(request) }
@@ -93,9 +94,15 @@ function SidebarContent({ user, onNavigate }) {
   return (
     <div className="flex h-full flex-col">
       <div className="px-5 py-5">
-        <Link to="/admin" onClick={onNavigate} className="block leading-tight">
-          <span className="block font-serif text-base font-bold text-tundora">The Royal Wood Shop</span>
-          <span className="font-sans text-[11px] tracking-wide text-gray-400 uppercase">Catalogue admin</span>
+        <Link to="/admin" onClick={onNavigate} className="block">
+          <img
+            src={logoBlue}
+            alt="The Royal Wood Shop"
+            className="h-auto w-[124px]"
+          />
+          <span className="mt-2 block font-sans text-[11px] tracking-wide text-gray-400 uppercase">
+            Backend admin
+          </span>
         </Link>
       </div>
 
@@ -153,7 +160,8 @@ export default function AdminLayout() {
         >
           <MenuIcon />
         </button>
-        <span className="font-serif text-sm font-bold text-tundora">Royal Wood Shop admin</span>
+        <img src={logoBlue} alt="The Royal Wood Shop" className="h-auto w-[92px]" />
+        <span className="font-sans text-[10px] tracking-wide text-gray-400 uppercase">Backend admin</span>
       </div>
 
       {/* Mobile drawer */}
