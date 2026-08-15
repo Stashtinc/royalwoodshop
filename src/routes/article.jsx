@@ -43,7 +43,7 @@ export default function Article() {
     <article className="py-12 lg:py-16">
       <div className="mx-auto max-w-[760px] px-6">
         <nav className="flex items-center gap-2 font-sans text-sm text-gray-500">
-          <Link to="/blog" className="hover:text-royal-blue">Journal</Link>
+          <Link to="/blog" className="hover:text-royal-blue">Blog</Link>
           {post.categories[0] && <><span>›</span><span>{post.categories[0]}</span></>}
         </nav>
 
@@ -70,7 +70,7 @@ export default function Article() {
 
         <div className="mt-12 border-t border-gray-200 pt-8">
           <Link to="/blog" className="font-sans text-sm font-medium text-royal-blue hover:underline">
-            ← Back to the Journal
+            ← Back to the blog
           </Link>
         </div>
       </div>

@@ -98,7 +98,7 @@ function ResourcesPanel() {
     <div className={`grid ${PANEL_WIDTH} grid-cols-2 gap-8 bg-white p-6 shadow-2xl`}>
       <MenuColumn heading="Resources" items={resourcesMenu} />
       <HighlightColumn
-        eyebrow="From the Journal"
+        eyebrow="From the Blog"
         title="Latest tips & product guides"
         description="Buying guides, trend pieces, and how-tos to help you plan your next project."
         ctaLabel="View All Posts"

@@ -8,7 +8,7 @@ export async function loader() {
 }
 
 export const meta = () => pageMeta({
-  title: 'The Royal Wood Shop Journal',
+  title: 'Blog',
   description: 'Stories, trends, product highlights and practical guidance on trim, mouldings, interior doors and millwork from The Royal Wood Shop.',
   path: '/blog',
 })
@@ -20,7 +20,7 @@ export default function Journal() {
   return (
     <section className="py-12 lg:py-20">
       <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
-        <h1 className="font-serif text-3xl font-bold text-tundora lg:text-4xl">The Royal Wood Shop Journal</h1>
+        <h1 className="font-serif text-3xl font-bold text-tundora lg:text-4xl">Blog</h1>
         <p className="mt-2 max-w-2xl font-sans text-gray-600">
           Stories, trends, product highlights and helpful resources to support your next project.
         </p>

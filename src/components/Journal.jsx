@@ -36,7 +36,7 @@ export default function Journal() {
       <div className="mx-auto flex max-w-[1280px] flex-col items-center gap-14 px-6 lg:px-8">
         <div className="flex flex-col items-center gap-3 text-center">
           <h2 className="font-serif text-3xl font-bold text-royal-blue lg:text-[36px]">
-            The Royal Wood Shop Journal
+            From the Blog
           </h2>
           <p className="font-sans text-lg text-gray-600">
             Stories, trends, product highlights, and helpful resources to support your next project.

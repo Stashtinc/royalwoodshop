@@ -78,7 +78,7 @@ export default function PostEdit() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
-        <Link to="/admin/posts" className="text-sm text-royal-blue hover:underline">← Journal</Link>
+        <Link to="/admin/posts" className="text-sm text-royal-blue hover:underline">← Blog</Link>
         {post && (
           <a href={`/${post.slug}`} target="_blank" rel="noreferrer"
             className="ml-auto text-sm text-gray-500 hover:text-royal-blue">
@@ -108,7 +108,7 @@ export default function PostEdit() {
 
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-gray-700">
-                Summary <span className="font-normal text-gray-400">shown on the Journal listing</span>
+                Summary <span className="font-normal text-gray-400">shown on the blog listing</span>
               </span>
               <textarea name="excerpt" rows={3} defaultValue={post?.excerpt ?? ''} className={field} />
             </label>
