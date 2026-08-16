@@ -50,20 +50,32 @@ export async function action({ request, params }) {
       if (intent === 'ai-image-generate') {
         const prompt = String(f.get('prompt') ?? '')
         const { images, failed } = await generateImages({ prompt, count: 3 })
+        await log(user, 'ai.images', {
+          entityType: 'post',
+          entityId: isNew ? null : Number(params.id),
+          entityLabel: String(f.get('slug') || 'article'),
+          details: { rendered: images.length, failed, prompt: prompt.slice(0, 300) },
+        })
         return { ai: { kind: 'image-options', images, failed, prompt, alt: String(f.get('alt') ?? '') } }
       }
       if (intent === 'ai-image-vary') {
+        const instruction = String(f.get('instruction') ?? '')
         const { images, failed } = await varyImage({
           dataUrl: String(f.get('dataUrl') ?? ''),
-          instruction: String(f.get('instruction') ?? ''),
+          instruction,
           count: 3,
+        })
+        await log(user, 'ai.images', {
+          entityType: 'post',
+          entityId: isNew ? null : Number(params.id),
+          details: { rendered: images.length, failed, variation: true, prompt: instruction.slice(0, 300) },
         })
         return {
           ai: {
             kind: 'image-options',
             images,
             failed,
-            prompt: String(f.get('instruction') ?? ''),
+            prompt: instruction,
             alt: String(f.get('alt') ?? ''),
             variation: true,
           },
@@ -98,11 +110,22 @@ export async function action({ request, params }) {
           notes: String(f.get('notes') ?? ''),
           length: String(f.get('length') ?? 'medium'),
         })
+        await log(user, 'ai.article', {
+          entityType: 'post',
+          entityId: isNew ? null : Number(params.id),
+          entityLabel: draft.title,
+          details: { words: draft.words, topic: String(f.get('topic') ?? '').slice(0, 200) },
+        })
         return { ai: { kind: 'article', ...draft } }
       }
       const meta = await draftMetadata({
         title: String(f.get('title') ?? ''),
         contentHtml: String(f.get('contentHtml') ?? ''),
+      })
+      await log(user, 'ai.metadata', {
+        entityType: 'post',
+        entityId: isNew ? null : Number(params.id),
+        entityLabel: String(f.get('title') ?? ''),
       })
       return { ai: { kind: 'metadata', ...meta } }
     } catch (e) {

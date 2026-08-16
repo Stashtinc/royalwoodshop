@@ -45,7 +45,10 @@ const ACTION_LABEL = {
   'post.updated': 'Article edited',
   'post.published': 'Article published',
   'user.renamed': 'Sign-in address changed',
-  'image.generated': 'AI image generated',
+  'image.generated': 'AI image used',
+  'ai.article': 'AI drafted an article',
+  'ai.metadata': 'AI wrote the search listing',
+  'ai.images': 'AI rendered images',
 }
 
 const TONE = {
@@ -66,6 +69,9 @@ const TONE = {
   'post.published': 'bg-emerald-50 text-emerald-800 ring-emerald-200',
   'user.renamed': 'bg-purple-50 text-purple-800 ring-purple-200',
   'image.generated': 'bg-fuchsia-50 text-fuchsia-800 ring-fuchsia-200',
+  'ai.article': 'bg-violet-50 text-violet-800 ring-violet-200',
+  'ai.metadata': 'bg-violet-50 text-violet-800 ring-violet-200',
+  'ai.images': 'bg-violet-50 text-violet-800 ring-violet-200',
 }
 
 const dayFormat = new Intl.DateTimeFormat('en-CA', {
@@ -114,6 +120,21 @@ function describe(row) {
           </li>
         ))}
       </ul>
+    )
+  }
+  if (row.action === 'ai.images') {
+    return (
+      <p className="mt-1 truncate text-xs text-gray-600" title={d.prompt}>
+        {d.rendered} rendered{d.failed ? `, ${d.failed} failed` : ''}
+        {d.variation ? ' · variation' : ''}{d.prompt ? ` · ${d.prompt}` : ''}
+      </p>
+    )
+  }
+  if (row.action === 'ai.article') {
+    return (
+      <p className="mt-1 truncate text-xs text-gray-600">
+        {d.words} words{d.topic ? ` · ${d.topic}` : ''}
+      </p>
     )
   }
   if (row.action === 'image.generated') {
