@@ -49,6 +49,7 @@ const ACTION_LABEL = {
   'ai.article': 'AI drafted an article',
   'ai.metadata': 'AI wrote the search listing',
   'ai.images': 'AI rendered images',
+  'build.shipped': 'Feature built',
 }
 
 const TONE = {
@@ -72,6 +73,7 @@ const TONE = {
   'ai.article': 'bg-violet-50 text-violet-800 ring-violet-200',
   'ai.metadata': 'bg-violet-50 text-violet-800 ring-violet-200',
   'ai.images': 'bg-violet-50 text-violet-800 ring-violet-200',
+  'build.shipped': 'bg-slate-100 text-slate-700 ring-slate-300',
 }
 
 const dayFormat = new Intl.DateTimeFormat('en-CA', {
@@ -102,6 +104,11 @@ function describe(row) {
         {d.availability ? ` · ${d.availability} gained availability` : ''}
         {d.unmatched ? ` · ${d.unmatched} codes not found` : ''}
       </p>
+    )
+  }
+  if (row.action === 'build.shipped') {
+    return (
+      <p className="mt-1 font-mono text-[11px] text-gray-400">{d.short ?? String(d.hash).slice(0, 10)}</p>
     )
   }
   if (row.action === 'site.published') {
