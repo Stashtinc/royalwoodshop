@@ -104,6 +104,13 @@ function describe(row) {
       </p>
     )
   }
+  if (row.action === 'site.published') {
+    return (
+      <p className="mt-1 text-xs text-gray-600">
+        {d.products} products · {d.published} of {d.articles} articles published
+      </p>
+    )
+  }
   if (row.action === 'setup.catalogue') return <p className="mt-1 text-xs text-gray-600">{d.products} products</p>
   if (row.action === 'setup.redirects') return <p className="mt-1 text-xs text-gray-600">{d.redirects} redirects</p>
   if (row.action === 'product.status') return <p className="mt-1 text-xs text-gray-600">{d.from} → {d.to}</p>

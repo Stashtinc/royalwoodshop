@@ -1,25 +1,24 @@
 /**
- * Refreshes src/data/products.json from Postgres.
+ * Refreshes src/data/products.json and posts.json from the database.
  *
  *   npm run sync:data
  *
- * Run this after importing the species sheet, then rebuild. The snapshot is
- * committed so the site can always be built without database access.
+ * Run this after editing content, then rebuild. The snapshots are committed so
+ * the site can always be built without database access.
+ *
+ * Uses getDb() rather than requiring DATABASE_URL, so it works against the
+ * embedded database as well as a real server. Insisting on DATABASE_URL meant
+ * the documented publish workflow could not be run locally at all.
  */
 import 'dotenv/config'
 import { writeFileSync } from 'node:fs'
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as schema from '../src/db/schema.js'
+import { getDb } from '../src/lib/db.server.js'
 import { getAllProducts } from '../src/db/queries.js'
 import { allPostsForSnapshot } from '../src/lib/posts.server.js'
+import { log } from '../src/lib/activity.server.js'
 
-const url = process.env.DATABASE_URL
-if (!url) { console.error('DATABASE_URL is not set'); process.exit(1) }
-
-const client = postgres(url, { prepare: false, max: 4 })
-const rows = await getAllProducts(drizzle(client, { schema }))
-await client.end()
+const db = await getDb()
+const rows = await getAllProducts(db)
 
 writeFileSync('src/data/products.json', JSON.stringify(rows, null, 0))
 
@@ -36,3 +35,13 @@ console.log(`wrote ${rows.length} products`)
 console.log(`  ${withSpecies} have species (${rows.length - withSpecies} still awaiting the sheet)`)
 console.log(`  ${withAvail} have availability`)
 console.log(`  ${rows.filter((p) => p.flexAvailable).length} available in flex`)
+
+// Publishing is the step that changes what customers actually see, so it is the
+// one thing the activity log most needs to record. Until now nothing emitted
+// it, despite site.published being treated as a milestone.
+await log(null, 'site.published', {
+  entityLabel: 'Snapshots refreshed for the public site',
+  details: { products: rows.length, articles: articles.length, published },
+})
+console.log('\nrecorded in the activity log — run `npm run build` to publish')
+process.exit(0)
