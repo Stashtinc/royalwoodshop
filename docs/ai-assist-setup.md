@@ -6,13 +6,16 @@ The article editor has an **AI Assist** button. It does three things:
   drafts the body.
 - **Summary & search listing** — reads the article already written and proposes
   the summary, the search-listing title and the meta description.
-- **Header image** — reads the article as soon as the tab is opened, describes a
-  photograph, renders three versions, and you pick one. The description is
-  editable before generating.
+- **Header image** — open the tab and it reads the article, describes a
+  photograph and renders three options. Pick one. Nothing else to fill in.
 
 Everything ends in a preview with *Use* or *Discard*. Nothing is written into
 the editor until it is accepted, and nothing is saved to the site until Save is
 pressed as normal.
+
+Each tab keeps its own result, so an article draft you have not accepted yet
+survives switching to another tab and back — and the header image is based on it
+even though it is not in the editor.
 
 ## Switching it on
 
@@ -65,8 +68,11 @@ themselves.
   articles from scratch would cost well under a dollar.
 - **Summary and search listing** — less again.
 - **Header images** — roughly 4–10¢ each, so 12–30¢ for a set of three.
+  Note that opening the Header image tab starts a set immediately, so that tab
+  costs money to open. *Try three more* costs the same again.
 
-Nothing runs in the background. Every call is someone pressing a button.
+Nothing runs in the background. Every call is someone opening that tab or
+pressing a button.
 Current prices: <https://openai.com/api/pricing/>.
 
 Every image that is kept is recorded in the activity log with its prompt, so

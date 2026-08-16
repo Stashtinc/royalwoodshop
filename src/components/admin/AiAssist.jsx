@@ -4,19 +4,23 @@ import { useFetcher } from 'react-router'
 /**
  * The AI Assist dialog for the article editor.
  *
- * Three things it can do: draft an article body, write the summary and search
- * listing for one that already exists, and generate a header image. All end in
- * a preview with Use / Discard
- * — nothing is written into the editor until someone approves it, because an
- * assistant that overwrites work in progress stops being used within a week.
+ * Three tabs: draft an article body, write the summary and search listing, and
+ * generate a header image. Each ends in a preview with Use / Discard — nothing
+ * reaches the editor until it is accepted, because an assistant that overwrites
+ * work in progress stops being used within a week.
+ *
+ * Results are held per tab. A draft that has not been accepted yet survives
+ * switching to another tab and back, and is what the header image is based on:
+ * an article written thirty seconds ago is not in the editor yet, and refusing
+ * to see it is the difference between the feature working and not.
  *
  * It talks to the editor's own route action via a fetcher, so the surrounding
  * <Form> is never submitted by accident.
  */
 
-function Spinner() {
+function Spinner({ className = 'h-4 w-4' }) {
   return (
-    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+    <svg className={`${className} animate-spin`} viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
       <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </svg>
@@ -42,6 +46,20 @@ const LENGTHS = [
   ['long', 'Long', '~1,400 words'],
 ]
 
+const TABS = [
+  ['article', 'Write an article'],
+  ['metadata', 'Summary & search listing'],
+  ['image', 'Header image'],
+]
+
+/** Which tab a given result belongs to. */
+const TAB_OF = {
+  article: 'article',
+  metadata: 'metadata',
+  'image-options': 'image',
+  'image-saved': 'image',
+}
+
 export default function AiAssist({
   open, onClose, onUseArticle, onUseMetadata, onUseImage, getEditorState,
 }) {
@@ -50,19 +68,16 @@ export default function AiAssist({
   const [topic, setTopic] = useState('')
   const [notes, setNotes] = useState('')
   const [length, setLength] = useState('medium')
-  const [prompt, setPrompt] = useState('')
-  const [alt, setAlt] = useState('')
   const [chosen, setChosen] = useState(null)
-  const [hasArticle, setHasArticle] = useState(true)
-  const dialogRef = useRef(null)
+  const [results, setResults] = useState({})
+  const [errors, setErrors] = useState({})
   const firstField = useRef(null)
-  // Fires once per opening of the tab, so editing the description does not
-  // trigger a re-read and overwrite what was just typed.
-  const described = useRef(false)
+  /** Guards the automatic run so it happens once per opening of the tab. */
+  const started = useRef(false)
 
   const busy = fetcher.state !== 'idle'
-  const result = fetcher.data?.ai
-  const error = fetcher.data?.aiError
+  const result = results[mode]
+  const error = errors[mode]
 
   // Escape closes, and focus lands somewhere useful on open.
   useEffect(() => {
@@ -73,53 +88,65 @@ export default function AiAssist({
     return () => document.removeEventListener('keydown', onKey)
   }, [open, busy, onClose])
 
-  // The proposed prompt becomes the editable one.
+  // File each reply against the tab it came from, so switching tabs does not
+  // discard an unaccepted draft.
   useEffect(() => {
-    if (result?.kind === 'image-prompt') {
-      setPrompt(result.prompt)
-      setAlt(result.alt)
+    const data = fetcher.data
+    if (!data) return
+    if (data.ai) {
+      const tab = TAB_OF[data.ai.kind]
+      if (!tab) return
+      setResults((r) => ({ ...r, [tab]: data.ai }))
+      setErrors((e) => ({ ...e, [tab]: null }))
+      if (data.ai.kind === 'image-options') setChosen(null)
     }
-    if (result?.kind === 'image-options') setChosen(null)
-  }, [result])
+    if (data.aiError) {
+      const intent = String(fetcher.formData?.get('intent') ?? '')
+      const tab = intent.startsWith('ai-image') ? 'image'
+        : intent === 'ai-metadata' ? 'metadata'
+          : 'article'
+      setErrors((e) => ({ ...e, [tab]: data.aiError }))
+    }
+  }, [fetcher.data, fetcher.formData])
+
+  // Reset the one-shot guard whenever the dialog is closed.
+  useEffect(() => { if (!open) started.current = false }, [open])
 
   /**
-   * Opening the Header image tab reads the article immediately.
+   * The article the assistant should work from.
    *
-   * Making that a button was a step with only one sensible answer, which is a
-   * step that should not exist. The description is still editable afterwards,
-   * and can be re-read on demand.
+   * The editor first, then a draft generated in this session but not yet
+   * accepted. Without the fallback, drafting an article and immediately asking
+   * for a header image reports that there is no article — which is what the
+   * user sees, not what is true.
    */
-  useEffect(() => {
-    if (!open) { described.current = false; return }
-    if (mode !== 'image' || described.current || busy) return
-
+  const source = () => {
     const state = getEditorState()
-    const words = state.contentHtml.replace(/<[^>]+>/g, ' ').trim()
-    const enough = Boolean(state.title.trim()) || words.length >= 40
-    setHasArticle(enough)
-    if (!enough) return
+    const inEditor = state.contentHtml.replace(/<[^>]+>/g, ' ').trim()
+    if (inEditor.length >= 40 || state.title.trim()) return state
+    const draft = results.article
+    if (draft) return { title: draft.title, contentHtml: draft.html }
+    return state
+  }
 
-    described.current = true
-    fetcher.submit(
-      { intent: 'ai-image-prompt', title: state.title, contentHtml: state.contentHtml },
-      { method: 'post', encType: 'application/x-www-form-urlencoded' },
-    )
-  }, [open, mode, busy, fetcher, getEditorState])
-
-  if (!open) return null
-
-  const submit = (payload) =>
+  const send = (payload) =>
     fetcher.submit(payload, { method: 'post', encType: 'application/x-www-form-urlencoded' })
 
-  const run = () => {
-    const state = getEditorState()
-    fetcher.submit(
-      mode === 'article'
-        ? { intent: 'ai-article', topic, notes, length }
-        : { intent: 'ai-metadata', title: state.title, contentHtml: state.contentHtml },
-      { method: 'post', encType: 'application/x-www-form-urlencoded' },
-    )
+  const generateImages = () => {
+    const s = source()
+    send({ intent: 'ai-image-generate', title: s.title, contentHtml: s.contentHtml })
   }
+
+  // Opening the header image tab does the whole job: read the article, describe
+  // a photograph, render three. There was never a second answer to give.
+  useEffect(() => {
+    if (!open || mode !== 'image' || started.current || busy) return
+    if (results.image || errors.image) return
+    started.current = true
+    generateImages()
+  })
+
+  if (!open) return null
 
   const accept = () => {
     if (result?.kind === 'article') onUseArticle(result)
@@ -128,12 +155,26 @@ export default function AiAssist({
     onClose()
   }
 
-  const startOver = () => fetcher.load(window.location.pathname)
+  const retryImages = () => {
+    setResults((r) => ({ ...r, image: null }))
+    setErrors((e) => ({ ...e, image: null }))
+    setChosen(null)
+    generateImages()
+  }
+
+  const runText = () => {
+    const s = getEditorState()
+    send(mode === 'article'
+      ? { intent: 'ai-article', topic, notes, length }
+      : { intent: 'ai-metadata', title: s.title, contentHtml: s.contentHtml })
+  }
+
+  const imagesPending = mode === 'image' && busy && !results.image
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8"
       onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onClose() }}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="AI Assist"
+      <div role="dialog" aria-modal="true" aria-label="AI Assist"
         className="my-auto w-full max-w-2xl rounded-2xl bg-white shadow-xl">
 
         {/* header */}
@@ -148,13 +189,9 @@ export default function AiAssist({
           </button>
         </div>
 
-        {/* mode switch */}
+        {/* tabs */}
         <div className="flex gap-1 border-b border-gray-200 px-5 pt-3">
-          {[
-            ['article', 'Write an article'],
-            ['metadata', 'Summary & search listing'],
-            ['image', 'Header image'],
-          ].map(([key, label]) => (
+          {TABS.map(([key, label]) => (
             <button key={key} type="button" onClick={() => setMode(key)} disabled={busy}
               className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
                 mode === key
@@ -162,6 +199,9 @@ export default function AiAssist({
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}>
               {label}
+              {results[key] && mode !== key && (
+                <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-royal-blue align-middle" />
+              )}
             </button>
           ))}
         </div>
@@ -171,8 +211,8 @@ export default function AiAssist({
             <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>
           )}
 
-          {/* ---------------------------------------------------------- input */}
-          {!result && mode === 'article' && (
+          {/* ------------------------------------------------ write an article */}
+          {mode === 'article' && !result && (
             <>
               <Field label="What is the article about?">
                 <input ref={firstField} value={topic} onChange={(e) => setTopic(e.target.value)}
@@ -203,53 +243,7 @@ export default function AiAssist({
             </>
           )}
 
-          {mode === 'image' && !['image-options', 'image-saved'].includes(result?.kind) && (
-            <>
-              {busy && !prompt ? (
-                <p className="flex items-center gap-2 text-sm text-gray-500">
-                  <Spinner /> Reading the article…
-                </p>
-              ) : hasArticle ? (
-                <p className="text-sm text-gray-600">
-                  Read from your article. Edit the description if you want something
-                  different, then generate.
-                </p>
-              ) : (
-                <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-                  There is no article to read yet. Write it first and reopen this tab, or
-                  describe the photograph yourself below.
-                </p>
-              )}
-
-              <Field label="Image description" hint="what the photograph should show">
-                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5}
-                  disabled={busy} className={input}
-                  placeholder="Press “Describe from article” to have it written for you, or type your own." />
-              </Field>
-
-              <Field label="Alt text" hint="read aloud by screen readers, and by Google">
-                <input value={alt} onChange={(e) => setAlt(e.target.value)}
-                  disabled={busy} className={input}
-                  placeholder="A bright living room with painted baseboard and crown moulding" />
-              </Field>
-
-              <p className="text-xs text-gray-500">
-                Generating produces three options to choose from, at roughly 12¢ the set.
-                Nothing is saved until you pick one.
-              </p>
-            </>
-          )}
-
-          {!result && mode === 'metadata' && (
-            <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-              This reads the article you have written and proposes the summary, the
-              search-listing title and the meta description. Nothing is sent until you
-              press Generate, and nothing is applied until you accept it.
-            </p>
-          )}
-
-          {/* --------------------------------------------------------- result */}
-          {result?.kind === 'article' && (
+          {mode === 'article' && result?.kind === 'article' && (
             <div className="flex flex-col gap-3">
               <div className="flex items-baseline justify-between gap-3">
                 <p className="font-serif text-lg font-bold text-tundora">{result.title}</p>
@@ -265,44 +259,16 @@ export default function AiAssist({
             </div>
           )}
 
-          {result?.kind === 'image-options' && (
-            <div className="flex flex-col gap-3">
-              <p className="text-sm text-gray-600">
-                Pick one. {result.failed > 0 && (
-                  <span className="text-amber-700">
-                    {result.failed} of 3 did not render — the rest are below.
-                  </span>
-                )}
-              </p>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {result.images.map((src, i) => (
-                  <button key={i} type="button" onClick={() => setChosen(i)}
-                    className={`overflow-hidden rounded-lg border-2 transition-colors ${
-                      chosen === i ? 'border-royal-blue' : 'border-transparent hover:border-gray-300'
-                    }`}>
-                    <img src={src} alt={`Option ${i + 1}`} className="aspect-[3/2] w-full object-cover" />
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500">
-                Generated images are illustrative. Check that any trim shown is not passed
-                off as a specific product Royal Wood Shop sells.
-              </p>
-            </div>
+          {/* ---------------------------------------------- summary & listing */}
+          {mode === 'metadata' && !result && (
+            <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+              This reads the article you have written and proposes the summary, the
+              search-listing title and the meta description. Nothing is applied until
+              you accept it.
+            </p>
           )}
 
-          {result?.kind === 'image-saved' && (
-            <div className="flex flex-col gap-3">
-              <img src={result.storageKey} alt={result.alt}
-                className="aspect-[3/2] w-full rounded-lg object-cover" />
-              <p className="text-sm text-gray-600">
-                Saved at {result.width}×{result.height}, converted to WebP with the four
-                responsive sizes — the same treatment as an uploaded photo.
-              </p>
-            </div>
-          )}
-
-          {result?.kind === 'metadata' && (
+          {mode === 'metadata' && result?.kind === 'metadata' && (
             <div className="flex flex-col gap-3">
               {[
                 ['Summary', result.excerpt, null],
@@ -326,62 +292,101 @@ export default function AiAssist({
               </p>
             </div>
           )}
+
+          {/* ------------------------------------------------------ header image */}
+          {imagesPending && (
+            <div className="flex flex-col items-center gap-3 py-12 text-gray-500">
+              <Spinner className="h-7 w-7" />
+              <p className="text-sm">Reading the article and creating three options…</p>
+              <p className="text-xs text-gray-400">This takes up to a minute.</p>
+            </div>
+          )}
+
+          {mode === 'image' && result?.kind === 'image-options' && (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-gray-600">
+                Pick one.{' '}
+                {result.failed > 0 && (
+                  <span className="text-amber-700">
+                    {result.failed} of 3 did not render — the rest are below.
+                  </span>
+                )}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {result.images.map((src, i) => (
+                  <button key={i} type="button" onClick={() => setChosen(i)}
+                    className={`overflow-hidden rounded-lg border-2 transition-colors ${
+                      chosen === i ? 'border-royal-blue' : 'border-transparent hover:border-gray-300'
+                    }`}>
+                    <img src={src} alt={`Option ${i + 1}`} className="aspect-[3/2] w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+              <details className="text-xs text-gray-500">
+                <summary className="cursor-pointer select-none hover:text-gray-700">
+                  What it was asked to draw
+                </summary>
+                <p className="mt-1.5 rounded-lg bg-gray-50 px-3 py-2">{result.prompt}</p>
+              </details>
+              <p className="text-xs text-gray-500">
+                Generated images are illustrative. Check that any trim shown is not passed
+                off as a specific product Royal Wood Shop sells.
+              </p>
+            </div>
+          )}
+
+          {mode === 'image' && result?.kind === 'image-saved' && (
+            <div className="flex flex-col gap-3">
+              <img src={result.storageKey} alt={result.alt}
+                className="aspect-[3/2] w-full rounded-lg object-cover" />
+              <p className="text-sm text-gray-600">
+                Saved at {result.width}×{result.height}, converted to WebP with the four
+                responsive sizes — the same treatment as an uploaded photo.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* footer */}
         <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-5 py-4">
-          {/* The image tab is a three-step flow, so its footer is its own. */}
-          {mode === 'image' && result?.kind !== 'image-saved' ? (
+          {imagesPending ? (
+            <button type="button" disabled className="text-sm text-gray-400">Working…</button>
+          ) : mode === 'image' && result?.kind === 'image-options' ? (
             <>
-              {result?.kind === 'image-options' && (
-                <button type="button" onClick={startOver} disabled={busy}
-                  className="mr-auto text-sm text-gray-500 hover:underline disabled:opacity-50">
-                  Start over
-                </button>
-              )}
-
+              <button type="button" onClick={retryImages} disabled={busy}
+                className="mr-auto text-sm text-gray-500 hover:underline disabled:opacity-50">
+                Try three more
+              </button>
               <button type="button" onClick={onClose} disabled={busy}
                 className="text-sm text-gray-600 hover:underline disabled:opacity-50">
                 Cancel
               </button>
-
-              {result?.kind === 'image-options' ? (
-                <button type="button" disabled={busy || chosen === null}
-                  onClick={() => submit({
-                    intent: 'ai-image-save',
-                    dataUrl: result.images[chosen],
-                    alt,
-                    prompt,
-                    slug: getEditorState().title || 'article',
-                  })}
-                  className="flex items-center gap-2 rounded-lg bg-royal-blue px-5 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">
-                  {busy && <Spinner />}
-                  {busy ? 'Saving…' : chosen === null ? 'Pick one' : 'Use this image'}
-                </button>
-              ) : (
-                <>
-                  {hasArticle && (
-                    <button type="button" disabled={busy}
-                      onClick={() => {
-                        const s = getEditorState()
-                        submit({ intent: 'ai-image-prompt', title: s.title, contentHtml: s.contentHtml })
-                      }}
-                      className="text-sm text-gray-500 hover:underline disabled:opacity-50">
-                      Re-read the article
-                    </button>
-                  )}
-                  <button type="button" disabled={busy || !prompt.trim()}
-                    onClick={() => submit({ intent: 'ai-image-generate', prompt, alt })}
-                    className="flex items-center gap-2 rounded-lg bg-royal-blue px-5 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">
-                    {busy && <Spinner />}
-                    {busy ? 'Rendering…' : 'Generate 3 images'}
-                  </button>
-                </>
-              )}
+              <button type="button" disabled={busy || chosen === null}
+                onClick={() => send({
+                  intent: 'ai-image-save',
+                  dataUrl: result.images[chosen],
+                  alt: result.alt,
+                  prompt: result.prompt,
+                  slug: source().title || 'article',
+                })}
+                className="flex items-center gap-2 rounded-lg bg-royal-blue px-5 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">
+                {busy && <Spinner />}
+                {busy ? 'Saving…' : chosen === null ? 'Pick one' : 'Use this image'}
+              </button>
+            </>
+          ) : mode === 'image' && !result ? (
+            <>
+              <button type="button" onClick={onClose} className="text-sm text-gray-600 hover:underline">
+                Cancel
+              </button>
+              <button type="button" onClick={retryImages}
+                className="rounded-lg bg-royal-blue px-5 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark">
+                Try again
+              </button>
             </>
           ) : result ? (
             <>
-              <button type="button" onClick={startOver}
+              <button type="button" onClick={() => setResults((r) => ({ ...r, [mode]: null }))}
                 className="mr-auto text-sm text-gray-500 hover:underline">
                 Start over
               </button>
@@ -401,7 +406,7 @@ export default function AiAssist({
                 className="text-sm text-gray-600 hover:underline disabled:opacity-50">
                 Cancel
               </button>
-              <button type="button" onClick={run}
+              <button type="button" onClick={runText}
                 disabled={busy || (mode === 'article' && !topic.trim())}
                 className="flex items-center gap-2 rounded-lg bg-royal-blue px-5 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">
                 {busy && <Spinner />}

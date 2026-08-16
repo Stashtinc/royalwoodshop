@@ -37,18 +37,17 @@ export async function action({ request, params }) {
 
   if (intent.startsWith('ai-image')) {
     try {
-      if (intent === 'ai-image-prompt') {
-        return { ai: { kind: 'image-prompt', ...await composePrompt({
+      if (intent === 'ai-image-generate') {
+        // Describe and render in one request. Two round trips meant two
+        // spinners and an intermediate screen nobody needed.
+        const described = await composePrompt({
           title: String(f.get('title') ?? ''),
           contentHtml: String(f.get('contentHtml') ?? ''),
-        }) } }
-      }
-      if (intent === 'ai-image-generate') {
-        const { images, failed } = await generateImages({
-          prompt: String(f.get('prompt') ?? ''),
-          count: 3,
         })
-        return { ai: { kind: 'image-options', images, failed, alt: String(f.get('alt') ?? '') } }
+        const { images, failed } = await generateImages({ prompt: described.prompt, count: 3 })
+        return {
+          ai: { kind: 'image-options', images, failed, prompt: described.prompt, alt: described.alt },
+        }
       }
       if (intent === 'ai-image-save') {
         const saved = await saveGeneratedImage({
