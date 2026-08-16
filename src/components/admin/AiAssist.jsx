@@ -53,8 +53,12 @@ export default function AiAssist({
   const [prompt, setPrompt] = useState('')
   const [alt, setAlt] = useState('')
   const [chosen, setChosen] = useState(null)
+  const [hasArticle, setHasArticle] = useState(true)
   const dialogRef = useRef(null)
   const firstField = useRef(null)
+  // Fires once per opening of the tab, so editing the description does not
+  // trigger a re-read and overwrite what was just typed.
+  const described = useRef(false)
 
   const busy = fetcher.state !== 'idle'
   const result = fetcher.data?.ai
@@ -77,6 +81,30 @@ export default function AiAssist({
     }
     if (result?.kind === 'image-options') setChosen(null)
   }, [result])
+
+  /**
+   * Opening the Header image tab reads the article immediately.
+   *
+   * Making that a button was a step with only one sensible answer, which is a
+   * step that should not exist. The description is still editable afterwards,
+   * and can be re-read on demand.
+   */
+  useEffect(() => {
+    if (!open) { described.current = false; return }
+    if (mode !== 'image' || described.current || busy) return
+
+    const state = getEditorState()
+    const words = state.contentHtml.replace(/<[^>]+>/g, ' ').trim()
+    const enough = Boolean(state.title.trim()) || words.length >= 40
+    setHasArticle(enough)
+    if (!enough) return
+
+    described.current = true
+    fetcher.submit(
+      { intent: 'ai-image-prompt', title: state.title, contentHtml: state.contentHtml },
+      { method: 'post', encType: 'application/x-www-form-urlencoded' },
+    )
+  }, [open, mode, busy, fetcher, getEditorState])
 
   if (!open) return null
 
@@ -177,10 +205,21 @@ export default function AiAssist({
 
           {mode === 'image' && !['image-options', 'image-saved'].includes(result?.kind) && (
             <>
-              <p className="text-sm text-gray-600">
-                The assistant reads the article and describes a photograph to generate.
-                Edit the description before generating if you want something different.
-              </p>
+              {busy && !prompt ? (
+                <p className="flex items-center gap-2 text-sm text-gray-500">
+                  <Spinner /> Reading the article…
+                </p>
+              ) : hasArticle ? (
+                <p className="text-sm text-gray-600">
+                  Read from your article. Edit the description if you want something
+                  different, then generate.
+                </p>
+              ) : (
+                <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                  There is no article to read yet. Write it first and reopen this tab, or
+                  describe the photograph yourself below.
+                </p>
+              )}
 
               <Field label="Image description" hint="what the photograph should show">
                 <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5}
@@ -300,6 +339,7 @@ export default function AiAssist({
                   Start over
                 </button>
               )}
+
               <button type="button" onClick={onClose} disabled={busy}
                 className="text-sm text-gray-600 hover:underline disabled:opacity-50">
                 Cancel
@@ -320,14 +360,16 @@ export default function AiAssist({
                 </button>
               ) : (
                 <>
-                  <button type="button" disabled={busy}
-                    onClick={() => {
-                      const s = getEditorState()
-                      submit({ intent: 'ai-image-prompt', title: s.title, contentHtml: s.contentHtml })
-                    }}
-                    className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-                    Describe from article
-                  </button>
+                  {hasArticle && (
+                    <button type="button" disabled={busy}
+                      onClick={() => {
+                        const s = getEditorState()
+                        submit({ intent: 'ai-image-prompt', title: s.title, contentHtml: s.contentHtml })
+                      }}
+                      className="text-sm text-gray-500 hover:underline disabled:opacity-50">
+                      Re-read the article
+                    </button>
+                  )}
                   <button type="button" disabled={busy || !prompt.trim()}
                     onClick={() => submit({ intent: 'ai-image-generate', prompt, alt })}
                     className="flex items-center gap-2 rounded-lg bg-royal-blue px-5 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">

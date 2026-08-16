@@ -6,8 +6,9 @@ The article editor has an **AI Assist** button. It does three things:
   drafts the body.
 - **Summary & search listing** — reads the article already written and proposes
   the summary, the search-listing title and the meta description.
-- **Header image** — describes a photograph based on the article, renders three
-  versions, and you pick one.
+- **Header image** — reads the article as soon as the tab is opened, describes a
+  photograph, renders three versions, and you pick one. The description is
+  editable before generating.
 
 Everything ends in a preview with *Use* or *Discard*. Nothing is written into
 the editor until it is accepted, and nothing is saved to the site until Save is
