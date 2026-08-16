@@ -37,17 +37,20 @@ export async function action({ request, params }) {
 
   if (intent.startsWith('ai-image')) {
     try {
-      if (intent === 'ai-image-generate') {
-        // Describe and render in one request. Two round trips meant two
-        // spinners and an intermediate screen nobody needed.
+      // Composing the description is a cheap text call and happens on its own,
+      // so the expensive step stays behind a deliberate press.
+      if (intent === 'ai-image-prompt') {
         const described = await composePrompt({
           title: String(f.get('title') ?? ''),
           contentHtml: String(f.get('contentHtml') ?? ''),
         })
-        const { images, failed } = await generateImages({ prompt: described.prompt, count: 3 })
-        return {
-          ai: { kind: 'image-options', images, failed, prompt: described.prompt, alt: described.alt },
-        }
+        return { ai: { kind: 'image-prompt', ...described } }
+      }
+
+      if (intent === 'ai-image-generate') {
+        const prompt = String(f.get('prompt') ?? '')
+        const { images, failed } = await generateImages({ prompt, count: 3 })
+        return { ai: { kind: 'image-options', images, failed, prompt, alt: String(f.get('alt') ?? '') } }
       }
       if (intent === 'ai-image-save') {
         const saved = await saveGeneratedImage({

@@ -69,6 +69,8 @@ export default function AiAssist({
   const [notes, setNotes] = useState('')
   const [length, setLength] = useState('medium')
   const [chosen, setChosen] = useState(null)
+  const [prompt, setPrompt] = useState('')
+  const [alt, setAlt] = useState('')
   const [results, setResults] = useState({})
   const [errors, setErrors] = useState({})
   const firstField = useRef(null)
@@ -93,6 +95,12 @@ export default function AiAssist({
   useEffect(() => {
     const data = fetcher.data
     if (!data) return
+    if (data.ai?.kind === 'image-prompt') {
+      setPrompt(data.ai.prompt)
+      setAlt(data.ai.alt)
+      setErrors((e) => ({ ...e, image: null }))
+      return
+    }
     if (data.ai) {
       const tab = TAB_OF[data.ai.kind]
       if (!tab) return
@@ -132,18 +140,23 @@ export default function AiAssist({
   const send = (payload) =>
     fetcher.submit(payload, { method: 'post', encType: 'application/x-www-form-urlencoded' })
 
-  const generateImages = () => {
+  const describe = () => {
     const s = source()
-    send({ intent: 'ai-image-generate', title: s.title, contentHtml: s.contentHtml })
+    send({ intent: 'ai-image-prompt', title: s.title, contentHtml: s.contentHtml })
   }
 
-  // Opening the header image tab does the whole job: read the article, describe
-  // a photograph, render three. There was never a second answer to give.
+  /**
+   * Opening the header image tab writes the description, and stops there.
+   *
+   * Describing costs a fraction of a cent, so doing it unasked is free enough
+   * to be a convenience. Rendering costs real money and changes what you get,
+   * so it waits for a press.
+   */
   useEffect(() => {
     if (!open || mode !== 'image' || started.current || busy) return
-    if (results.image || errors.image) return
+    if (results.image || prompt) return
     started.current = true
-    generateImages()
+    describe()
   })
 
   if (!open) return null
@@ -155,11 +168,11 @@ export default function AiAssist({
     onClose()
   }
 
-  const retryImages = () => {
+  const renderImages = () => {
     setResults((r) => ({ ...r, image: null }))
     setErrors((e) => ({ ...e, image: null }))
     setChosen(null)
-    generateImages()
+    send({ intent: 'ai-image-generate', prompt, alt })
   }
 
   const runText = () => {
@@ -169,7 +182,8 @@ export default function AiAssist({
       : { intent: 'ai-metadata', title: s.title, contentHtml: s.contentHtml })
   }
 
-  const imagesPending = mode === 'image' && busy && !results.image
+  const describing = mode === 'image' && busy && !prompt && !results.image
+  const rendering = mode === 'image' && busy && Boolean(prompt) && !results.image
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8"
@@ -294,12 +308,35 @@ export default function AiAssist({
           )}
 
           {/* ------------------------------------------------------ header image */}
-          {imagesPending && (
+          {rendering && (
             <div className="flex flex-col items-center gap-3 py-12 text-gray-500">
               <Spinner className="h-7 w-7" />
-              <p className="text-sm">Reading the article and creating three options…</p>
+              <p className="text-sm">Creating three options…</p>
               <p className="text-xs text-gray-400">This takes up to a minute.</p>
             </div>
+          )}
+
+          {mode === 'image' && !result && !rendering && (
+            <>
+              <Field label="What should the photograph show?"
+                hint={describing ? 'reading the article…' : 'written from your article — edit it freely'}>
+                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4}
+                  disabled={describing} className={input}
+                  placeholder={describing ? '' : 'A bright living room with 5 inch painted baseboard and two-piece crown moulding, low angle, late afternoon light'} />
+              </Field>
+
+              <Field label="Alt text" hint="read aloud by screen readers, and by Google">
+                <input value={alt} onChange={(e) => setAlt(e.target.value)}
+                  disabled={describing} className={input}
+                  placeholder="Living room showing painted baseboard and crown moulding" />
+              </Field>
+
+              <p className="text-xs text-gray-500">
+                The house look — natural light, realistic Ontario rooms, no people or text —
+                is added automatically, so describe the subject rather than the style.
+                Generating produces three options at roughly 12¢ the set.
+              </p>
+            </>
           )}
 
           {mode === 'image' && result?.kind === 'image-options' && (
@@ -349,11 +386,11 @@ export default function AiAssist({
 
         {/* footer */}
         <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-5 py-4">
-          {imagesPending ? (
+          {rendering ? (
             <button type="button" disabled className="text-sm text-gray-400">Working…</button>
           ) : mode === 'image' && result?.kind === 'image-options' ? (
             <>
-              <button type="button" onClick={retryImages} disabled={busy}
+              <button type="button" onClick={renderImages} disabled={busy}
                 className="mr-auto text-sm text-gray-500 hover:underline disabled:opacity-50">
                 Try three more
               </button>
@@ -376,17 +413,23 @@ export default function AiAssist({
             </>
           ) : mode === 'image' && !result ? (
             <>
-              <button type="button" onClick={onClose} className="text-sm text-gray-600 hover:underline">
+              <button type="button" onClick={describe} disabled={busy}
+                className="mr-auto text-sm text-gray-500 hover:underline disabled:opacity-50">
+                Re-read the article
+              </button>
+              <button type="button" onClick={onClose} disabled={busy}
+                className="text-sm text-gray-600 hover:underline disabled:opacity-50">
                 Cancel
               </button>
-              <button type="button" onClick={retryImages}
-                className="rounded-lg bg-royal-blue px-5 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark">
-                Try again
+              <button type="button" onClick={renderImages} disabled={busy || !prompt.trim()}
+                className="flex items-center gap-2 rounded-lg bg-royal-blue px-5 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">
+                {describing && <Spinner />}
+                Generate 3 images
               </button>
             </>
           ) : result ? (
             <>
-              <button type="button" onClick={() => setResults((r) => ({ ...r, [mode]: null }))}
+              <button type="button" onClick={() => { setResults((r) => ({ ...r, [mode]: null })); setChosen(null) }}
                 className="mr-auto text-sm text-gray-500 hover:underline">
                 Start over
               </button>
