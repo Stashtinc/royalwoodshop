@@ -28,6 +28,16 @@ One key covers all three. The button stays greyed out until it is set.
 OPENAI_API_KEY="sk-..."
 ```
 
+Then check it works:
+
+```sh
+npm run ai:check
+```
+
+That confirms the key, confirms the two models the app defaults to are actually
+available on your account, and makes one real text call. It deliberately does
+not generate an image, since each set costs a few cents.
+
 Restart the server.
 
 ### If a model is rejected
@@ -41,8 +51,12 @@ does not exist, or that your account cannot use it, override the default:
 # OPENAI_IMAGE_SIZE="1536x1024"
 ```
 
+`npm run ai:check` lists the models your account can actually use, so you can
+copy an exact name rather than guess.
+
 The app already retries automatically when a model rejects the requested image
-size or JSON mode, so these are only needed for the model names themselves.
+size or JSON mode, so these variables are only needed for the model names
+themselves.
 
 ## What it costs
 

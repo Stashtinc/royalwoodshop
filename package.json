@@ -20,7 +20,8 @@
     "admin:create-user": "node scripts/create-admin.mjs",
     "import:posts": "node scripts/import-posts.mjs",
     "gsc:connect": "node scripts/gsc-connect.mjs",
-    "admin:rename": "node scripts/rename-admin.mjs"
+    "admin:rename": "node scripts/rename-admin.mjs",
+    "ai:check": "node scripts/ai-check.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",
