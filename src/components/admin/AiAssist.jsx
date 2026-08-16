@@ -4,8 +4,9 @@ import { useFetcher } from 'react-router'
 /**
  * The AI Assist dialog for the article editor.
  *
- * Two things it can do: draft an article body, or write the summary and search
- * listing for one that already exists. Both end in a preview with Use / Discard
+ * Three things it can do: draft an article body, write the summary and search
+ * listing for one that already exists, and generate a header image. All end in
+ * a preview with Use / Discard
  * — nothing is written into the editor until someone approves it, because an
  * assistant that overwrites work in progress stops being used within a week.
  *
@@ -42,7 +43,7 @@ const LENGTHS = [
 ]
 
 export default function AiAssist({
-  open, onClose, onUseArticle, onUseMetadata, onUseImage, getEditorState, imagesEnabled,
+  open, onClose, onUseArticle, onUseMetadata, onUseImage, getEditorState,
 }) {
   const fetcher = useFetcher()
   const [mode, setMode] = useState('article')
@@ -68,7 +69,7 @@ export default function AiAssist({
     return () => document.removeEventListener('keydown', onKey)
   }, [open, busy, onClose])
 
-  // Claude's proposed prompt becomes the editable one.
+  // The proposed prompt becomes the editable one.
   useEffect(() => {
     if (result?.kind === 'image-prompt') {
       setPrompt(result.prompt)
@@ -174,24 +175,17 @@ export default function AiAssist({
             </>
           )}
 
-          {mode === 'image' && !imagesEnabled && (
-            <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              Image generation needs <code className="rounded bg-amber-100 px-1 text-xs">OPENAI_API_KEY</code> as
-              well as the Anthropic key. See <code className="rounded bg-amber-100 px-1 text-xs">docs/ai-images-setup.md</code>.
-            </p>
-          )}
-
-          {mode === 'image' && imagesEnabled && !['image-options', 'image-saved'].includes(result?.kind) && (
+          {mode === 'image' && !['image-options', 'image-saved'].includes(result?.kind) && (
             <>
               <p className="text-sm text-gray-600">
-                Claude reads the article and describes a photograph to generate. Edit the
-                description before generating if you want something different.
+                The assistant reads the article and describes a photograph to generate.
+                Edit the description before generating if you want something different.
               </p>
 
               <Field label="Image description" hint="what the photograph should show">
                 <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5}
                   disabled={busy} className={input}
-                  placeholder="Press “Describe from article” to have Claude write this, or type your own." />
+                  placeholder="Press “Describe from article” to have it written for you, or type your own." />
               </Field>
 
               <Field label="Alt text" hint="read aloud by screen readers, and by Google">
@@ -298,7 +292,7 @@ export default function AiAssist({
         {/* footer */}
         <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-5 py-4">
           {/* The image tab is a three-step flow, so its footer is its own. */}
-          {mode === 'image' && imagesEnabled && result?.kind !== 'image-saved' ? (
+          {mode === 'image' && result?.kind !== 'image-saved' ? (
             <>
               {result?.kind === 'image-options' && (
                 <button type="button" onClick={startOver} disabled={busy}

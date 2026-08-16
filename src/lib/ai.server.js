@@ -1,12 +1,13 @@
 /**
- * Editorial assistance for the blog editor, backed by Claude.
+ * Editorial assistance for the blog editor, backed by OpenAI.
  *
  * Two jobs only: draft an article body, and write the search-listing fields
  * for an article that already exists. Both return a proposal that a person
  * reviews before anything reaches the editor — nothing here writes to the
  * database or edits a post directly.
  *
- * `.server.js` keeps the API key out of the browser bundle.
+ * One provider for text and images, so there is a single key and a single
+ * bill. `.server.js` keeps that key out of the browser bundle.
  */
 
 import 'dotenv/config'
@@ -14,15 +15,14 @@ import { getDb } from './db.server'
 import { products, categories as categoriesTable } from '../db/schema'
 import { eq, sql } from 'drizzle-orm'
 
-const API_URL = 'https://api.anthropic.com/v1/messages'
-const API_VERSION = '2023-06-01'
+const API_URL = 'https://api.openai.com/v1/chat/completions'
 
-/** Fast and inexpensive; the writing task does not need a frontier model.
- *  Override with ANTHROPIC_MODEL if the quality is not there. */
-const DEFAULT_MODEL = 'claude-haiku-4-5-20251001'
+/** Small and inexpensive; drafting does not need a frontier model. Model names
+ *  move faster than this codebase, so it is overridable. */
+const DEFAULT_MODEL = 'gpt-4o-mini'
 
 export function isConfigured() {
-  return Boolean(process.env.ANTHROPIC_API_KEY?.trim())
+  return Boolean(process.env.OPENAI_API_KEY?.trim())
 }
 
 /* ------------------------------------------------------------- house style */
@@ -80,59 +80,62 @@ async function catalogueContext() {
 
 /* --------------------------------------------------------------- api call */
 
-export async function callClaudeText({ system, messages, maxTokens = 4000 }) {
-  return callClaude({ system, messages, maxTokens })
-}
-
-async function callClaude({ system, messages, maxTokens = 4000 }) {
-  const key = process.env.ANTHROPIC_API_KEY?.trim()
+export async function callText({ system, messages, maxTokens = 4000 }) {
+  const key = process.env.OPENAI_API_KEY?.trim()
   if (!key) {
     throw new Error(
-      'No Anthropic API key. Set ANTHROPIC_API_KEY in .env — see docs/ai-assist-setup.md.',
+      'No OpenAI API key. Set OPENAI_API_KEY in .env — see docs/ai-assist-setup.md.',
     )
   }
 
+  const send = (extra) => fetch(API_URL, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: process.env.OPENAI_TEXT_MODEL?.trim() || DEFAULT_MODEL,
+      max_completion_tokens: maxTokens,
+      messages: [{ role: 'system', content: system }, ...messages],
+      ...extra,
+    }),
+    signal: AbortSignal.timeout(120000),
+  })
+
   let res
   try {
-    res = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'x-api-key': key,
-        'anthropic-version': API_VERSION,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL,
-        max_tokens: maxTokens,
-        system,
-        messages,
-      }),
-      signal: AbortSignal.timeout(120000),
-    })
+    // JSON mode, since every caller here parses the reply as JSON. It requires
+    // the word "json" in the prompt, which each of our system prompts has.
+    res = await send({ response_format: { type: 'json_object' } })
   } catch (e) {
-    if (e.name === 'TimeoutError') throw new Error('Claude took too long to respond. Try again.')
-    throw new Error(`Could not reach Claude: ${e.message}`)
+    if (e.name === 'TimeoutError') throw new Error('OpenAI took too long to respond. Try again.')
+    throw new Error(`Could not reach OpenAI: ${e.message}`)
   }
 
-  const body = await res.json().catch(() => ({}))
+  let body = await res.json().catch(() => ({}))
+
+  // Not every model supports JSON mode, or the token parameter name. Retry
+  // plainly rather than encoding a compatibility matrix that will go stale.
+  if (!res.ok && res.status === 400 && /response_format|max_completion_tokens|json/i.test(body.error?.message ?? '')) {
+    res = await send({})
+    body = await res.json().catch(() => ({}))
+  }
 
   if (!res.ok) {
     const detail = body.error?.message || `HTTP ${res.status}`
-    if (res.status === 401) throw new Error('Anthropic rejected the API key. Check ANTHROPIC_API_KEY.')
-    if (res.status === 429) throw new Error('Rate limited by Anthropic. Wait a moment and try again.')
-    if (res.status === 400 && /credit balance/i.test(detail)) {
-      throw new Error('The Anthropic account is out of credit. Top it up at console.anthropic.com.')
+    if (res.status === 401) throw new Error('OpenAI rejected the API key. Check OPENAI_API_KEY.')
+    if (res.status === 429) throw new Error('Rate limited by OpenAI, or the account is out of credit.')
+    if (res.status === 400 && /model/i.test(detail)) {
+      throw new Error(`${detail} — set OPENAI_TEXT_MODEL in .env to a model your account can use.`)
     }
     throw new Error(detail)
   }
 
-  return body.content?.map((b) => b.text ?? '').join('').trim() ?? ''
+  return body.choices?.[0]?.message?.content?.trim() ?? ''
 }
 
 /* --------------------------------------------------------------- sanitise */
 
 /**
- * The editor stores raw HTML, so what Claude returns cannot be trusted straight
+ * The editor stores raw HTML, so what the model returns cannot be trusted straight
  * into the page. This keeps the handful of tags the editor itself can produce
  * and drops everything else — script, style, iframe, event handlers, and any
  * attribute other than href on a link.
@@ -165,16 +168,17 @@ export function sanitiseHtml(input) {
   return html.trim()
 }
 
-/** Claude is asked for bare JSON, but a stray sentence before it is a common
- *  failure and not worth failing the whole request over. */
+/** JSON mode should make this exact, but a stray sentence around the object is
+ *  a known failure on models that do not support it, and not worth failing the
+ *  whole request over. */
 function parseJson(text) {
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
-  if (start === -1 || end === -1) throw new Error('Claude did not return usable data. Try again.')
+  if (start === -1 || end === -1) throw new Error('The model did not return usable data. Try again.')
   try {
     return JSON.parse(text.slice(start, end + 1))
   } catch {
-    throw new Error('Claude returned malformed data. Try again.')
+    throw new Error('The model returned malformed data. Try again.')
   }
 }
 
@@ -221,7 +225,7 @@ depends on instead. Where a genuine measurement is standard in the trade
 (for example that baseboard is commonly 3 to 5 inches tall) it is fine to say so.`
 
   const notesLine = notes.trim() ? `\n\nPoints to cover:\n${notes.trim()}` : ''
-  const text = await callClaude({
+  const text = await callText({
     system,
     maxTokens: 4000,
     messages: [{ role: 'user', content: `Topic: ${topic.trim()}${notesLine}` }],
@@ -229,7 +233,7 @@ depends on instead. Where a genuine measurement is standard in the trade
 
   const data = parseJson(text)
   const html = sanitiseHtml(data.html)
-  if (!html) throw new Error('Claude returned an empty article. Try again.')
+  if (!html) throw new Error('The model returned an empty article. Try again.')
 
   return {
     title: String(data.title ?? '').trim().slice(0, 200),
@@ -263,7 +267,7 @@ seoDescription — 140 to 155 characters. Describe what the reader will learn.
 Every field must reflect what the article actually says. Do not introduce claims
 that are not in the text.`
 
-  const text = await callClaude({
+  const text = await callText({
     system,
     maxTokens: 1000,
     messages: [{

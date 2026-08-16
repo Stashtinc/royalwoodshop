@@ -1,18 +1,19 @@
 /**
  * Feature-image generation for blog articles.
  *
- * Two steps, deliberately separate. Claude reads the finished article and
+ * Two steps, deliberately separate. A text model reads the finished article and
  * composes an image prompt in a fixed house style; the image model renders it.
  * Splitting them means the prompt is visible and editable before any money is
  * spent, and the house style lives in one place rather than in whatever the
  * author happened to type.
  *
- * The provider sits behind one function so swapping it later is an adapter and
- * an environment variable, not a rewrite.
+ * Both steps are OpenAI, so one key covers everything. The provider sits behind
+ * one function, so swapping it later is an adapter and an environment variable
+ * rather than a rewrite.
  */
 
 import 'dotenv/config'
-import { callClaudeText } from './ai.server'
+import { callText } from './ai.server'
 import { saveImageBuffer } from './uploads.server'
 
 const OPENAI_URL = 'https://api.openai.com/v1/images/generations'
@@ -43,7 +44,7 @@ no collages, no visible brand names.
 `.trim()
 
 /**
- * Ask Claude for an image prompt and matching alt text.
+ * Ask the text model for an image prompt and matching alt text.
  *
  * Alt text comes from the same call because it describes the same intended
  * image, and asking twice invites the two to drift apart.
@@ -77,7 +78,7 @@ describing what a reader would see. Not a caption, not marketing copy.
 The image must not contain text, since generated lettering renders as
 nonsense and this is a header image, not a poster.`
 
-  const text = await callClaudeText({
+  const text = await callText({
     system,
     maxTokens: 600,
     messages: [{
@@ -88,12 +89,12 @@ nonsense and this is a header image, not a poster.`
 
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
-  if (start === -1) throw new Error('Claude did not return a usable prompt. Try again.')
+  if (start === -1) throw new Error('The model did not return a usable prompt. Try again.')
   let data
   try {
     data = JSON.parse(text.slice(start, end + 1))
   } catch {
-    throw new Error('Claude returned a malformed prompt. Try again.')
+    throw new Error('The model returned a malformed prompt. Try again.')
   }
 
   return {
@@ -111,7 +112,7 @@ function fullPrompt(prompt) {
 async function openaiImage(prompt, { size = DEFAULT_SIZE } = {}) {
   const key = process.env.OPENAI_API_KEY?.trim()
   if (!key) {
-    throw new Error('No OpenAI API key. Set OPENAI_API_KEY in .env — see docs/ai-images-setup.md.')
+    throw new Error('No OpenAI API key. Set OPENAI_API_KEY in .env — see docs/ai-assist-setup.md.')
   }
 
   const request = (imageSize) => fetch(OPENAI_URL, {

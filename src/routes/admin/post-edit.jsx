@@ -5,10 +5,7 @@ import { getPostById, savePost, listCategories, slugTaken } from '../../lib/post
 import { saveUpload } from '../../lib/uploads.server'
 import { log } from '../../lib/activity.server'
 import { draftArticle, draftMetadata, isConfigured as aiConfigured } from '../../lib/ai.server'
-import {
-  composePrompt, generateImages, saveGeneratedImage,
-  isConfigured as imagesConfigured,
-} from '../../lib/image-gen.server'
+import { composePrompt, generateImages, saveGeneratedImage } from '../../lib/image-gen.server'
 import RichText from '../../components/admin/RichText'
 import AiAssist from '../../components/admin/AiAssist'
 
@@ -24,8 +21,8 @@ export async function loader({ request, params }) {
     post,
     categories: await listCategories(),
     isNew,
+    // Text and images are the same provider now, so one key enables both.
     aiEnabled: aiConfigured(),
-    imagesEnabled: aiConfigured() && imagesConfigured(),
   }
 }
 
@@ -148,7 +145,7 @@ export async function action({ request, params }) {
 const field = 'rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue'
 
 export default function PostEdit() {
-  const { post, categories, isNew, aiEnabled, imagesEnabled } = useLoaderData()
+  const { post, categories, isNew, aiEnabled } = useLoaderData()
   const data = useActionData()
   const nav = useNavigation()
   // The AI fetcher also drives nav.state on this route, so distinguish a real
@@ -203,7 +200,7 @@ export default function PostEdit() {
 
         <div className="ml-auto flex items-center gap-4">
           <button type="button" onClick={() => setAssistOpen(true)} disabled={!aiEnabled}
-            title={aiEnabled ? 'Draft or summarise with Claude' : 'Set ANTHROPIC_API_KEY to enable — see docs/ai-assist-setup.md'}
+            title={aiEnabled ? 'Draft, summarise or illustrate with AI' : 'Set OPENAI_API_KEY to enable — see docs/ai-assist-setup.md'}
             className="flex items-center gap-2 rounded-lg border border-royal-blue px-3.5 py-2 text-sm font-medium text-royal-blue transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent">
             <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"
               strokeLinecap="round" strokeLinejoin="round">
@@ -228,7 +225,6 @@ export default function PostEdit() {
         onUseArticle={useArticle}
         onUseMetadata={useMetadata}
         onUseImage={useImage}
-        imagesEnabled={imagesEnabled}
         getEditorState={getEditorState}
       />
 
