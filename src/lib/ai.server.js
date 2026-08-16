@@ -80,6 +80,10 @@ async function catalogueContext() {
 
 /* --------------------------------------------------------------- api call */
 
+export async function callClaudeText({ system, messages, maxTokens = 4000 }) {
+  return callClaude({ system, messages, maxTokens })
+}
+
 async function callClaude({ system, messages, maxTokens = 4000 }) {
   const key = process.env.ANTHROPIC_API_KEY?.trim()
   if (!key) {

@@ -45,6 +45,7 @@ const ACTION_LABEL = {
   'post.updated': 'Article edited',
   'post.published': 'Article published',
   'user.renamed': 'Sign-in address changed',
+  'image.generated': 'AI image generated',
 }
 
 const TONE = {
@@ -64,6 +65,7 @@ const TONE = {
   'post.updated': 'bg-blue-50 text-blue-800 ring-blue-200',
   'post.published': 'bg-emerald-50 text-emerald-800 ring-emerald-200',
   'user.renamed': 'bg-purple-50 text-purple-800 ring-purple-200',
+  'image.generated': 'bg-fuchsia-50 text-fuchsia-800 ring-fuchsia-200',
 }
 
 const dayFormat = new Intl.DateTimeFormat('en-CA', {
@@ -113,6 +115,9 @@ function describe(row) {
         ))}
       </ul>
     )
+  }
+  if (row.action === 'image.generated') {
+    return <p className="mt-1 truncate text-xs text-gray-600" title={d.prompt}>{d.prompt}</p>
   }
   if (row.action === 'user.renamed') {
     return (

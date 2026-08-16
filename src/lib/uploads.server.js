@@ -49,7 +49,7 @@ export async function saveUpload(file, { slug = 'product' } = {}) {
   }
 
   await mkdir(UPLOAD_DIR, { recursive: true })
-  const safeSlug = String(slug).toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 60)
+  const safeSlug = String(slug).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'image'
   const stem = `${safeSlug}-${randomBytes(5).toString('hex')}`
   const buffer = Buffer.from(await file.arrayBuffer())
 
@@ -59,15 +59,26 @@ export async function saveUpload(file, { slug = 'product' } = {}) {
     return { storageKey: `${PUBLIC_PREFIX}/${stem}.svg`, width: null, height: null }
   }
 
+  return writeImage(buffer, stem, file.name)
+}
+
+/**
+ * Converts and writes one image, plus a file per responsive width.
+ *
+ * Shared by uploads and by AI-generated images, deliberately: once a generated
+ * image is chosen it should be indistinguishable from an uploaded one to every
+ * other part of the system.
+ */
+async function writeImage(buffer, stem, label = 'image') {
   let image
   try {
     image = sharp(buffer, { failOn: 'error' }).rotate()   // honours EXIF orientation
   } catch {
-    return { error: `${file.name} could not be read as an image.` }
+    return { error: `${label} could not be read as an image.` }
   }
 
   const meta = await image.metadata()
-  if (!meta.width || !meta.height) return { error: `${file.name} has no readable dimensions.` }
+  if (!meta.width || !meta.height) return { error: `${label} has no readable dimensions.` }
 
   const storageKey = `${PUBLIC_PREFIX}/${stem}.webp`
 
@@ -88,6 +99,14 @@ export async function saveUpload(file, { slug = 'product' } = {}) {
   }
 
   return { storageKey, width: meta.width, height: meta.height }
+}
+
+/** Stores an image we produced ourselves rather than received as an upload. */
+export async function saveImageBuffer(buffer, { slug = 'image' } = {}) {
+  await mkdir(UPLOAD_DIR, { recursive: true })
+  const safeSlug = String(slug).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'image'
+  const stem = `${safeSlug}-${randomBytes(5).toString('hex')}`
+  return writeImage(buffer, stem)
 }
 
 /** Only removes files this app wrote — never anything carried over from the

@@ -5,6 +5,10 @@ import { getPostById, savePost, listCategories, slugTaken } from '../../lib/post
 import { saveUpload } from '../../lib/uploads.server'
 import { log } from '../../lib/activity.server'
 import { draftArticle, draftMetadata, isConfigured as aiConfigured } from '../../lib/ai.server'
+import {
+  composePrompt, generateImages, saveGeneratedImage,
+  isConfigured as imagesConfigured,
+} from '../../lib/image-gen.server'
 import RichText from '../../components/admin/RichText'
 import AiAssist from '../../components/admin/AiAssist'
 
@@ -16,7 +20,13 @@ export async function loader({ request, params }) {
   const isNew = params.id === 'new'
   const post = isNew ? null : await getPostById(params.id)
   if (!isNew && !post) throw new Response('Not found', { status: 404 })
-  return { post, categories: await listCategories(), isNew, aiEnabled: aiConfigured() }
+  return {
+    post,
+    categories: await listCategories(),
+    isNew,
+    aiEnabled: aiConfigured(),
+    imagesEnabled: aiConfigured() && imagesConfigured(),
+  }
 }
 
 export async function action({ request, params }) {
@@ -27,6 +37,42 @@ export async function action({ request, params }) {
   // AI Assist posts to this same action. Handled first and returned early:
   // generating a draft must never write anything.
   const intent = String(f.get('intent') ?? '')
+
+  if (intent.startsWith('ai-image')) {
+    try {
+      if (intent === 'ai-image-prompt') {
+        return { ai: { kind: 'image-prompt', ...await composePrompt({
+          title: String(f.get('title') ?? ''),
+          contentHtml: String(f.get('contentHtml') ?? ''),
+        }) } }
+      }
+      if (intent === 'ai-image-generate') {
+        const { images, failed } = await generateImages({
+          prompt: String(f.get('prompt') ?? ''),
+          count: 3,
+        })
+        return { ai: { kind: 'image-options', images, failed, alt: String(f.get('alt') ?? '') } }
+      }
+      if (intent === 'ai-image-save') {
+        const saved = await saveGeneratedImage({
+          dataUrl: String(f.get('dataUrl') ?? ''),
+          slug: String(f.get('slug') || 'article'),
+        })
+        // Worth a log entry: this is the one assist action that costs money and
+        // leaves a file on disk.
+        await log(user, 'image.generated', {
+          entityType: 'post',
+          entityId: isNew ? null : Number(params.id),
+          entityLabel: String(f.get('slug') || 'article'),
+          details: { storageKey: saved.storageKey, prompt: String(f.get('prompt') ?? '').slice(0, 300) },
+        })
+        return { ai: { kind: 'image-saved', ...saved, alt: String(f.get('alt') ?? '') } }
+      }
+    } catch (e) {
+      return { aiError: e.message }
+    }
+  }
+
   if (intent === 'ai-article' || intent === 'ai-metadata') {
     try {
       if (intent === 'ai-article') {
@@ -102,7 +148,7 @@ export async function action({ request, params }) {
 const field = 'rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue'
 
 export default function PostEdit() {
-  const { post, categories, isNew, aiEnabled } = useLoaderData()
+  const { post, categories, isNew, aiEnabled, imagesEnabled } = useLoaderData()
   const data = useActionData()
   const nav = useNavigation()
   // The AI fetcher also drives nav.state on this route, so distinguish a real
@@ -114,6 +160,9 @@ export default function PostEdit() {
   // The slug warning is only true once the address actually differs from the
   // one that is live. Showing it permanently trained the eye to ignore it.
   const [slug, setSlug] = useState(post?.slug ?? '')
+  // A generated header image is already saved to disk by the time it lands
+  // here, so it is held as state and submitted as the existing image.
+  const [featured, setFeatured] = useState(post?.featuredImage ?? '')
   const slugChanged = !isNew && slug.trim() !== (post?.slug ?? '')
   const editorApi = useRef(null)
   const formRef = useRef(null)
@@ -129,6 +178,14 @@ export default function PostEdit() {
     const titleInput = formRef.current?.elements.title
     // Never clobber a title the author has already chosen.
     if (titleInput && !titleInput.value.trim() && title) titleInput.value = title
+  }
+
+  const useImage = ({ storageKey, alt }) => {
+    setFeatured(storageKey)
+    const el = formRef.current?.elements
+    if (el?.featuredImageAlt && alt && !el.featuredImageAlt.value.trim()) {
+      el.featuredImageAlt.value = alt
+    }
   }
 
   const useMetadata = ({ excerpt, seoTitle, seoDescription }) => {
@@ -170,13 +227,15 @@ export default function PostEdit() {
         onClose={() => setAssistOpen(false)}
         onUseArticle={useArticle}
         onUseMetadata={useMetadata}
+        onUseImage={useImage}
+        imagesEnabled={imagesEnabled}
         getEditorState={getEditorState}
       />
 
       {data?.error && <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-800">{data.error}</p>}
 
       <Form ref={formRef} method="post" encType="multipart/form-data" className="flex flex-col gap-6">
-        <input type="hidden" name="featuredImageExisting" defaultValue={post?.featuredImage ?? ''} />
+        <input type="hidden" name="featuredImageExisting" value={featured} readOnly />
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-gray-700">Title</span>
@@ -256,8 +315,8 @@ export default function PostEdit() {
 
             <section className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4">
               <h2 className="font-serif font-bold text-tundora">Header image</h2>
-              {post?.featuredImage && (
-                <img src={post.featuredImage} alt="" className="aspect-[3/2] w-full rounded-lg object-cover" />
+              {featured && (
+                <img src={featured} alt="" className="aspect-[3/2] w-full rounded-lg object-cover" />
               )}
               <input type="file" name="featuredImageFile" accept="image/*"
                 className="text-xs text-gray-600 file:mr-2 file:rounded file:border file:border-gray-300 file:bg-white file:px-2 file:py-1 file:text-xs" />
