@@ -8,7 +8,8 @@ export async function loader({ request }) {
   const url = new URL(request.url)
   const allowed = [25, 50, 100]
   const requested = Number(url.searchParams.get('perPage') ?? 50)
-  const level = url.searchParams.get('level') === 'all' ? 'all' : 'milestone'
+  const requestedLevel = url.searchParams.get('level')
+  const level = ['all', 'development'].includes(requestedLevel) ? requestedLevel : 'content'
 
   // Detail older than 90 days is removed here rather than by a scheduler, so
   // there is nothing extra to run or keep alive.
@@ -173,7 +174,7 @@ export default function Logs() {
 
   const levelLink = (l) => {
     const p = new URLSearchParams(params)
-    l === 'milestone' ? p.delete('level') : p.set('level', l)
+    if (l === 'content') p.delete('level'); else p.set('level', l)
     p.delete('page'); p.delete('action')
     return `?${p}`
   }
@@ -204,18 +205,23 @@ export default function Logs() {
       <div>
         <h1 className="font-serif text-2xl font-bold text-tundora">Activity log</h1>
         <p className="mt-1 text-sm text-gray-500">
-          {level === 'milestone'
-            ? 'Significant changes — imports, publishes, and anything that changed what customers see.'
-            : 'Everything, including individual edits, image changes and sign-ins.'}
+          {level === 'content'
+            ? 'Imports, publishes, and anything that changed what customers see.'
+            : level === 'development'
+              ? 'Features built and fixes made, from the project history.'
+              : 'Everything, including individual edits, image changes and sign-ins.'}
         </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-6 border-b border-gray-200">
-        <Link to={levelLink('milestone')} className={tab(level === 'milestone')}>
-          Milestones <span className="ml-0.5 text-gray-400">{totals.milestones}</span>
+        <Link to={levelLink('content')} className={tab(level === 'content')}>
+          Site changes <span className="ml-0.5 text-gray-400">{totals.content}</span>
+        </Link>
+        <Link to={levelLink('development')} className={tab(level === 'development')}>
+          Development <span className="ml-0.5 text-gray-400">{totals.development}</span>
         </Link>
         <Link to={levelLink('all')} className={tab(level === 'all')}>
-          Everything <span className="ml-0.5 text-gray-400">{totals.milestones + totals.detail}</span>
+          Everything <span className="ml-0.5 text-gray-400">{totals.all}</span>
         </Link>
 
         <details className="group relative -mb-px pb-2.5">
@@ -230,15 +236,20 @@ export default function Logs() {
             </svg>
           </summary>
           <div className="absolute top-8 left-0 z-20 w-80 rounded-xl border border-gray-200 bg-white p-4 text-sm shadow-lg">
-            <p className="font-medium text-tundora">What counts as a milestone?</p>
+            <p className="font-medium text-tundora">What goes where?</p>
             <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-4 text-xs leading-relaxed text-gray-600">
               <li>Anything that changed <strong>many products at once</strong> — importing the species sheet, publishing the site.</li>
               <li>Anything that changed <strong>what customers see</strong> — a product being published, hidden or archived.</li>
               <li>Setup events, such as the catalogue and redirects first being loaded.</li>
             </ul>
             <p className="mt-2.5 text-xs leading-relaxed text-gray-500">
-              Everything else — editing one field, changing an image, signing in — is recorded
-              under <strong>Everything</strong>, and kept for 90 days. Runs of edits by one person
+              <strong>Development</strong> is the work of building the site itself, taken from the
+              project history. It is kept separate because it answers a different question from
+              &ldquo;did anything on my site change&rdquo;.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-gray-500">
+              Everything else — editing one field, changing an image, signing in — appears under
+              <strong> Everything</strong>, and is kept for 90 days. Runs of edits by one person
               are grouped into a single line.
             </p>
           </div>
@@ -246,6 +257,9 @@ export default function Logs() {
 
         {level === 'all' && (
           <span className="pb-2.5 text-xs text-gray-400">Detailed entries are kept for 90 days</span>
+        )}
+        {level === 'development' && (
+          <span className="pb-2.5 text-xs text-gray-400">Recorded by <code className="rounded bg-gray-100 px-1">npm run log:build</code></span>
         )}
       </div>
 
@@ -267,7 +281,7 @@ export default function Logs() {
       {groups.length === 0 && (
         <div className="rounded-2xl border border-gray-200 bg-white px-6 py-12 text-center">
           <p className="text-sm text-gray-500">
-            {level === 'milestone'
+            {level === 'content'
               ? 'No milestones yet. Imports and publishes will appear here.'
               : 'Nothing recorded yet. Edits will appear here as they are made.'}
           </p>

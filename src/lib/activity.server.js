@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, lt, ne, sql } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { activityLog } from '../db/schema.js'
 
@@ -79,10 +79,27 @@ function rollUp(rows) {
   return out
 }
 
-export async function listActivity({ page = 1, perPage = 50, level = 'milestone', action = '' } = {}) {
+/**
+ * Views, not levels.
+ *
+ *   content      what changed on the site — milestones, excluding development
+ *   development  commits, recorded by npm run log:build
+ *   all          everything, in one timeline
+ *
+ * Development is milestone-level because it is significant, but it answers a
+ * different question from "did my catalogue change", so it gets its own view
+ * rather than burying content under it.
+ */
+export const BUILD_ACTION = 'build.shipped'
+
+export async function listActivity({ page = 1, perPage = 50, level = 'content', action = '' } = {}) {
   const db = await getDb()
   const where = []
-  if (level === 'milestone') where.push(eq(activityLog.level, 'milestone'))
+  if (level === 'content') {
+    where.push(eq(activityLog.level, 'milestone'))
+    where.push(ne(activityLog.action, BUILD_ACTION))
+  }
+  if (level === 'development') where.push(eq(activityLog.action, BUILD_ACTION))
   if (action) where.push(eq(activityLog.action, action))
   const clause = where.length ? and(...where) : undefined
 
@@ -100,17 +117,23 @@ export async function listActivity({ page = 1, perPage = 50, level = 'milestone'
 export async function counts() {
   const db = await getDb()
   const [r] = await db.select({
-    milestones: sql`count(*) filter (where ${activityLog.level} = 'milestone')::int`,
-    detail: sql`count(*) filter (where ${activityLog.level} = 'detail')::int`,
+    content: sql`count(*) filter (where ${activityLog.level} = 'milestone' and ${activityLog.action} <> ${BUILD_ACTION})::int`,
+    development: sql`count(*) filter (where ${activityLog.action} = ${BUILD_ACTION})::int`,
+    all: sql`count(*)::int`,
   }).from(activityLog)
   return r
 }
 
 export async function listActions(level) {
   const db = await getDb()
+  const clause = level === 'content'
+    ? and(eq(activityLog.level, 'milestone'), ne(activityLog.action, BUILD_ACTION))
+    : level === 'development'
+      ? eq(activityLog.action, BUILD_ACTION)
+      : undefined
   return db.select({ action: activityLog.action, n: sql`count(*)::int` })
     .from(activityLog)
-    .where(level === 'milestone' ? eq(activityLog.level, 'milestone') : undefined)
+    .where(clause)
     .groupBy(activityLog.action).orderBy(activityLog.action)
 }
 
