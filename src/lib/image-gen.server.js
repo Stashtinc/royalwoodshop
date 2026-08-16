@@ -17,6 +17,7 @@ import { callText } from './ai.server'
 import { saveImageBuffer } from './uploads.server'
 
 const OPENAI_URL = 'https://api.openai.com/v1/images/generations'
+const OPENAI_EDIT_URL = 'https://api.openai.com/v1/images/edits'
 
 /** Overridable because model names move faster than this codebase will. */
 const DEFAULT_MODEL = process.env.OPENAI_IMAGE_MODEL?.trim() || 'gpt-image-1'
@@ -170,6 +171,63 @@ async function openaiImage(prompt, { size = DEFAULT_SIZE } = {}) {
   throw new Error('OpenAI returned an image in a format we do not understand.')
 }
 
+/**
+ * Re-renders an existing image with a change described in words.
+ *
+ * This is the edit endpoint, not a fresh generation: the model is given the
+ * chosen picture and keeps its composition, so "make the trim white" returns
+ * the same room rather than a different house. A new generation from an edited
+ * prompt would not — that is the whole reason this exists separately.
+ */
+async function openaiEdit(baseBuffer, instruction) {
+  const key = process.env.OPENAI_API_KEY?.trim()
+  if (!key) {
+    throw new Error('No OpenAI API key. Set OPENAI_API_KEY in .env — see docs/ai-assist-setup.md.')
+  }
+
+  const form = new FormData()
+  form.append('model', DEFAULT_MODEL)
+  form.append('prompt', fullPrompt(instruction))
+  form.append('n', '1')
+  form.append('image', new Blob([baseBuffer], { type: 'image/png' }), 'base.png')
+
+  let res
+  try {
+    res = await fetch(OPENAI_EDIT_URL, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${key}` },   // no content-type: FormData sets the boundary
+      body: form,
+      signal: AbortSignal.timeout(180000),
+    })
+  } catch (e) {
+    if (e.name === 'TimeoutError') throw new Error('The image model took too long. Try again.')
+    throw new Error(`Could not reach OpenAI: ${e.message}`)
+  }
+
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const detail = body.error?.message || `HTTP ${res.status}`
+    if (res.status === 401) throw new Error('OpenAI rejected the API key. Check OPENAI_API_KEY.')
+    if (res.status === 429) throw new Error('Rate limited by OpenAI, or the account is out of credit.')
+    if (res.status === 400 && /model/i.test(detail)) {
+      throw new Error(
+        `${detail} — OPENAI_IMAGE_MODEL must be a model that supports editing for variations to work.`,
+      )
+    }
+    throw new Error(detail)
+  }
+
+  const item = body.data?.[0]
+  if (!item) throw new Error('OpenAI returned no image.')
+  if (item.b64_json) return Buffer.from(item.b64_json, 'base64')
+  if (item.url) {
+    const img = await fetch(item.url, { signal: AbortSignal.timeout(60000) })
+    if (!img.ok) throw new Error('Could not download the generated image.')
+    return Buffer.from(await img.arrayBuffer())
+  }
+  throw new Error('OpenAI returned an image in a format we do not understand.')
+}
+
 /* ---------------------------------------------------------------- actions */
 
 /**
@@ -199,15 +257,44 @@ export async function generateImages({ prompt, count = 3 }) {
   return { images, failed: results.length - images.length }
 }
 
-/** Stores the chosen option through the same pipeline as an upload. */
-export async function saveGeneratedImage({ dataUrl, slug = 'article' }) {
+/** Turns a data URL from the browser back into bytes. */
+function decodeDataUrl(dataUrl) {
   const match = /^data:image\/[a-z+]+;base64,(.+)$/i.exec(String(dataUrl ?? ''))
   if (!match) throw new Error('That is not an image we generated.')
-
   const buffer = Buffer.from(match[1], 'base64')
-  if (!buffer.length) throw new Error('The generated image was empty.')
+  if (!buffer.length) throw new Error('The image was empty.')
+  return buffer
+}
 
-  const res = await saveImageBuffer(buffer, { slug })
+/**
+ * Three variations of one chosen image, following a written change.
+ *
+ * Same parallel-and-settle behaviour as generation: a refusal on one of three
+ * should not cost the other two.
+ */
+export async function varyImage({ dataUrl, instruction, count = 3 }) {
+  if (!instruction?.trim()) throw new Error('Describe what to change.')
+  const base = decodeDataUrl(dataUrl)
+
+  const results = await Promise.allSettled(
+    Array.from({ length: Math.min(Math.max(count, 1), 4) }, () => openaiEdit(base, instruction)),
+  )
+
+  const images = results
+    .filter((r) => r.status === 'fulfilled')
+    .map((r) => `data:image/png;base64,${r.value.toString('base64')}`)
+
+  if (!images.length) {
+    const reason = results.find((r) => r.status === 'rejected')?.reason
+    throw new Error(reason?.message ?? 'No variations could be generated.')
+  }
+
+  return { images, failed: results.length - images.length }
+}
+
+/** Stores the chosen option through the same pipeline as an upload. */
+export async function saveGeneratedImage({ dataUrl, slug = 'article' }) {
+  const res = await saveImageBuffer(decodeDataUrl(dataUrl), { slug })
   if (res.error) throw new Error(res.error)
   return res
 }

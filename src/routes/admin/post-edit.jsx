@@ -5,7 +5,7 @@ import { getPostById, savePost, listCategories, slugTaken } from '../../lib/post
 import { saveUpload } from '../../lib/uploads.server'
 import { log } from '../../lib/activity.server'
 import { draftArticle, draftMetadata, isConfigured as aiConfigured } from '../../lib/ai.server'
-import { composePrompt, generateImages, saveGeneratedImage } from '../../lib/image-gen.server'
+import { composePrompt, generateImages, varyImage, saveGeneratedImage } from '../../lib/image-gen.server'
 import RichText from '../../components/admin/RichText'
 import AiAssist from '../../components/admin/AiAssist'
 
@@ -52,6 +52,24 @@ export async function action({ request, params }) {
         const { images, failed } = await generateImages({ prompt, count: 3 })
         return { ai: { kind: 'image-options', images, failed, prompt, alt: String(f.get('alt') ?? '') } }
       }
+      if (intent === 'ai-image-vary') {
+        const { images, failed } = await varyImage({
+          dataUrl: String(f.get('dataUrl') ?? ''),
+          instruction: String(f.get('instruction') ?? ''),
+          count: 3,
+        })
+        return {
+          ai: {
+            kind: 'image-options',
+            images,
+            failed,
+            prompt: String(f.get('instruction') ?? ''),
+            alt: String(f.get('alt') ?? ''),
+            variation: true,
+          },
+        }
+      }
+
       if (intent === 'ai-image-save') {
         const saved = await saveGeneratedImage({
           dataUrl: String(f.get('dataUrl') ?? ''),

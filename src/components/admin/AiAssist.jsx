@@ -71,15 +71,24 @@ export default function AiAssist({
   const [chosen, setChosen] = useState(null)
   const [prompt, setPrompt] = useState('')
   const [alt, setAlt] = useState('')
+  const [instruction, setInstruction] = useState('')
+  /** Previous option sets, so refining is not a one-way door. */
+  const [history, setHistory] = useState([])
   const [results, setResults] = useState({})
   const [errors, setErrors] = useState({})
   const firstField = useRef(null)
   /** Guards the automatic run so it happens once per opening of the tab. */
   const started = useRef(false)
+  /** The set currently on screen, read when a variation replaces it. A ref
+   *  rather than a dependency: the reply handler must see the set that was
+   *  showing when the request went out, not re-run when it changes. */
+  const showing = useRef(null)
 
   const busy = fetcher.state !== 'idle'
   const result = results[mode]
   const error = errors[mode]
+
+  useEffect(() => { showing.current = results.image }, [results.image])
 
   // Escape closes, and focus lands somewhere useful on open.
   useEffect(() => {
@@ -104,6 +113,11 @@ export default function AiAssist({
     if (data.ai) {
       const tab = TAB_OF[data.ai.kind]
       if (!tab) return
+      if (data.ai.variation) {
+        const previous = showing.current
+        if (previous) setHistory((h) => (h.at(-1) === previous ? h : [...h, previous]))
+        setInstruction('')
+      }
       setResults((r) => ({ ...r, [tab]: data.ai }))
       setErrors((e) => ({ ...e, [tab]: null }))
       if (data.ai.kind === 'image-options') setChosen(null)
@@ -172,7 +186,29 @@ export default function AiAssist({
     setResults((r) => ({ ...r, image: null }))
     setErrors((e) => ({ ...e, image: null }))
     setChosen(null)
+    setHistory([])
     send({ intent: 'ai-image-generate', prompt, alt })
+  }
+
+  const varyChosen = () => {
+    if (chosen === null || !instruction.trim()) return
+    send({
+      intent: 'ai-image-vary',
+      dataUrl: result.images[chosen],
+      instruction,
+      alt,
+    })
+  }
+
+  const goBack = () => {
+    setHistory((h) => {
+      const previous = h[h.length - 1]
+      if (previous) {
+        setResults((r) => ({ ...r, image: previous }))
+        setChosen(null)
+      }
+      return h.slice(0, -1)
+    })
   }
 
   const runText = () => {
@@ -184,6 +220,7 @@ export default function AiAssist({
 
   const describing = mode === 'image' && busy && !prompt && !results.image
   const rendering = mode === 'image' && busy && Boolean(prompt) && !results.image
+  const varying = mode === 'image' && busy && results.image?.kind === 'image-options'
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8"
@@ -342,7 +379,7 @@ export default function AiAssist({
           {mode === 'image' && result?.kind === 'image-options' && (
             <div className="flex flex-col gap-3">
               <p className="text-sm text-gray-600">
-                Pick one.{' '}
+                {result.variation ? 'Three variations. Pick one.' : 'Pick one.'}{' '}
                 {result.failed > 0 && (
                   <span className="text-amber-700">
                     {result.failed} of 3 did not render — the rest are below.
@@ -359,6 +396,29 @@ export default function AiAssist({
                   </button>
                 ))}
               </div>
+              {/* Refining works on the picked image, so it only appears once
+                  there is one — and it edits that picture rather than starting
+                  a new one, which is what keeps the room the same. */}
+              {chosen !== null && (
+                <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <Field label="Change something about this one"
+                    hint="optional — three variations of the picked image">
+                    <input value={instruction} onChange={(e) => setInstruction(e.target.value)}
+                      disabled={busy} className={`${input} bg-white`}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); varyChosen() } }}
+                      placeholder="Make the trim white, and shoot it from lower down" />
+                  </Field>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={varyChosen} disabled={busy || !instruction.trim()}
+                      className="flex items-center gap-2 rounded-lg border border-royal-blue px-3.5 py-2 text-sm font-medium text-royal-blue transition-colors hover:bg-blue-50 disabled:opacity-50">
+                      {varying && <Spinner />}
+                      {varying ? 'Adjusting…' : 'Make 3 variations'}
+                    </button>
+                    <span className="text-xs text-gray-400">Keeps the same room · ~12¢</span>
+                  </div>
+                </div>
+              )}
+
               <details className="text-xs text-gray-500">
                 <summary className="cursor-pointer select-none hover:text-gray-700">
                   What it was asked to draw
@@ -390,10 +450,18 @@ export default function AiAssist({
             <button type="button" disabled className="text-sm text-gray-400">Working…</button>
           ) : mode === 'image' && result?.kind === 'image-options' ? (
             <>
-              <button type="button" onClick={renderImages} disabled={busy}
-                className="mr-auto text-sm text-gray-500 hover:underline disabled:opacity-50">
-                Try three more
-              </button>
+              <div className="mr-auto flex items-center gap-4">
+                {history.length > 0 && (
+                  <button type="button" onClick={goBack} disabled={busy}
+                    className="text-sm text-gray-500 hover:underline disabled:opacity-50">
+                    ← Back
+                  </button>
+                )}
+                <button type="button" onClick={renderImages} disabled={busy}
+                  className="text-sm text-gray-500 hover:underline disabled:opacity-50">
+                  Start again from the description
+                </button>
+              </div>
               <button type="button" onClick={onClose} disabled={busy}
                 className="text-sm text-gray-600 hover:underline disabled:opacity-50">
                 Cancel

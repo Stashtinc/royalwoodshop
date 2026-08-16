@@ -8,7 +8,8 @@ The article editor has an **AI Assist** button. It does three things:
   the summary, the search-listing title and the meta description.
 - **Header image** — open the tab and it writes a description of the photograph
   based on your article. Edit it if you want something else, press Generate, and
-  pick from three options.
+  pick from three options. Pick one and you can describe a change to get three
+  variations of *that* picture.
 
 Everything ends in a preview with *Use* or *Discard*. Nothing is written into
 the editor until it is accepted, and nothing is saved to the site until Save is
@@ -72,7 +73,8 @@ themselves.
 
 Opening the Header image tab writes the description, which costs a fraction of a
 cent. No image is rendered until Generate is pressed, so an accidental click on
-that tab costs essentially nothing.
+that tab costs essentially nothing. Each set of three variations costs the same
+as a fresh set.
 
 Nothing runs in the background. Current prices:
 <https://openai.com/api/pricing/>.
@@ -100,6 +102,21 @@ renovation magazine, natural window light, warm neutrals, realistic Ontario home
 rather than showhomes, landscape framing, no people, no text, no logos. That
 consistency is the point — a blog whose header images are visibly from four
 different generators reads as neglected.
+
+## Refining an image
+
+Once three options are on screen, picking one reveals a box to describe a change
+— *make the trim white*, *shoot it from lower down*, *warmer light*. That produces
+three variations of the picked image.
+
+This uses the image **edit** endpoint rather than a new generation, which is the
+difference that matters: editing keeps the room, the furniture and the framing
+and changes only what you asked for. Regenerating from an amended description
+would give a different house that happens to have white trim.
+
+Variations can be refined again, and **← Back** returns to any earlier set, so
+exploring is not a one-way door. *Start again from the description* abandons the
+whole line and generates fresh.
 
 ## What still needs a human
 
