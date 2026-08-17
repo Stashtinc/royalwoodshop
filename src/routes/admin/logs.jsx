@@ -1,7 +1,8 @@
-import { Link, useLoaderData, useSearchParams } from 'react-router'
+import { Form, Link, useLoaderData, useSearchParams } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { listActivity, listActions, counts, pruneDetail } from '../../lib/activity.server'
+import { listActivity, listActions, listPeople, counts, pruneDetail } from '../../lib/activity.server'
 import Pagination from '../../components/admin/Pagination'
+import { ACTION_LABEL } from '../../lib/activity-labels'
 
 export async function loader({ request }) {
   await requireUser(request)
@@ -15,43 +16,21 @@ export async function loader({ request }) {
   // there is nothing extra to run or keep alive.
   await pruneDetail(90)
 
-  const [activity, actions, totals] = await Promise.all([
+  const [activity, actions, totals, people] = await Promise.all([
     listActivity({
       page: Math.max(1, Number(url.searchParams.get('page') ?? 1)),
       perPage: allowed.includes(requested) ? requested : 50,
       level,
       action: url.searchParams.get('action') ?? '',
+      q: url.searchParams.get('q') ?? '',
     }),
     listActions(level),
     counts(),
+    listPeople(),
   ])
-  return { ...activity, actions, level, totals }
+  return { ...activity, actions, level, totals, people }
 }
 
-const ACTION_LABEL = {
-  'setup.schema': 'Database created',
-  'setup.catalogue': 'Catalogue imported',
-  'setup.redirects': 'Redirects loaded',
-  'import.species': 'Species sheet imported',
-  'site.published': 'Site published',
-  'product.status': 'Visibility changed',
-  'product.created': 'Product added',
-  'product.updated': 'Product edited',
-  'image.added': 'Images added',
-  'image.updated': 'Image details changed',
-  'image.deleted': 'Image removed',
-  'image.reordered': 'Images reordered',
-  'auth.login': 'Signed in',
-  'post.created': 'Article added',
-  'post.updated': 'Article edited',
-  'post.published': 'Article published',
-  'user.renamed': 'Sign-in address changed',
-  'image.generated': 'AI image used',
-  'ai.article': 'AI drafted an article',
-  'ai.metadata': 'AI wrote the search listing',
-  'ai.images': 'AI rendered images',
-  'build.shipped': 'Feature built',
-}
 
 const TONE = {
   'setup.schema': 'bg-slate-100 text-slate-700 ring-slate-300',
@@ -168,9 +147,17 @@ function describe(row) {
 }
 
 export default function Logs() {
-  const { rows, total, page, pages, perPage, actions, level, totals } = useLoaderData()
+  const { rows, total, page, pages, perPage, actions, level, totals, people } = useLoaderData()
   const [params] = useSearchParams()
   const active = params.get('action') ?? ''
+  const query = params.get('q') ?? ''
+
+  // What the box offers as you type: the plain-English name of every action
+  // present in this view, most common first, plus the people who appear in it.
+  const suggestions = [
+    ...actions.map(({ action }) => ACTION_LABEL[action] ?? action),
+    ...people,
+  ]
 
   const levelLink = (l) => {
     const p = new URLSearchParams(params)
@@ -185,12 +172,6 @@ export default function Logs() {
         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
     }`
 
-  const filterLink = (a) => {
-    const p = new URLSearchParams(params)
-    a ? p.set('action', a) : p.delete('action')
-    p.delete('page')
-    return `?${p}`
-  }
 
   // Group consecutive entries under a date heading.
   const groups = []
@@ -263,18 +244,45 @@ export default function Logs() {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        <Link to={filterLink('')}
-          className={`rounded-lg px-3 py-1.5 text-sm ${active === '' ? 'bg-royal-blue text-white' : 'border border-gray-300 bg-white text-gray-700 hover:border-gray-400'}`}>
-          All
-        </Link>
-        {actions.map(({ action, n }) => (
-          <Link key={action} to={filterLink(action)}
-            className={`rounded-lg px-3 py-1.5 text-sm ${active === action ? 'bg-royal-blue text-white' : 'border border-gray-300 bg-white text-gray-700 hover:border-gray-400'}`}>
-            {ACTION_LABEL[action] ?? action} <span className="opacity-60">{n}</span>
+      {/* One search box in place of a row of chips. The chips grew with every
+          new action until they wrapped onto three lines, and a list of every
+          possible filter is not a filter. */}
+      <Form method="get" role="search" className="flex flex-wrap items-center gap-2">
+        {level !== 'content' && <input type="hidden" name="level" value={level} />}
+        <div className="relative flex-1 sm:max-w-md">
+          <svg viewBox="0 0 20 20" aria-hidden
+            className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+            fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <circle cx="9" cy="9" r="6" /><path d="M13.5 13.5 17 17" />
+          </svg>
+          <input
+            name="q"
+            type="search"
+            list="activity-suggestions"
+            defaultValue={query}
+            placeholder="Search the log — an article title, a person, or what happened"
+            autoComplete="off"
+            className="w-full rounded-lg border border-gray-300 py-2 pr-3 pl-9 text-sm outline-none focus:border-royal-blue"
+          />
+          <datalist id="activity-suggestions">
+            {suggestions.map((s) => <option key={s} value={s} />)}
+          </datalist>
+        </div>
+        <button type="submit"
+          className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark">
+          Search
+        </button>
+        {(query || active) && (
+          <Link to={levelLink(level)} className="text-sm text-gray-500 hover:underline">
+            Clear
           </Link>
-        ))}
-      </div>
+        )}
+        {query && (
+          <span className="text-sm text-gray-500">
+            {total} {total === 1 ? 'entry' : 'entries'} matching &ldquo;{query}&rdquo;
+          </span>
+        )}
+      </Form>
 
       <Pagination page={page} pages={pages} total={total} perPage={perPage} />
 

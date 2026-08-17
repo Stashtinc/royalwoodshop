@@ -1,6 +1,7 @@
-import { and, desc, eq, gte, lt, ne, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, lt, ne, or, sql } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { activityLog } from '../db/schema.js'
+import { actionsMatching } from './activity-labels.js'
 
 /**
  * What counts as a milestone.
@@ -92,7 +93,7 @@ function rollUp(rows) {
  */
 export const BUILD_ACTION = 'build.shipped'
 
-export async function listActivity({ page = 1, perPage = 50, level = 'content', action = '' } = {}) {
+export async function listActivity({ page = 1, perPage = 50, level = 'content', action = '', q = '' } = {}) {
   const db = await getDb()
   const where = []
   if (level === 'content') {
@@ -101,6 +102,22 @@ export async function listActivity({ page = 1, perPage = 50, level = 'content', 
   }
   if (level === 'development') where.push(eq(activityLog.action, BUILD_ACTION))
   if (action) where.push(eq(activityLog.action, action))
+
+  // Free text matches the plain-English label someone actually sees, the raw
+  // action name, and what the entry was about — so "article", "Article
+  // published" and a post title all find the same rows.
+  const needle = String(q).trim()
+  if (needle) {
+    const matched = actionsMatching(needle)
+    const terms = [
+      ilike(activityLog.entityLabel, `%${needle}%`),
+      ilike(activityLog.action, `%${needle}%`),
+      ilike(activityLog.userEmail, `%${needle}%`),
+    ]
+    if (matched.length) terms.push(inArray(activityLog.action, matched))
+    where.push(or(...terms))
+  }
+
   const clause = where.length ? and(...where) : undefined
 
   const [{ total }] = await db.select({ total: sql`count(*)::int` }).from(activityLog).where(clause)
@@ -112,6 +129,16 @@ export async function listActivity({ page = 1, perPage = 50, level = 'content', 
     rows: rollUp(rows.map(parse)),
     total, page, perPage, pages: Math.max(1, Math.ceil(total / perPage)),
   }
+}
+
+/** Everyone who appears in the log, so the search box can suggest them. */
+export async function listPeople() {
+  const db = await getDb()
+  const rows = await db
+    .selectDistinct({ email: activityLog.userEmail })
+    .from(activityLog)
+    .where(sql`${activityLog.userEmail} is not null`)
+  return rows.map((r) => r.email).filter(Boolean).sort()
 }
 
 export async function counts() {
