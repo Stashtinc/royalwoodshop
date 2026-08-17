@@ -147,7 +147,7 @@ function describe(row) {
 }
 
 export default function Logs() {
-  const { rows, total, page, pages, perPage, actions, level, totals, people } = useLoaderData()
+  const { rows, total, page, pages, perPage, actions, level, totals, people = [] } = useLoaderData()
   const [params] = useSearchParams()
   const active = params.get('action') ?? ''
   const query = params.get('q') ?? ''
@@ -155,7 +155,7 @@ export default function Logs() {
   // What the box offers as you type: the plain-English name of every action
   // present in this view, most common first, plus the people who appear in it.
   const suggestions = [
-    ...actions.map(({ action }) => ACTION_LABEL[action] ?? action),
+    ...(actions ?? []).map(({ action }) => ACTION_LABEL[action] ?? action),
     ...people,
   ]
 
