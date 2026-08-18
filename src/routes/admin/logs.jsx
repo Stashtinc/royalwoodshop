@@ -230,7 +230,7 @@ export default function Logs() {
                 fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
                 <path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6" /><path d="M16.5 3v3.5H13" />
               </svg>
-              {recording ? 'Recording…' : 'Record development'}
+              {recording ? 'Running…' : 'Run Logs'}
             </button>
           </recorder.Form>
 
