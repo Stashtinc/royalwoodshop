@@ -1,6 +1,7 @@
-import { Form, Link, useLoaderData, useSearchParams } from 'react-router'
+import { Form, Link, useFetcher, useLoaderData, useSearchParams } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { listActivity, listActions, listPeople, counts, pruneDetail } from '../../lib/activity.server'
+import { recordBuilds } from '../../lib/build-log.server'
 import Pagination from '../../components/admin/Pagination'
 import { ACTION_LABEL } from '../../lib/activity-labels'
 
@@ -29,6 +30,25 @@ export async function loader({ request }) {
     listPeople(),
   ])
   return { ...activity, actions, level, totals, people }
+}
+
+/**
+ * Records development work from the git history.
+ *
+ * Deliberately an action on this page rather than only a command: run as a
+ * script it opens the database a second time, and the embedded database
+ * allows one writer — which is how a running dev server gets killed. Here it
+ * runs inside the server's own process.
+ */
+export async function action({ request }) {
+  await requireUser(request)
+  const form = await request.formData()
+  if (form.get('intent') !== 'record-builds') return null
+  try {
+    return { recorded: await recordBuilds() }
+  } catch (e) {
+    return { recordError: e.message }
+  }
 }
 
 
@@ -152,6 +172,11 @@ export default function Logs() {
   const active = params.get('action') ?? ''
   const query = params.get('q') ?? ''
 
+  const recorder = useFetcher()
+  const recording = recorder.state !== 'idle'
+  const recorded = recorder.data?.recorded
+  const recordError = recorder.data?.recordError
+
   // What the box offers as you type: the plain-English name of every action
   // present in this view, most common first, plus the people who appear in it.
   const suggestions = [
@@ -183,7 +208,8 @@ export default function Logs() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
         <h1 className="font-serif text-2xl font-bold text-tundora">Activity log</h1>
         <p className="mt-1 text-sm text-gray-500">
           {level === 'content'
@@ -192,6 +218,31 @@ export default function Logs() {
               ? 'Features built and fixes made, from the project history.'
               : 'Everything, including individual edits, image changes and sign-ins.'}
         </p>
+        </div>
+
+        <div className="flex flex-col items-end gap-1">
+          <recorder.Form method="post">
+            <input type="hidden" name="intent" value="record-builds" />
+            <button type="submit" disabled={recording}
+              title="Read the project history and record anything not logged yet"
+              className="flex items-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50">
+              <svg viewBox="0 0 20 20" className={`h-4 w-4 ${recording ? 'animate-spin' : ''}`}
+                fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                <path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6" /><path d="M16.5 3v3.5H13" />
+              </svg>
+              {recording ? 'Recording…' : 'Record development'}
+            </button>
+          </recorder.Form>
+
+          {recorded && (
+            <p className="text-xs text-gray-500">
+              {recorded.added > 0
+                ? `${recorded.added} added${recorded.skipped ? `, ${recorded.skipped} already recorded` : ''}`
+                : 'Already up to date'}
+            </p>
+          )}
+          {recordError && <p className="max-w-xs text-right text-xs text-red-600">{recordError}</p>}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-6 border-b border-gray-200">
