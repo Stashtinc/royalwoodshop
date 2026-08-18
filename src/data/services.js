@@ -127,4 +127,20 @@ export const services = [
   },
 ]
 
+/** Customer quotes carried over from royalwoodshop.com. */
+export const testimonials = [
+  {
+    quote: 'When I needed specific mouldings for a project they were happy to work with me to design and produce custom profiles, some of which are now standard items in their catalogue. If an item was out of stock I could count on them to promptly schedule a run of that material.',
+    name: 'Reece’s',
+  },
+  {
+    quote: 'Royal Wood Shop provides great customer service and a wide variety of products. They have knowledgeable staff who help with specific trim related questions. We highly recommend Royal Wood Shop to our clients.',
+    name: 'Gallaugher Contracting',
+  },
+  {
+    quote: 'Friendly staff and willing to help. Huge selection of mouldings in stock; backorders are rare. Royal is our go-to supplier for trim and millwork.',
+    name: 'Kevin N',
+  },
+]
+
 export const getService = (slug) => services.find((s) => s.slug === slug) ?? null

@@ -1,4 +1,4 @@
-import ServiceDetail from '../pages/ServiceDetail'
+import Page from '../pages/services/Delivery'
 import { getService } from '../data/services'
 import { pageMeta } from '../seo'
 
@@ -10,4 +10,4 @@ export const meta = () => pageMeta({
   path: service.path,
 })
 
-export default function Route() { return <ServiceDetail service={service} /> }
+export default function Route() { return <Page /> }
