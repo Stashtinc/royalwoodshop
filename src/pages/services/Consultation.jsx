@@ -36,9 +36,7 @@ export default function Consultation() {
       <section className="w-full bg-royal-blue">
         <div className="mx-auto grid max-w-[1440px] grid-cols-1 lg:grid-cols-[1fr_45%]">
           <div className="flex flex-col justify-center gap-6 px-6 py-16 lg:py-24 lg:pl-[max(2rem,calc((100vw-1280px)/2))] lg:pr-14">
-            <div className="[&_a]:text-white/70 [&_span]:text-white/50 text-white/70">
-              <Crumb title="Consultation" />
-            </div>
+            <Crumb title="Consultation" onBlue />
             <h1 className="max-w-[600px] font-serif text-3xl leading-tight font-bold text-white lg:text-[44px]">
               Come in with a question. Leave with an answer.
             </h1>

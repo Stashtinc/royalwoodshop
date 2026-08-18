@@ -25,7 +25,7 @@ export default function Delivery() {
   return (
     <>
       {/* Coverage first — the answer to the only question that matters. */}
-      <section className="w-full bg-[#fbfbfb] py-16 lg:py-24">
+      <section className="w-full bg-white py-16 lg:py-24">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <Crumb title="Delivery Service" />
           <div className="mt-6 grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,460px)_1fr] lg:gap-20">
@@ -53,12 +53,12 @@ export default function Delivery() {
                 {areas.map((area) => (
                   <li
                     key={area}
-                    className="rounded-full border border-royal-blue/15 bg-white px-5 py-2.5 font-serif text-lg text-[#24140d]"
+                    className="rounded-lg border border-royal-blue/15 bg-[#fbfbfb] px-5 py-2.5 font-serif text-lg text-[#24140d]"
                   >
                     {area}
                   </li>
                 ))}
-                <li className="rounded-full border border-dashed border-royal-blue/30 px-5 py-2.5 font-sans text-base text-royal-blue">
+                <li className="rounded-lg border border-dashed border-royal-blue/30 px-5 py-2.5 font-sans text-base text-royal-blue">
                   and more — just ask
                 </li>
               </ul>
@@ -71,7 +71,7 @@ export default function Delivery() {
       </section>
 
       {/* Guarantees as a band, not cards. */}
-      <section className="w-full bg-white py-16 lg:py-20">
+      <section className="w-full bg-[#fbfbfb] py-16 lg:py-20">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="grid grid-cols-1 divide-y divide-gray-100 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
             {promises.map((promise) => (

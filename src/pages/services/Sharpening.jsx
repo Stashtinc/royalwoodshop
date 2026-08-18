@@ -6,8 +6,11 @@ import { Crumb, ServiceCta, OtherServices } from '../../components/service/Servi
  * The audience is someone with a dull blade in the truck, so the page is dense
  * and utilitarian: the schedule up front, the full list of what we take set as
  * a list rather than prose, and the FS Tool reasoning kept to one side as
- * supporting material. Dark hero, because this is the one service that is not
- * about a finished room.
+ * supporting material.
+ *
+ * It opens on parchment — an approved surface none of the other three services
+ * open on — so the page reads as its own without introducing a colour the
+ * design system does not have.
  */
 
 const blades = [
@@ -25,27 +28,25 @@ const reasons = [
 export default function Sharpening() {
   return (
     <>
-      {/* Dark, tight hero with the one operational fact that matters. */}
-      <section className="w-full bg-[#24140d] py-16 lg:py-20">
+      {/* Tight hero carrying the one operational fact that matters. */}
+      <section className="w-full bg-parchment py-16 lg:py-20">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
-          <div className="[&_a]:text-white/60 [&_span]:text-white/40 text-white/60">
-            <Crumb title="Saw Blade Sharpening" />
-          </div>
+          <Crumb title="Saw Blade Sharpening" />
           <div className="mt-6 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex flex-col gap-5">
-              <h1 className="max-w-[620px] font-serif text-3xl leading-tight font-bold text-white lg:text-[44px]">
+              <h1 className="max-w-[620px] font-serif text-3xl leading-tight font-bold text-royal-blue lg:text-[44px]">
                 Drop it off. Collect it sharp.
               </h1>
-              <p className="max-w-[560px] font-sans text-lg leading-relaxed text-white/70">
+              <p className="max-w-[560px] font-sans text-lg leading-relaxed text-gray-600">
                 We sharpen all brands of knives and blades.
               </p>
             </div>
-            <div className="shrink-0 rounded-xl border border-white/15 bg-white/5 px-6 py-5">
-              <p className="font-sans text-xs font-bold tracking-wide text-white/50 uppercase">
+            <div className="shrink-0 rounded-2xl border border-royal-blue/15 bg-white px-6 py-5">
+              <p className="font-sans text-xs font-bold tracking-wide text-royal-blue uppercase">
                 Collection schedule
               </p>
-              <p className="mt-1.5 font-serif text-2xl font-bold text-white">Twice per week</p>
-              <p className="mt-1 max-w-[260px] font-sans text-sm text-white/60">
+              <p className="mt-1.5 font-serif text-2xl font-bold text-[#24140d]">Twice per week</p>
+              <p className="mt-1 max-w-[260px] font-sans text-sm text-gray-600">
                 Our on-site technician drops off and picks up blades at FS Tool.
               </p>
             </div>
@@ -97,7 +98,6 @@ export default function Sharpening() {
       </section>
 
       <ServiceCta
-        tone="parchment"
         heading="Bring your blades to the showroom."
         body={
           <>

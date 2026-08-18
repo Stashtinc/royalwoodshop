@@ -51,7 +51,7 @@ export default function Estimate() {
             {/* The rule that turns three blocks into one process. */}
             <span
               aria-hidden
-              className="absolute top-3 bottom-3 left-[23px] hidden w-px bg-gray-200 sm:block"
+              className="absolute top-3 bottom-3 left-[23px] hidden w-px bg-royal-blue/15 sm:block"
             />
             {steps.map((step, index) => (
               <li key={step.label} className="relative flex flex-col gap-4 sm:flex-row sm:gap-8">
