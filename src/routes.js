@@ -14,6 +14,13 @@ export default [
   route('core-values', 'routes/core-values.jsx'),
   route('environmental-commitment', 'routes/environmental.jsx'),
   route('services', 'routes/services.jsx'),
+  // Service pages keep the addresses WordPress used, so the pages that already
+  // rank keep ranking. These must be declared before the ':slug' article
+  // catch-all at the bottom, or an article route would swallow them.
+  route('consultation', 'routes/service-consultation.jsx'),
+  route('material-estimate-and-quotation', 'routes/service-material-estimate-and-quotation.jsx'),
+  route('services/delivery', 'routes/service-delivery.jsx'),
+  route('saw-blade-sharpening', 'routes/service-saw-blade-sharpening.jsx'),
   route('resources', 'routes/resources.jsx'),
   route('quotation', 'routes/quotation.jsx'),
 
