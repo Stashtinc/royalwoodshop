@@ -1,5 +1,9 @@
-// Mirrors the nav structure on royalwoodshop.com. Sub-item links are placeholders ("#")
-// since most of these point to catalogue PDFs/pages that don't exist in this build yet.
+// Mirrors the nav structure on royalwoodshop.com.
+//
+// An item written as a bare string has no destination yet and renders as "#".
+// An item with a path is live. Anything built on this site must be given its
+// path here, or the nav quietly keeps pointing at nothing — which is what
+// happened to the blog: 37 articles published and no way to reach them.
 
 export const productsMenu = {
   groups: [
@@ -27,6 +31,7 @@ export const productsMenu = {
     },
   ],
   items: [
+    { label: 'Full Product Catalogue', path: '/products' },
     'S4S Flat Stock Lumber and Primed Dimensional Boards',
     'Paneling Surfaces',
     'Staircase & Railing',
@@ -39,6 +44,7 @@ export const productsMenu = {
 }
 
 export const servicesMenu = [
+  { label: 'All Services', path: '/services' },
   'Consultation',
   'Estimate & Quotation',
   'Delivery Service',
@@ -53,7 +59,7 @@ export const aboutMenu = [
 ]
 
 export const resourcesMenu = [
-  'Blog',
+  { label: 'Blog', path: '/blog' },
   'Glossary of Terms',
   'FAQ',
   'Installation Tips',
