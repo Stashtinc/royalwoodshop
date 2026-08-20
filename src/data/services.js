@@ -1,9 +1,9 @@
 /**
  * The services, with the copy carried over from royalwoodshop.com.
  *
- * Text is the client's own, lightly cleaned for Canadian spelling and to drop
- * the "Get Free Consultation Today!" form that appeared on every page — the
- * new site has one contact route rather than four duplicate forms.
+ * Text is the client's own, carried over as they wrote it — headings included.
+ * Do not reword it here. If a page needs different words, that is a decision
+ * for Royal Wood Shop, not something to make on their behalf while porting.
  *
  * Paths keep the addresses WordPress used, so the pages that already rank keep
  * ranking and no redirect is needed:
