@@ -1,6 +1,6 @@
 import { Crumb, ServiceCta, OtherServices } from '../../components/service/ServiceShell'
 import EnquiryForm from '../../components/service/EnquiryForm'
-import { testimonials } from '../../data/services'
+import Testimonials from '../../components/service/Testimonials'
 import staffPhoto from '../../assets/images/staff-photo-delivery-truck.jpg'
 
 /**
@@ -94,26 +94,7 @@ export default function Consultation() {
         </div>
       </section>
 
-      {/* Their customer quotes. */}
-      <section className="w-full bg-parchment py-16 lg:py-20">
-        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
-          <p className="mb-10 font-sans text-sm font-bold tracking-wide text-royal-blue uppercase">
-            Testimonial
-          </p>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {testimonials.map((t) => (
-              <figure key={t.name} className="flex flex-col gap-5 border-t-2 border-royal-blue/20 pt-6">
-                <blockquote className="font-serif text-lg leading-relaxed text-[#24140d]">
-                  &ldquo;{t.quote}&rdquo;
-                </blockquote>
-                <figcaption className="mt-auto font-sans text-sm font-medium text-gray-500">
-                  {t.name}
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      </section>
+      <Testimonials />
 
       <ServiceCta heading="Want To Start Your Project? Get a Free Quote!" />
       <OtherServices current="consultation" />

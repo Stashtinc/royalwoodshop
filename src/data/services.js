@@ -127,19 +127,40 @@ export const services = [
   },
 ]
 
-/** Customer quotes carried over from royalwoodshop.com. */
+/**
+ * All six customer quotes from royalwoodshop.com, verbatim — punctuation and
+ * enthusiasm included. An earlier version kept three and tidied two of them;
+ * neither was mine to do.
+ *
+ * `featured` marks the one set as the large pull-quote. Reece's earns it: it is
+ * the only quote that describes what the business actually does differently —
+ * milling a custom profile and then stocking it.
+ */
 export const testimonials = [
   {
-    quote: 'When I needed specific mouldings for a project they were happy to work with me to design and produce custom profiles, some of which are now standard items in their catalogue. If an item was out of stock I could count on them to promptly schedule a run of that material.',
     name: 'Reece’s',
+    featured: true,
+    quote: 'When I needed specific mouldings for a project they were happy to work with me to design and produce custom profiles some of which are now standard items in their catalogue. If an item was out of stock I could count on them to promptly schedule a run of that material. This professional and personal service has kept our company as a loyal customer all these many years.',
   },
   {
-    quote: 'Royal Wood Shop provides great customer service and a wide variety of products. They have knowledgeable staff who help with specific trim related questions. We highly recommend Royal Wood Shop to our clients.',
+    name: 'Michael',
+    quote: 'I have now gone through 3 complete home renovations, I have purchased flooring, doors, hardware, and of course trim from The Royal Wood Shop. I have had nothing but great experiences from all sides of the company from quality of materials to the staff assisting with and delivering the material. I look forward to my next reno with Royal!',
+  },
+  {
     name: 'Gallaugher Contracting',
+    quote: 'Royal Wood Shop provides great customer service and a wide variety of products. They have knowledgeable staff who help with specific trim related questions. We highly recommend Royal Wood Shop to our clients!',
   },
   {
-    quote: 'Friendly staff and willing to help. Huge selection of mouldings in stock; backorders are rare. Royal is our go-to supplier for trim and millwork.',
     name: 'Kevin N',
+    quote: 'Friendly staff and willing to help. Huge selection of mouldings in stock; backorders are rare. Royal is our go-to supplier for trim and millwork.',
+  },
+  {
+    name: 'Diane Albin',
+    quote: 'Thank you for another wonderful experience shopping at your store!! Your staff is second to none, always very helpful, courteous and patient with a smile. An absolute pleasure!! Please pass along our thanks to the entire staff',
+  },
+  {
+    name: 'Courtney',
+    quote: 'Our renovation turned out spectacular! It’s amazing how much of a difference moldings can make. There is a huge selection and lots of staff to help. They stock a lot of nice products you can’t find at other stores.',
   },
 ]
 
