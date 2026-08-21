@@ -34,43 +34,31 @@ const sections = [
 export default function Estimate() {
   return (
     <>
-      {/* Hero — their slider line, page title, and the blurb from /services,
-          with the enquiry form alongside on the right. The ask on this page is
-          "get me a number", so the thing that starts that sits level with the
-          title rather than a screen further down. */}
-      <section className="w-full border-b border-gray-100 bg-[#fbfbfb] py-12 lg:py-16">
+      {/* Title, their copy and the form in one two-column block. The ask on
+          this page is "get me a number", so everything needed to decide sits
+          in a single view: what they do down the left, the way to start it on
+          the right. On #fbfbfb rather than white so the form reads as a card
+          rather than an outlined rectangle. */}
+      <section className="w-full border-b border-gray-100 bg-[#fbfbfb] pt-12 pb-16 lg:pt-16 lg:pb-24">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <Crumb title="Estimate & Quotation" />
           <div className="mt-5 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_minmax(0,420px)] lg:gap-16">
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col">
               <p className="font-sans text-sm font-bold tracking-wide text-royal-blue uppercase">
                 We&rsquo;ll determine what you need
               </p>
-              <h1 className="font-serif text-3xl leading-tight font-bold text-royal-blue lg:text-[44px]">
+              <h1 className="mt-4 font-serif text-3xl leading-tight font-bold text-royal-blue lg:text-[44px]">
                 Estimate &amp; Quotation
               </h1>
-              <p className="max-w-[620px] font-sans text-lg leading-relaxed text-gray-600">
+              <p className="mt-4 max-w-[620px] font-sans text-lg leading-relaxed text-gray-600">
                 Need an on-site quotation? Our team is available to quote and offer mill-direct
                 pricing on whole house orders and large projects.
               </p>
-            </div>
 
-            <EnquiryForm idPrefix="estimate" />
-          </div>
-        </div>
-      </section>
+              <h2 className="mt-10 mb-7 font-serif text-2xl font-bold text-[#24140d] lg:mt-12 lg:text-[30px]">
+                Material Estimate and Quotation Services
+              </h2>
 
-      {/* Their sections. One column now that the form has moved into the hero,
-          with the text held to a readable measure rather than let out to the
-          full 1280 — a 1280px line of 18px body text is unreadable. */}
-      <section className="w-full bg-white py-16 lg:py-24">
-        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
-          <div className="max-w-[820px]">
-            <h2 className="mb-10 font-serif text-2xl font-bold text-[#24140d] lg:text-[30px]">
-              Material Estimate and Quotation Services
-            </h2>
-
-            <div className="flex flex-col">
               {sections.map((section) => (
                 <div key={section.title} className="flex flex-col gap-3 pb-7">
                   <p className="font-serif text-xl font-bold text-royal-blue">{section.title}</p>
@@ -81,7 +69,7 @@ export default function Estimate() {
               ))}
 
               {/* Their consultation section, with both links it carries. */}
-              <div className="flex flex-col gap-3 border-t border-gray-100 py-7">
+              <div className="flex flex-col gap-3 border-t border-gray-200 pt-7">
                 <p className="font-serif text-xl font-bold text-royal-blue">Consultation</p>
                 <p className="font-sans text-base leading-relaxed text-gray-600 lg:text-lg">
                   If you require further consultation or would like to ask our team of experts a
@@ -100,6 +88,11 @@ export default function Estimate() {
                   <span aria-hidden>&rarr;</span>
                 </Link>
               </div>
+            </div>
+
+            {/* Sticky again: the left column is long enough to scroll past. */}
+            <div className="lg:sticky lg:top-8 lg:self-start">
+              <EnquiryForm idPrefix="estimate" />
             </div>
           </div>
         </div>
