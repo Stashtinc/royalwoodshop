@@ -22,6 +22,7 @@ export default [
   route('services/delivery', 'routes/service-delivery.jsx'),
   route('saw-blade-sharpening', 'routes/service-saw-blade-sharpening.jsx'),
   route('resources', 'routes/resources.jsx'),
+  route('resources/downloads', 'routes/downloads.jsx'),
   route('quotation', 'routes/quotation.jsx'),
 
   // Admin. Never prerendered — it runs on the server that holds the database.

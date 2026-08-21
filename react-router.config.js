@@ -1,14 +1,10 @@
 import products from './src/data/products.json' with { type: 'json' }
 import articles from './src/data/posts.json' with { type: 'json' }
+import { STATIC_PAGES } from './src/data/staticPages.js'
 
 /** Published articles keep the addresses WordPress used. */
 const articleSlugs = () =>
   articles.filter((a) => a.status === 'published').map((a) => a.slug)
-
-const STATIC_PAGES = [
-  '/', '/products', '/contact', '/the-royal-edge', '/core-values',
-  '/environmental-commitment', '/services', '/resources',
-]
 
 /** @type {import('@react-router/dev/config').Config} */
 export default {

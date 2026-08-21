@@ -74,6 +74,7 @@ export const aboutMenu = [
 
 export const resourcesMenu = [
   { label: 'Blog', path: '/blog' },
+  { label: 'Downloads', path: '/resources/downloads' },
   'Glossary of Terms',
   'FAQ',
   'Installation Tips',

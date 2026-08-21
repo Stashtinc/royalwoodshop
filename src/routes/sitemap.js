@@ -1,8 +1,6 @@
 import { catalogueProducts } from '../data/catalogue'
 import { BASE, INDEXING_ENABLED } from '../seo'
-
-const STATIC = ['/', '/products', '/contact', '/the-royal-edge', '/core-values',
-                '/environmental-commitment', '/services', '/resources']
+import { STATIC_PAGES as STATIC } from '../data/staticPages'
 
 export function loader() {
   // No point publishing a sitemap for a site that disallows crawling.
