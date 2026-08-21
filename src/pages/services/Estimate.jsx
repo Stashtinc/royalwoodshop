@@ -34,20 +34,27 @@ const sections = [
 export default function Estimate() {
   return (
     <>
-      {/* Hero — their slider line, page title, and the blurb from /services. */}
-      <section className="w-full border-b border-gray-100 bg-[#fbfbfb] py-16 lg:py-24">
-        <div className="mx-auto flex max-w-[860px] flex-col items-center gap-6 px-6 text-center">
+      {/* Hero — their slider line, page title, and the blurb from /services.
+          Two columns: centred and stacked, this ran nearly a full screen tall
+          before the page said anything. Side by side it costs about half that,
+          and the lead sits on the same baseline as the title it belongs to. */}
+      <section className="w-full border-b border-gray-100 bg-[#fbfbfb] py-12 lg:py-16">
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <Crumb title="Estimate & Quotation" />
-          <p className="font-sans text-sm font-bold tracking-wide text-royal-blue uppercase">
-            We&rsquo;ll determine what you need
-          </p>
-          <h1 className="font-serif text-3xl leading-tight font-bold text-royal-blue lg:text-[44px]">
-            Estimate &amp; Quotation
-          </h1>
-          <p className="max-w-[620px] font-sans text-lg leading-relaxed text-gray-600">
-            Need an on-site quotation? Our team is available to quote and offer mill-direct
-            pricing on whole house orders and large projects.
-          </p>
+          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-end lg:gap-16">
+            <div className="flex flex-col gap-3">
+              <p className="font-sans text-sm font-bold tracking-wide text-royal-blue uppercase">
+                We&rsquo;ll determine what you need
+              </p>
+              <h1 className="font-serif text-3xl leading-tight font-bold text-royal-blue lg:text-[44px]">
+                Estimate &amp; Quotation
+              </h1>
+            </div>
+            <p className="font-sans text-lg leading-relaxed text-gray-600 lg:pb-1.5">
+              Need an on-site quotation? Our team is available to quote and offer mill-direct
+              pricing on whole house orders and large projects.
+            </p>
+          </div>
         </div>
       </section>
 
