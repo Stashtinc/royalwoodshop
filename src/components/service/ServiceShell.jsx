@@ -24,7 +24,7 @@ export function Crumb({ title, onBlue = false }) {
 }
 
 export function ServiceCta({
-  heading = 'Want to start your project? Get a free quote.',
+  heading = 'Want To Start Your Project? Get a Free Quote!',
   body,
   tone = 'blue',
 }) {

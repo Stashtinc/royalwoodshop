@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { Crumb, ServiceCta, OtherServices } from '../../components/service/ServiceShell'
 import EnquiryForm from '../../components/service/EnquiryForm'
 import Testimonials from '../../components/service/Testimonials'
@@ -84,7 +85,9 @@ export default function Consultation() {
             <p className="mt-8 rounded-2xl bg-[#fbfbfb] px-6 py-5 font-sans text-base leading-relaxed font-medium text-royal-blue lg:text-lg">
               Call us at{' '}
               <a href="tel:9057271387" className="underline">905-727-1387</a>{' '}
-              or come in-store to discuss your project with us. We&rsquo;re happy to help!
+              or come{' '}
+              <Link to="/contact" className="underline">in-store</Link>{' '}
+              to discuss your project with us. We&rsquo;re happy to help!
             </p>
           </div>
 

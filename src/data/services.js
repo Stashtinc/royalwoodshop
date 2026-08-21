@@ -5,6 +5,10 @@
  * Do not reword it here. If a page needs different words, that is a decision
  * for Royal Wood Shop, not something to make on their behalf while porting.
  *
+ * That includes their typos: "material quotation/ estimate" and "volume
+ * discount / factory direct price" are spaced exactly as they are on the live
+ * site. Flagged with the client rather than silently corrected.
+ *
  * Paths keep the addresses WordPress used, so the pages that already rank keep
  * ranking and no redirect is needed:
  *   /consultation, /material-estimate-and-quotation,
@@ -20,11 +24,11 @@ export const services = [
     lead: 'Our team of experts are equipped to answer all of your questions and to offer comprehensive advice backed by years of industry experience.',
     seoTitle: 'Consultation Services',
     seoDescription:
-      'Looking for advice on mouldings, doors, railings or pillars? The Royal Wood Shop offers honest consultations to keep you within budget.',
-    heading: 'Why come in for a consultation?',
+      'Looking for advice on mouldings, doors, railings, or pillars? Royal Wood Shop offers honest consultations to keep you within budget.',
+    heading: 'Why Come In For a Consultation?',
     sections: [
       {
-        title: 'Expert advice',
+        title: 'Expert Advice',
         body: 'Our team of experts are equipped to answer all of your questions and to offer comprehensive advice backed by years of experience. Whether you’re a contractor, a new homebuyer, or a DIYer, we can help to guide you in the right direction.',
       },
       {
@@ -32,11 +36,11 @@ export const services = [
         body: 'Need a quote for your new mouldings, doors, porch railings, or pillars? The Royal Wood Shop has you covered. We provide honest and reliable quoting that will help you to stay within your project budget. For large builds or renovations, we also offer on-site quoting to determine exactly what you’ll need.',
       },
       {
-        title: 'Transparent delivery predictions',
+        title: 'Transparent Delivery Predictions',
         body: 'We know you’re busy and respect honesty. That’s why we never over promise and under deliver. With your project timeline in mind, we’ll be transparent when it comes to delivery schedules and special order fulfillment.',
       },
     ],
-    closing: 'Call us at 905-727-1387 or come in-store to discuss your project with us. We’re happy to help.',
+    closing: 'Call us at 905-727-1387 or come in-store to discuss your project with us. We’re happy to help!',
   },
   {
     slug: 'material-estimate-and-quotation',
@@ -46,12 +50,12 @@ export const services = [
     lead: 'Need an on-site quotation? Our team is available to quote and offer mill-direct pricing on whole house orders and large projects.',
     seoTitle: 'Material Estimate & Quotation',
     seoDescription:
-      'Starting a renovation or construction project? Get honest material estimates and on-site quotations from The Royal Wood Shop.',
-    heading: 'Material estimate and quotation services',
+      'Starting a renovation or construction project? Get honest material estimates and on-site quotations from Royal Wood Shop. Contact us today!',
+    heading: 'Material Estimate and Quotation Services',
     sections: [
       {
-        title: 'On-site quotation',
-        body: 'Unsure where to start? For large projects and full home renovations, a member of our Royal Wood Shop team will head over to your site and help to determine what materials and supplies you’ll need. We’ll also help to measure for trims and doors, and come back to you with a material quotation and estimate for your build.',
+        title: 'On-site Quotation',
+        body: 'Unsure where to start? For large projects and full home renovations, a member of our Royal Wood Shop team will head over to your site and help to determine what materials and supplies you’ll need. We’ll also help to measure for trims, doors, and come back to you with a material quotation/ estimate for your build.',
       },
       {
         title: 'Consultation',
@@ -59,8 +63,8 @@ export const services = [
         link: { label: 'Read about consultations', to: '/consultation' },
       },
       {
-        title: 'Competitive prices',
-        body: 'Whole house renovations or new builds are eligible for a volume discount and factory-direct price. Call us at 905-727-1387 for more details.',
+        title: 'Competitive Prices',
+        body: 'Whole house renovations or new builds are eligible for a volume discount / factory direct price. Call us at 905-727-1387 for more details.',
       },
     ],
   },
