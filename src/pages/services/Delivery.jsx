@@ -14,11 +14,75 @@ const areas = [
   'Barrie', 'Muskoka', 'Haliburton',
 ]
 
+/**
+ * Line icons, drawn to the same rules as the rest of the site: 24px grid,
+ * currentColor, 1.5 stroke, round joins. Decorative — each one sits directly
+ * above the words it illustrates, so they are hidden from screen readers
+ * rather than given labels that would just be read out twice.
+ */
+function Icon({ children }) {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      className="text-royal-blue"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {children}
+    </svg>
+  )
+}
+
+function IconTag() {
+  return (
+    <Icon>
+      <path d="M11.6 2.9H4.5a1.6 1.6 0 0 0-1.6 1.6v7.1c0 .43.17.83.47 1.13l7.2 7.2a1.6 1.6 0 0 0 2.26 0l7.2-7.2a1.6 1.6 0 0 0 0-2.26l-7.2-7.2a1.6 1.6 0 0 0-1.13-.47Z" />
+      <circle cx="7.5" cy="7.5" r="1.3" />
+    </Icon>
+  )
+}
+
+function IconShield() {
+  return (
+    <Icon>
+      <path d="M12 21.2c4.4-1.9 6.6-5 6.6-9.3V5.8L12 3.2 5.4 5.8v6.1c0 4.3 2.2 7.4 6.6 9.3Z" />
+    </Icon>
+  )
+}
+
+function IconClipboardCheck() {
+  return (
+    <Icon>
+      <path d="M9.4 4.6H7.6a1.9 1.9 0 0 0-1.9 1.9v12.6a1.9 1.9 0 0 0 1.9 1.9h8.8a1.9 1.9 0 0 0 1.9-1.9V6.5a1.9 1.9 0 0 0-1.9-1.9h-1.8" />
+      <rect x="9.4" y="2.8" width="5.2" height="3.6" rx="1.1" />
+      <path d="M9.5 13.6l1.9 1.9 3.5-3.9" />
+    </Icon>
+  )
+}
+
+function IconTruck() {
+  return (
+    <Icon>
+      <rect x="2.8" y="6.4" width="10" height="9.4" rx="1.4" />
+      <path d="M12.8 9.9h3.4l3.2 3.1v2.8h-6.6" />
+      <circle cx="7.1" cy="18.3" r="1.9" />
+      <circle cx="16.3" cy="18.3" r="1.9" />
+      <path d="M9 18.3h5.4" />
+    </Icon>
+  )
+}
+
 const promises = [
-  { title: 'Cost-effective and convenient', body: 'One delivery charge, scheduled around your build.' },
-  { title: 'Safe transportation', body: 'Loaded and secured so long trim arrives straight.' },
-  { title: 'Quality assurance', body: 'Checked against your order before it leaves the yard.' },
-  { title: 'Dedicated product driver', body: 'Someone who knows the material, not a courier.' },
+  { title: 'Cost-effective and convenient', body: 'One delivery charge, scheduled around your build.', Glyph: IconTag },
+  { title: 'Safe transportation', body: 'Loaded and secured so long trim arrives straight.', Glyph: IconShield },
+  { title: 'Quality assurance', body: 'Checked against your order before it leaves the yard.', Glyph: IconClipboardCheck },
+  { title: 'Dedicated product driver', body: 'Someone who knows the material, not a courier.', Glyph: IconTruck },
 ]
 
 export default function Delivery() {
@@ -76,7 +140,8 @@ export default function Delivery() {
           <div className="grid grid-cols-1 divide-y divide-gray-100 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
             {promises.map((promise) => (
               <div key={promise.title} className="flex flex-col gap-2 py-6 lg:px-7 lg:py-0 lg:first:pl-0 lg:last:pr-0">
-                <p className="font-serif text-lg leading-snug font-bold text-[#24140d]">
+                <promise.Glyph />
+                <p className="mt-1 font-serif text-lg leading-snug font-bold text-[#24140d]">
                   {promise.title}
                 </p>
                 <p className="font-sans text-sm leading-relaxed text-gray-600">{promise.body}</p>
