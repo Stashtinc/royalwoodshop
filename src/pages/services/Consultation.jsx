@@ -91,7 +91,11 @@ export default function Consultation() {
             </p>
           </div>
 
-          <div className="lg:sticky lg:top-8 lg:self-start">
+          {/* Pulled up by the card's own top padding (lg:p-8), so "Get Free
+              Consultation Today!" sits on the same line as "Why Come In For a
+              Consultation?" rather than 32px below it. Only from lg up, where
+              the two are actually side by side. */}
+          <div className="lg:-mt-8 lg:sticky lg:top-8 lg:self-start">
             <EnquiryForm idPrefix="consultation" />
           </div>
         </div>
