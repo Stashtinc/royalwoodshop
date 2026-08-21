@@ -17,6 +17,13 @@ export const CATEGORY_SLUGS = {
   'Stairs & Railings': 'stair-railing',
 }
 
+/** The reverse of CATEGORY_SLUGS. The Products menu links to
+ *  /products?category=<slug>, and the catalogue turns that back into a
+ *  sidebar selection. */
+export const CATEGORY_BY_SLUG = Object.fromEntries(
+  Object.entries(CATEGORY_SLUGS).map(([name, slug]) => [slug, name]),
+)
+
 export const getProduct = (slug) => products.find((p) => p.slug === slug) ?? null
 export const productPath = (p) => `/products/${p.categorySlug}/${p.slug}/`
 

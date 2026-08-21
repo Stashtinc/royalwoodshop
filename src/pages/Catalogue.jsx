@@ -3,10 +3,41 @@ import { Link, useSearchParams } from 'react-router'
 import { srcSet, thumbSrc, imageFit } from '../lib/images'
 import {
   productPath, catalogueProducts as snapshotProducts,
-  categoryTree, speciesFacet, availabilityFacet,
+  categoryTree, speciesFacet, availabilityFacet, CATEGORY_BY_SLUG,
 } from '../data/catalogue'
 
 const PAGE_SIZE = 8
+
+/**
+ * The sidebar selection implied by the URL.
+ *
+ * Two ways in, both landing in the same place:
+ *   /products?category=interior-doors   — the Products menu
+ *   /products/interior-doors            — the category route, via initialCategory
+ *
+ * Selecting a category means ticking every subcategory under it, because that
+ * is what the sidebar's own category checkbox does; this keeps a menu click and
+ * a click in the sidebar producing an identical state rather than two similar
+ * ones.
+ *
+ * Comma-separated slugs are accepted so /products?category=a,b is possible
+ * later without changing the contract.
+ */
+function subsFromUrl({ initialCategory, categoryParam, tree }) {
+  const wanted = new Set()
+  if (initialCategory) wanted.add(initialCategory)
+  for (const slug of (categoryParam || '').split(',')) {
+    const name = CATEGORY_BY_SLUG[slug.trim()]
+    if (name) wanted.add(name)
+  }
+
+  const keys = new Set()
+  for (const cat of tree) {
+    if (!wanted.has(cat.name)) continue
+    for (const sub of cat.subcategories) keys.add(`${cat.name}::${sub}`)
+  }
+  return keys
+}
 
 const countBy = (rows) => rows.reduce((counts, product) => {
   counts[product.category] = (counts[product.category] || 0) + 1
@@ -160,7 +191,13 @@ export default function Catalogue({ initialCategory = null, products = null }) {
   const [sizeCategory, setSizeCategory] = useState('All')
   const [species, setSpecies] = useState('All')
   const [availability, setAvailability] = useState('All')
-  const [selectedSubs, setSelectedSubs] = useState(() => new Set())
+  // Seeded from initialCategory only — never from the query string. /products
+  // is prerendered without one, so reading ?category= here would make the
+  // client's first render disagree with the served HTML and trip a hydration
+  // mismatch. The effect below applies it a beat later instead.
+  const [selectedSubs, setSelectedSubs] = useState(() =>
+    subsFromUrl({ initialCategory, categoryParam: null, tree: categoryTree(allProducts) }),
+  )
   const [page, setPage] = useState(1)
   const [view, setView] = useState('grid')
   const resultsRef = useRef(null)
@@ -174,6 +211,19 @@ export default function Catalogue({ initialCategory = null, products = null }) {
       setPage(1)
     }
   }, [searchParams])
+
+  // Same for the category. The URL is the source of truth for which categories
+  // are ticked, so navigating from Products > Interior Doors to Products >
+  // Door Hardware replaces the selection rather than adding to it — and
+  // "Full Product Catalogue" (no param) clears it. Manual clicks in the
+  // sidebar do not touch the URL, so they are never clobbered by this.
+  const categoryParam = searchParams.get('category')
+  useEffect(() => {
+    setSelectedSubs(
+      subsFromUrl({ initialCategory, categoryParam, tree: catalogueCategoryOrder }),
+    )
+    setPage(1)
+  }, [categoryParam, initialCategory, catalogueCategoryOrder])
 
   function withPageReset(setter) {
     return (value) => {

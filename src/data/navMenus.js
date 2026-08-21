@@ -4,13 +4,24 @@
 // An item with a path is live. Anything built on this site must be given its
 // path here, or the nav quietly keeps pointing at nothing — which is what
 // happened to the blog: 37 articles published and no way to reach them.
+//
+// Product entries that correspond to a catalogue category link to
+// /products?category=<slug>, which opens the catalogue with that category
+// ticked in the sidebar. Slugs come from CATEGORY_SLUGS in data/catalogue.js
+// and must match it — there are only four:
+//   trim-mouldings · interior-doors · door-hardware · stair-railing
+//
+// The rest are still "#": they were separate pages or PDFs on WordPress
+// (price lists, brochures, panelling, siding, columns, S4S) and have no
+// catalogue category behind them. Guessing a category for those would send
+// people to the wrong products, which is worse than a dead link.
 
 export const productsMenu = {
   groups: [
     {
       heading: 'Trim & Mouldings Catalogue',
       items: [
-        'Stock Trim Profile List',
+        { label: 'Stock Trim Profile List', path: '/products?category=trim-mouldings' },
         'Price List',
         'Curved & Arched Trim Made to Order',
         'Flexible Trim',
@@ -22,7 +33,7 @@ export const productsMenu = {
     {
       heading: 'Interior Doors',
       items: [
-        'Interior Doors Product Catalogue',
+        { label: 'Interior Doors Product Catalogue', path: '/products?category=interior-doors' },
         'KN Crowder Sliding Door Tracks',
         'TRIMLITE Door Brochure 2026',
         'Door Handing Sheet',
@@ -34,10 +45,13 @@ export const productsMenu = {
     { label: 'Full Product Catalogue', path: '/products' },
     'S4S Flat Stock Lumber and Primed Dimensional Boards',
     'Paneling Surfaces',
-    'Staircase & Railing',
+    { label: 'Staircase & Railing', path: '/products?category=stair-railing' },
     '4×8 Sheet Panels',
     'Wood & Composite Siding',
-    'Door Hardware, Handles & Sliding Systems in Toronto & GTA',
+    {
+      label: 'Door Hardware, Handles & Sliding Systems in Toronto & GTA',
+      path: '/products?category=door-hardware',
+    },
     'Columns & Post Covers',
     'Fit & Finish Essentials',
   ],
