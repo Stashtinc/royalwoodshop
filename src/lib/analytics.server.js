@@ -221,7 +221,7 @@ const REPORTS = {
 }
 
 async function readCache(property) {
-  const db = getDb()
+  const db = await getDb()
   const rows = await db.select().from(analyticsCache)
     .where(eq(analyticsCache.propertyId, property))
   const out = {}
@@ -240,7 +240,7 @@ function safeParse(text) {
 }
 
 async function writeCache(property, report, { data, error }) {
-  const db = getDb()
+  const db = await getDb()
   const values = {
     propertyId: property,
     report,
