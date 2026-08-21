@@ -16,21 +16,26 @@ const areas = [
 
 /**
  * Line icons, drawn to the same rules as the rest of the site: 24px grid,
- * currentColor, 1.5 stroke, round joins. Decorative — each one sits directly
- * above the words it illustrates, so they are hidden from screen readers
- * rather than given labels that would just be read out twice.
+ * currentColor, round joins. Decorative — each one sits directly above the
+ * words it illustrates, so they are hidden from screen readers rather than
+ * given labels that would just be read out twice.
+ *
+ * Drawn at 40px. The stroke is 1.25 rather than the 1.5 used elsewhere
+ * because the viewBox scales the stroke along with everything else: at this
+ * size 1.5 renders as a 2.5px line, which reads as a heavier icon set than
+ * the rest of the site rather than the same one, larger.
  */
 function Icon({ children }) {
   return (
     <svg
-      width="24"
-      height="24"
+      width="40"
+      height="40"
       viewBox="0 0 24 24"
       fill="none"
       aria-hidden
       className="text-royal-blue"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="1.25"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
@@ -141,7 +146,7 @@ export default function Delivery() {
             {promises.map((promise) => (
               <div key={promise.title} className="flex flex-col gap-2 py-6 lg:px-7 lg:py-0 lg:first:pl-0 lg:last:pr-0">
                 <promise.Glyph />
-                <p className="mt-1 font-serif text-lg leading-snug font-bold text-[#24140d]">
+                <p className="mt-2 font-serif text-lg leading-snug font-bold text-[#24140d]">
                   {promise.title}
                 </p>
                 <p className="font-sans text-sm leading-relaxed text-gray-600">{promise.body}</p>
