@@ -34,30 +34,38 @@ const sections = [
 export default function Estimate() {
   return (
     <>
-      {/* Hero — their slider line, page title, and the blurb from /services.
-          One column, left aligned. The tighter padding stays: centred was the
-          expensive part, not the stacking. The lead keeps a measure so it
-          does not run the full 1280 and turn into a single long line. */}
+      {/* Hero — their slider line, page title, and the blurb from /services,
+          with the enquiry form alongside on the right. The ask on this page is
+          "get me a number", so the thing that starts that sits level with the
+          title rather than a screen further down. */}
       <section className="w-full border-b border-gray-100 bg-[#fbfbfb] py-12 lg:py-16">
-        <div className="mx-auto flex max-w-[1280px] flex-col gap-4 px-6 lg:px-8">
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <Crumb title="Estimate & Quotation" />
-          <p className="font-sans text-sm font-bold tracking-wide text-royal-blue uppercase">
-            We&rsquo;ll determine what you need
-          </p>
-          <h1 className="font-serif text-3xl leading-tight font-bold text-royal-blue lg:text-[44px]">
-            Estimate &amp; Quotation
-          </h1>
-          <p className="max-w-[620px] font-sans text-lg leading-relaxed text-gray-600">
-            Need an on-site quotation? Our team is available to quote and offer mill-direct
-            pricing on whole house orders and large projects.
-          </p>
+          <div className="mt-5 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_minmax(0,420px)] lg:gap-16">
+            <div className="flex flex-col gap-4">
+              <p className="font-sans text-sm font-bold tracking-wide text-royal-blue uppercase">
+                We&rsquo;ll determine what you need
+              </p>
+              <h1 className="font-serif text-3xl leading-tight font-bold text-royal-blue lg:text-[44px]">
+                Estimate &amp; Quotation
+              </h1>
+              <p className="max-w-[620px] font-sans text-lg leading-relaxed text-gray-600">
+                Need an on-site quotation? Our team is available to quote and offer mill-direct
+                pricing on whole house orders and large projects.
+              </p>
+            </div>
+
+            <EnquiryForm idPrefix="estimate" />
+          </div>
         </div>
       </section>
 
-      {/* Their sections, alongside the form. */}
+      {/* Their sections. One column now that the form has moved into the hero,
+          with the text held to a readable measure rather than let out to the
+          full 1280 — a 1280px line of 18px body text is unreadable. */}
       <section className="w-full bg-white py-16 lg:py-24">
-        <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 lg:grid-cols-[1fr_minmax(0,420px)] lg:gap-16 lg:px-8">
-          <div>
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
+          <div className="max-w-[820px]">
             <h2 className="mb-10 font-serif text-2xl font-bold text-[#24140d] lg:text-[30px]">
               Material Estimate and Quotation Services
             </h2>
@@ -93,10 +101,6 @@ export default function Estimate() {
                 </Link>
               </div>
             </div>
-          </div>
-
-          <div className="lg:sticky lg:top-8 lg:self-start">
-            <EnquiryForm idPrefix="estimate" />
           </div>
         </div>
       </section>
