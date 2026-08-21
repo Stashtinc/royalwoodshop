@@ -11,6 +11,10 @@ import { testimonials } from '../../data/services'
  *
  * No auto-advance. A quote that slides away mid-sentence is the most reliable
  * way to make someone stop reading it.
+ *
+ * Centred, and the measure held to 820px — centred text past about 80
+ * characters a line makes the eye hunt for where the next line starts, which
+ * is the failure mode of most centred pull-quotes.
  */
 
 export default function Testimonials({ eyebrow = 'Testimonial' }) {
@@ -21,13 +25,13 @@ export default function Testimonials({ eyebrow = 'Testimonial' }) {
 
   return (
     <section className="w-full bg-parchment py-16 lg:py-24">
-      <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
+      <div className="mx-auto flex max-w-[1280px] flex-col items-center px-6 text-center lg:px-8">
         <p className="font-sans text-sm font-bold tracking-wide text-royal-blue uppercase">
           {eyebrow}
         </p>
 
         <div
-          className="relative mt-8 lg:mt-10"
+          className="relative mt-8 w-full max-w-[900px] lg:mt-10"
           onKeyDown={(e) => {
             if (e.key === 'ArrowLeft') go(index - 1)
             if (e.key === 'ArrowRight') go(index + 1)
@@ -35,7 +39,7 @@ export default function Testimonials({ eyebrow = 'Testimonial' }) {
         >
           <span
             aria-hidden
-            className="pointer-events-none absolute -top-8 -left-2 font-serif text-[140px] leading-none text-royal-blue/10 select-none lg:-top-14 lg:text-[220px]"
+            className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 font-serif text-[140px] leading-none text-royal-blue/10 select-none lg:-top-16 lg:text-[200px]"
           >
             &ldquo;
           </span>
@@ -44,20 +48,34 @@ export default function Testimonials({ eyebrow = 'Testimonial' }) {
               on the height so the page does not jump between slides. */}
           <figure
             aria-live="polite"
-            className="relative flex min-h-[210px] flex-col justify-center lg:min-h-[240px]"
+            className="relative flex min-h-[230px] flex-col items-center justify-center lg:min-h-[260px]"
           >
-            <blockquote className="max-w-[940px] font-serif text-xl leading-relaxed font-bold text-royal-blue lg:text-[28px] lg:leading-[1.45]">
+            <blockquote className="mx-auto max-w-[820px] font-serif text-xl leading-relaxed font-bold text-royal-blue lg:text-[28px] lg:leading-[1.45]">
               {current.quote}
             </blockquote>
-            <figcaption className="mt-6 flex items-center gap-3">
+            <figcaption className="mt-7 flex items-center justify-center gap-3">
               <span aria-hidden className="h-px w-10 bg-royal-blue/30" />
               <span className="font-sans text-base font-medium text-[#24140d]">{current.name}</span>
+              <span aria-hidden className="h-px w-10 bg-royal-blue/30" />
             </figcaption>
           </figure>
 
           {/* Controls */}
-          <div className="mt-10 flex items-center justify-between gap-6 border-t border-royal-blue/15 pt-6">
-            <div className="flex items-center gap-2.5">
+          <div className="mt-10 flex flex-col items-center gap-4 border-t border-royal-blue/15 pt-7">
+            <div className="flex items-center gap-5">
+              <button
+                type="button"
+                onClick={() => go(index - 1)}
+                aria-label="Previous quote"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-royal-blue/25 text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
+              >
+                <svg viewBox="0 0 16 16" aria-hidden className="h-4 w-4" fill="none"
+                  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 3 5 8l5 5" />
+                </svg>
+              </button>
+
+              <div className="flex items-center gap-2.5">
               {testimonials.map((t, i) => (
                 <button
                   key={t.name}
@@ -70,37 +88,24 @@ export default function Testimonials({ eyebrow = 'Testimonial' }) {
                   }`}
                 />
               ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => go(index + 1)}
+                aria-label="Next quote"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-royal-blue/25 text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
+              >
+                <svg viewBox="0 0 16 16" aria-hidden className="h-4 w-4" fill="none"
+                  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 3l5 5-5 5" />
+                </svg>
+              </button>
             </div>
 
-            <div className="flex items-center gap-4">
-              <span className="font-sans text-sm text-gray-500 tabular-nums">
-                {index + 1} / {testimonials.length}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => go(index - 1)}
-                  aria-label="Previous quote"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-royal-blue/25 text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
-                >
-                  <svg viewBox="0 0 16 16" aria-hidden className="h-4 w-4" fill="none"
-                    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 3 5 8l5 5" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => go(index + 1)}
-                  aria-label="Next quote"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-royal-blue/25 text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
-                >
-                  <svg viewBox="0 0 16 16" aria-hidden className="h-4 w-4" fill="none"
-                    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 3l5 5-5 5" />
-                  </svg>
-                </button>
-              </div>
-            </div>
+            <span className="font-sans text-sm text-gray-500 tabular-nums">
+              {index + 1} / {testimonials.length}
+            </span>
           </div>
         </div>
       </div>
