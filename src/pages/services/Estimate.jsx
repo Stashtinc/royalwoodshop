@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { Crumb, ServiceCta, OtherServices } from '../../components/service/ServiceShell'
+import EnquiryForm from '../../components/service/EnquiryForm'
 
 /**
  * Estimate & Quotation — the page about a process.
@@ -7,6 +8,9 @@ import { Crumb, ServiceCta, OtherServices } from '../../components/service/Servi
  * Composed as a sequence, because that is what it is: you call, someone comes
  * out, a number comes back. A vertical stepper with a connecting rule makes
  * the order legible at a glance, which a grid of equal cards cannot do.
+ *
+ * The enquiry form sits beside the sequence, the same arrangement used on the
+ * consultation page: read what happens, and start it, without scrolling.
  */
 
 const steps = [
@@ -44,10 +48,14 @@ export default function Estimate() {
         </div>
       </section>
 
-      {/* The sequence. */}
+      {/* The sequence, alongside the form. */}
       <section className="w-full bg-white py-16 lg:py-24">
-        <div className="mx-auto max-w-[900px] px-6 lg:px-8">
-          <ol className="relative flex flex-col gap-12">
+        <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 px-6 lg:grid-cols-[1fr_minmax(0,420px)] lg:gap-16 lg:px-8">
+          <div>
+            <h2 className="mb-10 font-serif text-2xl font-bold text-[#24140d] lg:text-[30px]">
+              How a quotation comes together
+            </h2>
+            <ol className="relative flex flex-col gap-12">
             {/* The rule that turns three blocks into one process. */}
             <span
               aria-hidden
@@ -62,13 +70,18 @@ export default function Estimate() {
                   <p className="font-serif text-xl font-bold text-[#24140d] lg:text-[24px]">
                     {step.label}
                   </p>
-                  <p className="max-w-[600px] font-sans text-base leading-relaxed text-gray-600 lg:text-lg">
+                  <p className="font-sans text-base leading-relaxed text-gray-600 lg:text-lg">
                     {step.body}
                   </p>
                 </div>
               </li>
             ))}
-          </ol>
+            </ol>
+          </div>
+
+          <div className="lg:sticky lg:top-8 lg:self-start">
+            <EnquiryForm idPrefix="estimate" />
+          </div>
         </div>
       </section>
 

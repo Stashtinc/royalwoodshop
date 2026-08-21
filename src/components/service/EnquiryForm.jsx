@@ -5,7 +5,9 @@ import { useState } from 'react'
  * Your Name, Your Email, Phone Number, Your Message.
  *
  * Same markup and field pattern as the form on /contact, extracted so the two
- * cannot drift apart.
+ * cannot drift apart. `idPrefix` keeps the label/field pairing valid if two
+ * instances ever land on one page — duplicate ids silently break the click
+ * target on the second one.
  *
  * NOTE: like the contact form, this does not send anywhere yet — submitting
  * shows the confirmation and nothing leaves the browser. Wiring it to an inbox
@@ -16,7 +18,7 @@ const field =
   'rounded-lg border border-gray-300 px-4 py-3 font-sans focus:border-royal-blue focus:outline-none'
 const labelClass = 'font-sans text-sm font-medium text-tundora'
 
-export default function EnquiryForm({ heading = 'Get Free Consultation Today!' }) {
+export default function EnquiryForm({ heading = 'Get Free Consultation Today!', idPrefix = 'enquiry' }) {
   const [submitted, setSubmitted] = useState(false)
 
   function handleSubmit(event) {
@@ -39,23 +41,23 @@ export default function EnquiryForm({ heading = 'Get Free Consultation Today!' }
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <label htmlFor="consult-name" className={labelClass}>Your Name (required)</label>
-            <input id="consult-name" name="name" type="text" required className={field} />
+            <label htmlFor={`${idPrefix}-name`} className={labelClass}>Your Name (required)</label>
+            <input id={`${idPrefix}-name`} name="name" type="text" required className={field} />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="consult-email" className={labelClass}>Your Email (required)</label>
-            <input id="consult-email" name="email" type="email" required className={field} />
+            <label htmlFor={`${idPrefix}-email`} className={labelClass}>Your Email (required)</label>
+            <input id={`${idPrefix}-email`} name="email" type="email" required className={field} />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="consult-phone" className={labelClass}>Phone Number (required)</label>
-            <input id="consult-phone" name="phone" type="tel" required className={field} />
+            <label htmlFor={`${idPrefix}-phone`} className={labelClass}>Phone Number (required)</label>
+            <input id={`${idPrefix}-phone`} name="phone" type="tel" required className={field} />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="consult-message" className={labelClass}>Your Message</label>
-            <textarea id="consult-message" name="message" rows={4} className={field} />
+            <label htmlFor={`${idPrefix}-message`} className={labelClass}>Your Message</label>
+            <textarea id={`${idPrefix}-message`} name="message" rows={4} className={field} />
           </div>
 
           <button

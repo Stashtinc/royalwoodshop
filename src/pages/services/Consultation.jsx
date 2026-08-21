@@ -89,7 +89,7 @@ export default function Consultation() {
           </div>
 
           <div className="lg:sticky lg:top-8 lg:self-start">
-            <EnquiryForm />
+            <EnquiryForm idPrefix="consultation" />
           </div>
         </div>
       </section>
