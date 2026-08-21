@@ -1,9 +1,8 @@
 /**
  * Google Search Console — read-only reporting for the admin dashboard.
  *
- * Authenticates as a service account. There is no SDK here on purpose: the
- * whole flow is one signed JWT and one POST, and `googleapis` would add ~50MB
- * of transitive dependencies to do it. Node's built-in crypto signs RS256.
+ * Authenticates as a service account via google-auth.server.js, which is
+ * shared with the Analytics client.
  *
  * Nothing in this file ever runs during a page render. The loader reads the
  * cache table; refreshes happen after the response is sent. If Google is slow,
@@ -12,13 +11,11 @@
  */
 
 import 'dotenv/config'
-import crypto from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
 import { getDb } from './db.server'
 import { searchConsoleCache } from '../db/schema'
+import { SCOPES, accessToken, credentials } from './google-auth.server'
 
-const TOKEN_URL = 'https://oauth2.googleapis.com/token'
-const SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly'
 const API = 'https://searchconsole.googleapis.com/webmasters/v3'
 
 /** Google finalises Search Analytics roughly two days behind. Asking for
@@ -34,27 +31,6 @@ const TTL_MS = 6 * 60 * 60 * 1000
 
 export function siteUrl() {
   return process.env.GSC_SITE_URL?.trim() || ''
-}
-
-function credentials() {
-  const raw = process.env.GSC_SERVICE_ACCOUNT_JSON?.trim()
-  if (!raw) return null
-  let parsed
-  try {
-    parsed = JSON.parse(raw)
-  } catch {
-    throw new Error(
-      'GSC_SERVICE_ACCOUNT_JSON is not valid JSON. Paste the whole key file on ' +
-      'one line inside single quotes.',
-    )
-  }
-  if (!parsed.client_email || !parsed.private_key) {
-    throw new Error(
-      'GSC_SERVICE_ACCOUNT_JSON is missing client_email or private_key — that ' +
-      'is not a service-account key file.',
-    )
-  }
-  return parsed
 }
 
 export function isConfigured() {
@@ -86,71 +62,10 @@ export function configError() {
   }
 }
 
-/* -------------------------------------------------------------------- auth */
-
-let tokenCache = { value: null, expiresAt: 0 }
-/** Concurrent callers share one exchange. Without this, the two summary
- *  queries both miss the empty cache and each authenticate separately. */
-let tokenInFlight = null
-
-function base64url(input) {
-  return Buffer.from(input).toString('base64')
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-}
-
-function accessToken() {
-  if (tokenCache.value && Date.now() < tokenCache.expiresAt) {
-    return Promise.resolve(tokenCache.value)
-  }
-  tokenInFlight ??= exchangeToken().finally(() => { tokenInFlight = null })
-  return tokenInFlight
-}
-
-async function exchangeToken() {
-  const creds = credentials()
-  const now = Math.floor(Date.now() / 1000)
-  const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
-  const claims = base64url(JSON.stringify({
-    iss: creds.client_email,
-    scope: SCOPE,
-    aud: TOKEN_URL,
-    iat: now,
-    exp: now + 3600,
-  }))
-  const signature = crypto
-    .createSign('RSA-SHA256')
-    .update(`${header}.${claims}`)
-    .sign(creds.private_key.replace(/\\n/g, '\n'), 'base64')
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-
-  const res = await fetch(TOKEN_URL, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: `${header}.${claims}.${signature}`,
-    }),
-  })
-  const body = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    throw new Error(
-      `Google refused the service-account key (${res.status}). ` +
-      `${body.error_description || body.error || 'No detail given.'}`,
-    )
-  }
-
-  tokenCache = {
-    value: body.access_token,
-    // Retire it a minute early so a request never starts on a dying token.
-    expiresAt: Date.now() + (body.expires_in - 60) * 1000,
-  }
-  return tokenCache.value
-}
-
 /* --------------------------------------------------------------- api calls */
 
 async function api(path, init = {}) {
-  const token = await accessToken()
+  const token = await accessToken(SCOPES.searchConsole)
   const res = await fetch(`${API}/sites/${encodeURIComponent(siteUrl())}${path}`, {
     ...init,
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

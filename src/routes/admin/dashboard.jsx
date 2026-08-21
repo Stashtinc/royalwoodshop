@@ -2,32 +2,39 @@ import { Link, useLoaderData } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { dashboardStats, ensureSpecies } from '../../lib/admin-queries.server'
 import { getSearchConsole, refresh as refreshSearchConsole } from '../../lib/search-console.server'
+import { getAnalytics, refresh as refreshAnalytics } from '../../lib/analytics.server'
 import SearchConsolePanel from '../../components/admin/SearchConsolePanel'
+import AnalyticsPanel from '../../components/admin/AnalyticsPanel'
 import { INDEXING_ENABLED } from '../../seo'
 
 export async function loader({ request }) {
   await requireUser(request)
   await ensureSpecies()
 
-  const [stats, search] = await Promise.all([dashboardStats(), getSearchConsole()])
+  const [stats, search, analytics] = await Promise.all([
+    dashboardStats(), getSearchConsole(), getAnalytics(),
+  ])
 
   // Top up in the background when the cache has gone stale. Deliberately not
   // awaited — the dashboard must not wait on Google to render.
   if (search.configured && (search.stale || search.empty)) {
     refreshSearchConsole().catch(() => {})
   }
+  if (analytics.configured && (analytics.stale || analytics.empty)) {
+    refreshAnalytics().catch(() => {})
+  }
 
-  return { stats, search }
+  return { stats, search, analytics }
 }
 
 export async function action({ request }) {
   await requireUser(request)
   const form = await request.formData()
-  if (form.get('intent') === 'refresh-search-console') {
-    // Awaited here, unlike the loader: the user pressed Refresh and is waiting
-    // for new numbers, so returning before they land would be a lie.
-    await refreshSearchConsole({ force: true })
-  }
+  const intent = form.get('intent')
+  // Awaited here, unlike the loader: the user pressed Refresh and is waiting
+  // for new numbers, so returning before they land would be a lie.
+  if (intent === 'refresh-search-console') await refreshSearchConsole({ force: true })
+  if (intent === 'refresh-analytics') await refreshAnalytics({ force: true })
   return { ok: true }
 }
 
@@ -48,7 +55,7 @@ function Card({ label, value, tone = 'default', to, hint }) {
 }
 
 export default function Dashboard() {
-  const { stats, search } = useLoaderData()
+  const { stats, search, analytics } = useLoaderData()
   return (
     <div className="flex flex-col gap-8">
       {!INDEXING_ENABLED && (
@@ -87,6 +94,8 @@ export default function Dashboard() {
       </div>
 
       <SearchConsolePanel search={search} />
+
+      <AnalyticsPanel analytics={analytics} />
 
       <div className="rounded-2xl border border-gray-200 bg-white p-5">
         <h2 className="font-serif text-lg font-bold text-tundora">Publishing</h2>

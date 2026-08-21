@@ -294,6 +294,24 @@ export const searchConsoleCache = pgTable('search_console_cache', {
   uniq: uniqueIndex('search_console_cache_key_idx').on(t.siteUrl, t.report),
 }))
 
+/** Cached Google Analytics reports. Same shape and same reasoning as the
+ *  Search Console cache above: the dashboard must render from the database
+ *  without waiting on Google, and must be able to say what went wrong rather
+ *  than show an empty panel. One row per (property, report) pair. */
+export const analyticsCache = pgTable('analytics_cache', {
+  id: serial('id').primaryKey(),
+  /** The GA4 numeric property id, e.g. '312678442'. Not the measurement id
+   *  (G-XXXXXXX) and not the account id — the Data API wants the property. */
+  propertyId: varchar('property_id', { length: 40 }).notNull(),
+  /** 'summary' | 'trend' | 'pages' | 'channels' */
+  report: varchar('report', { length: 40 }).notNull(),
+  payload: text('payload').notNull(),
+  error: text('error'),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniq: uniqueIndex('analytics_cache_key_idx').on(t.propertyId, t.report),
+}))
+
 /* -------------------------------------------------------------- relations */
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({

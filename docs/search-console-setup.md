@@ -114,3 +114,69 @@ The site is set to `noindex` while it lives on a temporary address, so its own
 Search Console figures will be zero until `VITE_SEARCH_INDEXING=on` is set on the
 final domain. That is why the panel is pointed at an existing property for now —
 it proves the plumbing works with real data.
+
+---
+
+# Google Analytics
+
+The dashboard also shows Google Analytics figures — users, sessions, page views,
+average session length, a daily trend, the most-viewed pages, and where the
+traffic came from.
+
+It reuses **the same service-account key** as Search Console. There is no second
+key to create. But being a user in Search Console does not make it a user in
+Analytics, so it has to be granted access separately, and the Analytics API has
+to be switched on. Two steps.
+
+## 1. Enable the Analytics Data API
+
+In [Google Cloud Console](https://console.cloud.google.com/), with the **same
+project** the service-account key came from:
+
+1. APIs & Services → **Enable APIs and services**
+2. Search for **Google Analytics Data API**
+3. Enable
+
+Missing this step gives a 403 that says the API "has not been used in project…".
+The panel repeats that message rather than showing an empty chart.
+
+## 2. Add the service account to the property
+
+In [Google Analytics](https://analytics.google.com/):
+
+1. **Admin** (bottom left)
+2. Under the **Property** column → **Property access management**
+3. **+** → **Add users**
+4. Paste the service account's email — the one ending
+   `.iam.gserviceaccount.com`, shown on the dashboard panel if you are unsure
+5. Role: **Viewer**. Untick "Notify new users by email" — it is not a mailbox.
+6. Add
+
+## 3. Set the property id
+
+```
+GA4_PROPERTY_ID=312678442
+```
+
+**This is the one thing that is easy to get wrong.** Analytics shows three
+different numbers and only one of them works here:
+
+| Number | Looks like | Is it the one? |
+|---|---|---|
+| Account id | `6939042` | No — that is the account containing the property |
+| Measurement id | `G-XXXXXXXXXX` | No — that is for the tracking tag on the page |
+| **Property id** | `312678442` | **Yes** |
+
+Find it under Admin → Property → **Property details**, top right. It is also the
+number shown under the property name in the account picker.
+
+Restart after changing `.env` — it is read at startup.
+
+## How it behaves
+
+- Same caching as Search Console: stored in the database, refreshed at most every
+  6 hours, never blocking the page render. **Refresh** forces a pull.
+- **Data runs one day behind.** GA4 fills the current day in as it goes, so
+  including today would show a drop every morning that isn't real.
+- If the service account has not been added, or the API is not enabled, the panel
+  says which — with the exact email address to add.
