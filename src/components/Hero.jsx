@@ -263,7 +263,7 @@ export default function Hero() {
           </div>
         </div>
 
-        <div ref={searchRef} className="relative z-10 flex h-full w-full">
+        <div ref={searchRef} className="relative z-30 flex h-full w-full">
           <div className="shrink-0" style={{ width: `${TEXTURE_WIDTH}px` }}>
             <div className="flex h-[90px] shrink-0 items-center justify-end text-tundora/70">
               <button
