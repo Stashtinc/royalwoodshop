@@ -23,6 +23,9 @@ export default [
   route('saw-blade-sharpening', 'routes/service-saw-blade-sharpening.jsx'),
   route('resources', 'routes/resources.jsx'),
   route('resources/downloads', 'routes/downloads.jsx'),
+  route('resources/glossary', 'routes/glossary.jsx'),
+  route('resources/faq', 'routes/faq.jsx'),
+  route('resources/installation-tips', 'routes/installation-tips.jsx'),
   route('quotation', 'routes/quotation.jsx'),
 
   // Admin. Never prerendered — it runs on the server that holds the database.
