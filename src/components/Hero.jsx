@@ -360,12 +360,12 @@ export default function Hero() {
               className="flex h-[90px] shrink-0 items-center gap-6 pr-6"
               style={{ maxWidth: `${NAV_ROW_MAX_WIDTH}px` }}
             >
-              <nav className="relative flex h-full flex-1 items-center">
+              <nav className="relative flex h-full flex-1 items-center justify-evenly">
                 {navLinks.map((link) => (
-                  <div key={link.label} className="group/item h-full flex-1">
+                  <div key={link.label} className="group/item h-full">
                     <Link
                       to={link.to}
-                      className="flex h-full w-full items-center justify-center border-b-4 border-transparent px-4 font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors hover:border-royal-blue hover:bg-parchment hover:text-royal-blue"
+                      className="flex h-full items-center justify-center border-b-4 border-transparent px-4 font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors hover:border-royal-blue hover:bg-parchment hover:text-royal-blue"
                     >
                       {link.label}
                     </Link>
