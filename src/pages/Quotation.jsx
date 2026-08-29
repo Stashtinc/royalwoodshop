@@ -476,7 +476,7 @@ export default function Quotation() {
               <div className="flex items-center justify-between border-t-2 border-amber-300 bg-amber-100 px-5 py-4 font-sans font-bold text-amber-900">
                 <span className="text-base">Total Due Now</span>
                 <div className="text-right">
-                  {dueUSD > 0 && <p className="text-sm font-normal text-amber-700">{fmt(dueUSD)} USD + {fmt(dueCAD)} CAD</p>}
+                  {dueUSD > 0 && <p className="text-sm font-normal text-amber-700">{fmt(dueUSD)} USD @ {CAD_RATE} = {fmt(Math.round(dueUSD * CAD_RATE))} CAD + {fmt(dueCAD)} CAD</p>}
                   <p className="text-xl">{fmt(Math.round(dueUSD * CAD_RATE) + dueCAD)} <span className="text-sm font-normal text-amber-700">CAD</span></p>
                 </div>
               </div>
