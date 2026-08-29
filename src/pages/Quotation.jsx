@@ -50,7 +50,8 @@ const lineItems = [
   {
     step: '4',
     title: 'Create catalogue (539 products) and advanced search',
-    who: 'Development',
+    who: 'Development — in progress',
+    inProgress: true,
     buckets: 2,
     bullets: [
       'Catalogue listing pages',
@@ -63,7 +64,8 @@ const lineItems = [
   {
     step: '5',
     title: 'Build the admin screen for staff',
-    who: 'Development',
+    who: 'Development — completed',
+    completed: true,
     buckets: 2,
     bullets: [
       'Logins, user accounts and roles',
