@@ -160,9 +160,21 @@ export async function analyse(rows) {
 }
 
 /** Applies the import. Returns the same summary shape, plus what was written. */
-export async function apply(rows) {
+export async function apply(rows, overrides = {}) {
   const db = await getDb()
-  const { summary, parsed, byCode } = await analyse(rows)
+  const { summary, parsed: base, byCode } = await analyse(rows)
+
+  // Merge any manual corrections made in the preview UI before writing.
+  const parsed = base.map((p) => {
+    const o = overrides[p.code]
+    if (!o) return p
+    return {
+      ...p,
+      ...(Array.isArray(o.species) && { species: o.species }),
+      ...(typeof o.flex === 'boolean' && { flex: o.flex }),
+      ...(('availability' in o) && { availability: o.availability }),
+    }
+  })
 
   const [attr] = await db.insert(attributes)
     .values({ key: 'species', name: 'Wood species', sortOrder: 1 })

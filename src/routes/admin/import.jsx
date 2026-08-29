@@ -3,7 +3,7 @@ import { Form, Link, useActionData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { parseUpload, analyse, apply } from '../../lib/species-import.server'
 import { log } from '../../lib/activity.server'
-import { SPECIES } from '../../lib/catalogue-constants'
+import { SPECIES, AVAILABILITY } from '../../lib/catalogue-constants'
 
 export async function loader({ request }) {
   await requireUser(request)
@@ -60,7 +60,11 @@ export async function action({ request }) {
     catch { return { error: 'That upload has expired. Please choose the file again.' } }
 
     const { rows } = await parseUpload(buffer, String(form.get('fileName') ?? ''))
-    const result = await apply(rows)
+
+    let overrides = {}
+    try { const raw = form.get('overrides'); if (raw) overrides = JSON.parse(raw) } catch { /* ignore malformed */ }
+
+    const result = await apply(rows, overrides)
     await unlink(`${STAGING}/${token}`).catch(() => {})
 
     await log(user, 'import.species', {
@@ -130,12 +134,110 @@ function DropArea() {
   )
 }
 
+function PencilIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+      strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M13.5 3.5 16.5 6.5l-10 10H3.5v-3l10-10Z" />
+    </svg>
+  )
+}
+
+function RowEditor({ change, initial, onSave, onCancel }) {
+  const [species, setSpecies] = useState(initial.species)
+  const [flex, setFlex] = useState(initial.flex)
+  const [availability, setAvailability] = useState(initial.availability ?? '')
+
+  function toggleSpecies(s) {
+    setSpecies((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])
+  }
+
+  return (
+    <div className="col-span-full border-t border-royal-blue/10 bg-blue-50/40 px-4 py-4">
+      <p className="mb-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        Editing <span className="font-mono text-gray-700">{change.code}</span>
+      </p>
+
+      <div className="flex flex-wrap gap-6">
+        {/* Species checkboxes */}
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-medium text-gray-600">Species</p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-3">
+            {SPECIES.map((s) => (
+              <label key={s} className="flex cursor-pointer items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={species.includes(s)}
+                  onChange={() => toggleSpecies(s)}
+                  className="h-3.5 w-3.5 rounded accent-royal-blue"
+                />
+                <span className="text-xs text-gray-700">{s}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          {/* Flex */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs font-medium text-gray-600">Options</p>
+            <label className="flex cursor-pointer items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={flex}
+                onChange={(e) => setFlex(e.target.checked)}
+                className="h-3.5 w-3.5 rounded accent-royal-blue"
+              />
+              <span className="text-xs text-gray-700">Flex available</span>
+            </label>
+          </div>
+
+          {/* Availability */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs font-medium text-gray-600">Availability</p>
+            <select
+              value={availability}
+              onChange={(e) => setAvailability(e.target.value)}
+              className="rounded border border-gray-300 py-1 pl-2 pr-6 text-xs text-gray-700 outline-none focus:border-royal-blue"
+            >
+              <option value="">— unchanged —</option>
+              {AVAILABILITY.map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => onSave({ species, flex, availability: availability || null })}
+          className="rounded bg-royal-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-royal-blue-dark"
+        >
+          Save edit
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-xs text-gray-500 hover:underline"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Import() {
   const data = useActionData()
   const nav = useNavigation()
   const busy = nav.state === 'submitting'
   const s = data?.summary
   const r = data?.result
+
+  const [edits, setEdits] = useState({})
+  const [editingCode, setEditingCode] = useState(null)
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -224,19 +326,51 @@ export default function Import() {
                 {s.changes.length >= s.willChange
                   ? `All ${s.willChange} change${s.willChange === 1 ? '' : 's'}`
                   : `First ${s.changes.length} of ${s.willChange} changes`}
+                <span className="ml-2 normal-case font-normal text-gray-400">— click the pencil to correct any row before applying</span>
               </p>
               <ul>
-                {s.changes.map((c) => (
-                  <li key={c.code} className="flex flex-wrap items-baseline gap-2 border-b border-gray-100 px-4 py-2 text-sm last:border-0">
-                    <span className="font-mono text-xs text-gray-500">{c.code}</span>
-                    <span className="text-gray-800">{c.name}</span>
-                    <span className="ml-auto text-xs text-gray-600">
-                      {c.species.join(', ') || '—'}
-                      {c.flex && ' · flex'}
-                      {c.availability && ` · ${c.availability.replace('_', ' ')}`}
-                    </span>
-                  </li>
-                ))}
+                {s.changes.map((c) => {
+                  const edit = edits[c.code]
+                  const display = edit ?? c
+                  const isEditing = editingCode === c.code
+                  return (
+                    <li key={c.code} className="border-b border-gray-100 last:border-0">
+                      <div className="flex flex-wrap items-baseline gap-2 px-4 py-2 text-sm">
+                        <span className="font-mono text-xs text-gray-500">{c.code}</span>
+                        <span className="text-gray-800">{c.name}</span>
+                        <span className={`ml-auto text-xs ${edit ? 'font-medium text-royal-blue' : 'text-gray-600'}`}>
+                          {display.species.join(', ') || '—'}
+                          {display.flex && ' · flex'}
+                          {display.availability && ` · ${display.availability.replace('_', ' ')}`}
+                          {edit && <span className="ml-1 text-[10px] text-royal-blue/70">(edited)</span>}
+                        </span>
+                        <button
+                          type="button"
+                          title="Edit this row"
+                          onClick={() => setEditingCode(isEditing ? null : c.code)}
+                          className={`ml-1 shrink-0 rounded p-1 transition-colors ${
+                            isEditing
+                              ? 'bg-royal-blue text-white'
+                              : 'text-gray-400 hover:bg-gray-100 hover:text-royal-blue'
+                          }`}
+                        >
+                          <PencilIcon />
+                        </button>
+                      </div>
+                      {isEditing && (
+                        <RowEditor
+                          change={c}
+                          initial={edit ?? { species: c.species, flex: c.flex, availability: c.availability }}
+                          onSave={(values) => {
+                            setEdits((prev) => ({ ...prev, [c.code]: values }))
+                            setEditingCode(null)
+                          }}
+                          onCancel={() => setEditingCode(null)}
+                        />
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           )}
@@ -246,6 +380,9 @@ export default function Import() {
               <input type="hidden" name="intent" value="apply" />
               <input type="hidden" name="token" value={data.token} />
               <input type="hidden" name="fileName" value={data.fileName} />
+              {Object.keys(edits).length > 0 && (
+                <input type="hidden" name="overrides" value={JSON.stringify(edits)} />
+              )}
               <button disabled={busy || s.willChange === 0}
                 className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
                 {busy
