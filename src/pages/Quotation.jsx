@@ -34,8 +34,8 @@ const lineItems = [
   {
     step: '3',
     title: 'Build the database and the public website',
-    who: 'Development — in progress',
-    inProgress: true,
+    who: 'Development — completed',
+    completed: true,
     buckets: 2,
     bullets: [
       'Database schema — products, categories, attributes, images',
@@ -121,7 +121,7 @@ const optionalItems = [
 const paymentRows = [
   { milestone: 'On acceptance', trigger: 'Development begins', pct: 0.3, paid: true },
   { milestone: 'Public website and catalogue delivered for review', trigger: 'End of Step 2', pct: 0.3, paid: true },
-  { milestone: 'Admin screen delivered for review', trigger: 'End of Step 3', pct: 0.2 },
+  { milestone: 'Admin screen delivered for review', trigger: 'End of Step 3', pct: 0.2, due: true },
   { milestone: 'On launch', trigger: 'Site live, redirects verified', pct: 0.2 },
 ]
 
@@ -441,7 +441,18 @@ export default function Quotation() {
             </div>
           </div>
 
-          {/* Due hourly */}
+          {/* Due: milestone payments */}
+          {paymentRows.filter(r => r.due).map((row) => (
+            <div key={row.milestone} className="flex items-center justify-between border-t border-amber-100 bg-amber-50/60 px-5 py-3.5 font-sans text-sm">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-amber-900">{row.milestone}</span>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Due</span>
+              </div>
+              <span className="font-bold text-amber-900">{fmt(subtotal * row.pct)} <span className="font-normal text-amber-700 text-xs">USD</span></span>
+            </div>
+          ))}
+
+          {/* Due: hourly periods */}
           {hourlyPeriods.filter(p => !p.paid).map((period) => (
             <div key={period.label} className="flex items-center justify-between border-t border-amber-100 bg-amber-50/60 px-5 py-3.5 font-sans text-sm">
               <div className="flex items-center gap-2">
@@ -452,14 +463,32 @@ export default function Quotation() {
             </div>
           ))}
 
-          {/* Next fixed payment */}
+          {/* Grand total due */}
+          {(() => {
+            const dueMilestones = paymentRows.filter(r => r.due)
+            const dueHourly = hourlyPeriods.filter(p => !p.paid)
+            if (!dueMilestones.length && !dueHourly.length) return null
+            const dueUSD = dueMilestones.reduce((s, r) => s + subtotal * r.pct, 0)
+            const dueCAD = dueHourly.reduce((s, p) => s + Math.round(p.hours * p.rate), 0)
+            return (
+              <div className="flex items-center justify-between border-t-2 border-amber-300 bg-amber-100 px-5 py-4 font-sans font-bold text-amber-900">
+                <span className="text-base">Total Due Now</span>
+                <div className="text-right">
+                  {dueUSD > 0 && <p className="text-base">{fmt(dueUSD)} <span className="text-xs font-normal text-amber-700">USD</span></p>}
+                  {dueCAD > 0 && <p className="text-base">{fmt(dueCAD)} <span className="text-xs font-normal text-amber-700">CAD</span></p>}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Next upcoming milestone (not yet due) */}
           {(() => {
             const next = paymentRows.find(r => !r.paid && !r.due)
             if (!next) return null
             return (
               <div className="flex items-center justify-between border-t border-royal-blue/20 bg-royal-blue/5 px-5 py-4 font-sans text-sm">
                 <div>
-                  <p className="font-semibold text-royal-blue">Next Milestone Payment</p>
+                  <p className="font-semibold text-royal-blue">Next Milestone</p>
                   <p className="mt-0.5 text-xs text-gray-500">{next.trigger}</p>
                   <p className="mt-0.5 text-xs text-gray-400">{next.milestone}</p>
                 </div>
