@@ -125,7 +125,22 @@ const paymentRows = [
   { milestone: 'On launch', trigger: 'Site live, redirects verified', pct: 0.2 },
 ]
 
-const HOURLY_PAID = true
+const hourlyPeriods = [
+  {
+    label: 'July 27 – Aug 12',
+    hours: 34,
+    rate: 65,
+    paid: true,
+    timesheetUrl: 'https://drive.google.com/file/d/1l3qxq6oATb6KiRKV8YR21Bm0Z5A7ZZg_/view?usp=sharing',
+  },
+  {
+    label: 'Aug 13 – Aug 28',
+    hours: 65.4,
+    rate: 65,
+    paid: false,
+    timesheetUrl: null,
+  },
+]
 
 
 const fmt = (n) => '$' + n.toLocaleString('en-US')
@@ -171,7 +186,7 @@ export default function Quotation() {
               <div className="text-right text-gray-700 space-y-1">
                 <p className="font-semibold text-royal-blue">RWS-2026-001</p>
                 <p>3 August 2026</p>
-                <p>2 September 2026</p>
+                <p>30 September 2026</p>
                 <p>USD</p>
               </div>
             </div>
@@ -253,7 +268,7 @@ export default function Quotation() {
           <p className="mt-1 text-amber-700">
             Any time outside the fixed bucket scope is billed at{' '}
             <span className="font-semibold">$85 CAD / hr</span> (standard rate), with a friend discount applied bringing it to{' '}
-            <span className="font-semibold">$65 CAD / hr</span> for The Royal Wood Shop.
+            <span className="font-semibold">$65 CAD / hr</span> for The Royal Wood Shop. Hourly time is invoiced at the end of each billing period with a timesheet.
           </p>
         </div>
 
@@ -338,71 +353,120 @@ export default function Quotation() {
           </div>
         </div>
 
-        {/* Hourly hours alert + Amount Due */}
-        <div className="mb-10 overflow-hidden rounded-xl border border-emerald-200">
-          <div className="bg-emerald-50 px-5 py-4 font-sans text-sm text-emerald-900">
-            <p className="font-semibold">Hourly time — paid</p>
-            <p className="mt-1 text-emerald-700">
-              Hours worked <span className="font-semibold">July 27 – Aug 12</span> (34 hrs @ $65 CAD) have been paid.{' '}
-              <a
-                href="https://drive.google.com/file/d/1l3qxq6oATb6KiRKV8YR21Bm0Z5A7ZZg_/view?usp=sharing"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold underline underline-offset-2 hover:text-emerald-900"
-              >
-                View timesheet →
-              </a>
-            </p>
+        {/* Hourly time summary */}
+        <div className="mb-10 overflow-hidden rounded-xl border border-gray-200">
+          <p className="border-b border-gray-100 bg-gray-50 px-5 py-3 font-sans text-xs font-bold tracking-widest text-gray-400 uppercase">
+            Hourly Time — $65 CAD / hr
+          </p>
+          {hourlyPeriods.map((period) => {
+            const amount = Math.round(period.hours * period.rate)
+            return (
+              <div key={period.label} className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5 font-sans text-sm last:border-0">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="text-gray-700 font-medium">{period.label}</span>
+                  <span className="text-gray-400">{period.hours} hrs @ ${period.rate}</span>
+                  {period.timesheetUrl && (
+                    <a
+                      href={period.timesheetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-royal-blue underline underline-offset-2 hover:text-royal-blue-dark"
+                    >
+                      View timesheet →
+                    </a>
+                  )}
+                  {period.paid
+                    ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-600">Paid</span>
+                    : <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Due</span>
+                  }
+                </div>
+                <span className={`shrink-0 font-semibold ${period.paid ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+                  {fmt(amount)} <span className="font-normal text-gray-400 text-xs">CAD</span>
+                </span>
+              </div>
+            )
+          })}
+          {(() => {
+            const due = hourlyPeriods.filter(p => !p.paid)
+            if (!due.length) return null
+            const dueTotal = due.reduce((s, p) => s + Math.round(p.hours * p.rate), 0)
+            return (
+              <div className="flex items-center justify-between border-t-2 border-amber-200 bg-amber-50 px-5 py-3.5 font-sans text-sm font-bold text-amber-900">
+                <span>Hourly balance due</span>
+                <span>{fmt(dueTotal)} <span className="font-normal text-amber-700 text-xs">CAD</span></span>
+              </div>
+            )
+          })()}
+        </div>
+
+        {/* Payment Summary */}
+        <div className="mb-10 overflow-hidden rounded-xl border border-gray-200">
+          <p className="border-b border-gray-100 bg-gray-50 px-5 py-3 font-sans text-xs font-bold tracking-widest text-gray-400 uppercase">
+            Payment Summary
+          </p>
+
+          {/* Fixed milestone payments */}
+          {paymentRows.filter(r => r.paid).map((row) => (
+            <div key={row.milestone} className="flex items-center justify-between border-b border-gray-100 px-5 py-3 font-sans text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">{row.milestone}</span>
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-600">Paid</span>
+              </div>
+              <span className="font-semibold text-gray-400 line-through">{fmt(subtotal * row.pct)} <span className="font-normal text-gray-400 text-xs">USD</span></span>
+            </div>
+          ))}
+
+          {/* Paid hourly periods */}
+          {hourlyPeriods.filter(p => p.paid).map((period) => (
+            <div key={period.label} className="flex items-center justify-between border-b border-gray-100 px-5 py-3 font-sans text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Hourly — {period.label} ({period.hours} hrs)</span>
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-600">Paid</span>
+              </div>
+              <span className="font-semibold text-gray-400 line-through">{fmt(Math.round(period.hours * period.rate))} <span className="font-normal text-gray-400 text-xs">CAD</span></span>
+            </div>
+          ))}
+
+          {/* Paid total */}
+          <div className="flex items-center justify-between border-t-2 border-emerald-200 bg-emerald-50 px-5 py-4 font-sans text-sm font-bold text-emerald-800">
+            <div className="flex items-center gap-3">
+              <svg className="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Paid to date</span>
+            </div>
+            <div className="text-right">
+              <p className="font-semibold text-emerald-700">{fmt(paymentRows.filter(r => r.paid).reduce((s, r) => s + subtotal * r.pct, 0))} <span className="font-normal text-emerald-600 text-xs">USD</span></p>
+              <p className="font-semibold text-emerald-700">+ {fmt(hourlyPeriods.filter(p => p.paid).reduce((s, p) => s + Math.round(p.hours * p.rate), 0))} <span className="font-normal text-emerald-600 text-xs">CAD</span></p>
+            </div>
           </div>
 
-          {/* Amount due breakdown */}
-          <div className="border-t border-amber-200 bg-white">
-            <p className="border-b border-gray-100 px-5 py-3 font-sans text-xs font-bold tracking-widest text-gray-400 uppercase">
-              Payment Summary
-            </p>
-            {paymentRows.filter(r => r.paid).map((row) => (
-              <div key={row.milestone} className="flex items-center justify-between border-b border-gray-100 px-5 py-3 font-sans text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">{row.milestone}</span>
-                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-600">Paid</span>
-                </div>
-                <span className="font-semibold text-gray-500 line-through">{fmt(subtotal * row.pct)} <span className="font-normal text-gray-400 text-xs">USD</span></span>
-              </div>
-            ))}
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3 font-sans text-sm">
+          {/* Due hourly */}
+          {hourlyPeriods.filter(p => !p.paid).map((period) => (
+            <div key={period.label} className="flex items-center justify-between border-t border-amber-100 bg-amber-50/60 px-5 py-3.5 font-sans text-sm">
               <div className="flex items-center gap-2">
-                <span className="text-gray-600">Hourly time — 34 hrs @ $65</span>
-                {HOURLY_PAID && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-600">Paid</span>}
+                <span className="font-medium text-amber-900">Hourly — {period.label} ({period.hours} hrs @ ${period.rate})</span>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Due</span>
               </div>
-              <span className={`font-semibold ${HOURLY_PAID ? 'text-gray-500 line-through' : 'text-gray-800'}`}>{fmt(34 * 65)} <span className="font-normal text-gray-400 text-xs">CAD</span></span>
+              <span className="font-bold text-amber-900">{fmt(Math.round(period.hours * period.rate))} <span className="font-normal text-amber-700 text-xs">CAD</span></span>
             </div>
-            <div className="flex items-center justify-between border-t-2 border-emerald-200 bg-emerald-50 px-5 py-4 font-sans text-base font-bold text-emerald-800">
-              <div className="flex items-center gap-3">
-                <svg className="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Paid in Full</span>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold text-emerald-700">{fmt(paymentRows.filter(r => r.paid).reduce((s, r) => s + subtotal * r.pct, 0))} <span className="font-normal text-emerald-600">USD</span></p>
-                <p className="text-sm font-semibold text-emerald-700">+ {fmt(34 * 65)} <span className="font-normal text-emerald-600">CAD</span></p>
-              </div>
-            </div>
-            {(() => {
-              const next = paymentRows.find(r => !r.paid && !r.due)
-              if (!next) return null
-              return (
-                <div className="flex items-center justify-between border-t border-royal-blue/20 bg-royal-blue/5 px-5 py-4 font-sans text-sm">
-                  <div>
-                    <p className="font-semibold text-royal-blue">Next Payment</p>
-                    <p className="mt-0.5 text-xs text-gray-500">{next.trigger}</p>
-                    <p className="mt-0.5 text-xs text-gray-400">{next.milestone}</p>
-                  </div>
-                  <p className="font-bold text-royal-blue">{fmt(subtotal * next.pct)} <span className="text-xs font-normal text-gray-400">USD</span></p>
+          ))}
+
+          {/* Next fixed payment */}
+          {(() => {
+            const next = paymentRows.find(r => !r.paid && !r.due)
+            if (!next) return null
+            return (
+              <div className="flex items-center justify-between border-t border-royal-blue/20 bg-royal-blue/5 px-5 py-4 font-sans text-sm">
+                <div>
+                  <p className="font-semibold text-royal-blue">Next Milestone Payment</p>
+                  <p className="mt-0.5 text-xs text-gray-500">{next.trigger}</p>
+                  <p className="mt-0.5 text-xs text-gray-400">{next.milestone}</p>
                 </div>
-              )
-            })()}
-          </div>
+                <p className="font-bold text-royal-blue">{fmt(subtotal * next.pct)} <span className="text-xs font-normal text-gray-400">USD</span></p>
+              </div>
+            )
+          })()}
         </div>
 
         {/* Acceptance — hidden once signed; the sticky band below carries the record */}
