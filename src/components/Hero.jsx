@@ -263,8 +263,8 @@ export default function Hero() {
           </div>
         </div>
 
-        <div ref={searchRef} className="relative z-30 flex h-full w-full">
-          <div className="shrink-0" style={{ width: `${TEXTURE_WIDTH}px` }}>
+        <div ref={searchRef} className="pointer-events-none relative z-30 flex h-full w-full">
+          <div className="pointer-events-auto shrink-0" style={{ width: `${TEXTURE_WIDTH}px` }}>
             <div className="flex h-[90px] shrink-0 items-center justify-end text-tundora/70">
               <button
                 type="button"
@@ -283,7 +283,7 @@ export default function Hero() {
           </div>
 
           <div
-            className="relative flex shrink-0 flex-col items-center justify-start px-16 pt-[190px] pb-16"
+            className="pointer-events-auto relative flex shrink-0 flex-col items-center justify-start px-16 pt-[190px] pb-16"
             style={{ width: `${PANEL_WIDTH}px` }}
           >
             {searchOpen && (
