@@ -198,6 +198,7 @@ export default function Catalogue({ initialCategory = null, products = null }) {
   const [selectedSubs, setSelectedSubs] = useState(() =>
     subsFromUrl({ initialCategory, categoryParam: null, tree: categoryTree(allProducts) }),
   )
+  const [expandedCats, setExpandedCats] = useState(new Set())
   const [page, setPage] = useState(1)
   const [view, setView] = useState('grid')
   const resultsRef = useRef(null)
@@ -252,6 +253,15 @@ export default function Catalogue({ initialCategory = null, products = null }) {
       return next
     })
     setPage(1)
+  }
+
+  function toggleExpanded(catName) {
+    setExpandedCats((prev) => {
+      const next = new Set(prev)
+      if (next.has(catName)) next.delete(catName)
+      else next.add(catName)
+      return next
+    })
   }
 
   function clearFilters() {
@@ -340,43 +350,59 @@ export default function Catalogue({ initialCategory = null, products = null }) {
 
             <div className="flex flex-col gap-4">
               <p className="font-serif text-base font-bold text-tundora">Categories</p>
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col">
                 {catalogueCategoryOrder.map((cat) => {
                   const keys = cat.subcategories.map((sub) => `${cat.name}::${sub}`)
                   const catChecked = keys.length > 0 && keys.every((key) => selectedSubs.has(key))
+                  const hasAnySelected = keys.some((key) => selectedSubs.has(key))
+                  const isOpen = hasAnySelected || expandedCats.has(cat.name)
                   return (
-                    <div key={cat.name} className="flex flex-col gap-2">
-                      <label className="flex cursor-pointer items-center gap-2 font-sans text-sm font-semibold text-tundora">
+                    <div key={cat.name} className="border-b border-gray-100 last:border-b-0">
+                      <div className="flex items-center gap-2 py-2.5">
                         <input
                           type="checkbox"
                           checked={catChecked}
                           onChange={() => toggleCategory(cat.name, cat.subcategories)}
                           className="h-4 w-4 shrink-0 rounded border-gray-300 accent-royal-blue"
                         />
-                        {cat.name}{' '}
-                        <span className="font-normal text-gray-400">
-                          ({categoryCounts[cat.name] || 0})
-                        </span>
-                      </label>
-                      <div className="flex flex-col gap-1.5 pl-6">
-                        {cat.subcategories.map((sub) => {
-                          const key = `${cat.name}::${sub}`
-                          return (
-                            <label
-                              key={sub}
-                              className="flex cursor-pointer items-center gap-2 font-sans text-sm text-gray-600 hover:text-royal-blue"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedSubs.has(key)}
-                                onChange={() => toggleSub(cat.name, sub)}
-                                className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 accent-royal-blue"
-                              />
-                              {sub} <span className="text-gray-400">({categoryCounts[key] || 0})</span>
-                            </label>
-                          )
-                        })}
+                        <button
+                          type="button"
+                          onClick={() => toggleExpanded(cat.name)}
+                          className="flex flex-1 items-center justify-between gap-1 text-left font-sans text-sm font-semibold text-tundora hover:text-royal-blue"
+                        >
+                          <span>
+                            {cat.name}{' '}
+                            <span className="font-normal text-gray-400">({categoryCounts[cat.name] || 0})</span>
+                          </span>
+                          <svg
+                            width="12" height="12" viewBox="0 0 12 12" fill="none"
+                            className={`shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                          >
+                            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
                       </div>
+                      {isOpen && (
+                        <div className="flex flex-col gap-1.5 pb-2.5 pl-6">
+                          {cat.subcategories.map((sub) => {
+                            const key = `${cat.name}::${sub}`
+                            return (
+                              <label
+                                key={sub}
+                                className="flex cursor-pointer items-center gap-2 font-sans text-sm text-gray-600 hover:text-royal-blue"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedSubs.has(key)}
+                                  onChange={() => toggleSub(cat.name, sub)}
+                                  className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 accent-royal-blue"
+                                />
+                                {sub} <span className="text-gray-400">({categoryCounts[key] || 0})</span>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
