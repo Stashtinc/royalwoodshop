@@ -110,9 +110,10 @@ export default function Footer() {
 
             {/* Deliberately understated, and nofollow so it never invites
                 automated login attempts. */}
-            <Link
-              to="/admin"
-              rel="nofollow"
+            <a
+              href="https://royalwoodshop-production.up.railway.app/admin"
+              rel="nofollow noopener"
+              target="_blank"
               aria-label="Staff login"
               className="inline-flex items-center gap-1.5 font-sans text-sm text-white/45 transition-colors hover:text-white"
             >
@@ -125,7 +126,7 @@ export default function Footer() {
                 <path d="M5 7V4.75a3 3 0 0 1 6 0V7" />
               </svg>
               Login
-            </Link>
+            </a>
           </div>
 
           <div className="flex items-center gap-4">
