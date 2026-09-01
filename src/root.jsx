@@ -77,7 +77,10 @@ export default function Root() {
 }
 
 export function ErrorBoundary({ error }) {
-  const is404 = isRouteErrorResponse(error) && error.status === 404
+  // DOM NotFoundError (removeChild/insertBefore) is thrown by browser extensions
+  // that inject nodes React doesn't own. It is not a real 404 — reload fixes it.
+  const isDomError = error instanceof Error && error.name === 'NotFoundError' && !isRouteErrorResponse(error)
+  const is404 = !isDomError && isRouteErrorResponse(error) && error.status === 404
 
   // In development, show what actually failed. A friendly message with the
   // cause hidden means guessing, and guessing is slow.
@@ -90,14 +93,19 @@ export function ErrorBoundary({ error }) {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-24 text-center">
       <h1 className="font-serif text-4xl font-bold text-tundora">
-        {is404 ? 'Page not found' : 'Something went wrong'}
+        {is404 ? 'Page not found' : isDomError ? 'Something interrupted this page' : 'Something went wrong'}
       </h1>
       <p className="font-sans text-gray-600">
         {is404
           ? 'That page has moved or no longer exists. Try the catalogue, or get in touch and we will point you the right way.'
+          : isDomError
+          ? 'A browser extension modified the page in a way that caused a conflict. Reloading usually fixes this.'
           : 'Please try again, or contact us if the problem continues.'}
       </p>
-      <a href="/products" className="font-sans font-medium text-tundora underline">Browse the catalogue</a>
+      {isDomError
+        ? <button onClick={() => window.location.reload()} className="font-sans font-medium text-tundora underline">Reload page</button>
+        : <a href="/products" className="font-sans font-medium text-tundora underline">Browse the catalogue</a>
+      }
 
       {detail && (
         <pre className="mt-6 max-h-[50vh] overflow-auto rounded-xl bg-red-950 p-4 text-left font-mono text-xs leading-relaxed whitespace-pre-wrap text-red-100">

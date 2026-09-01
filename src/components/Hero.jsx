@@ -179,7 +179,7 @@ function HeroPhoto() {
         </div>
       ))}
       <div
-        className="absolute inset-0"
+        className="pointer-events-none absolute inset-0"
         style={{
           backgroundImage: 'linear-gradient(180deg, rgba(102,102,102,0) 32%, rgba(0,0,0,0.5) 100%)',
         }}
@@ -355,9 +355,9 @@ export default function Hero() {
             <HeroPanelContent />
           </div>
 
-          <div className="flex flex-1 flex-col">
+          <div className="pointer-events-none flex flex-1 flex-col">
             <div
-              className="flex h-[90px] shrink-0 items-center gap-6 pr-6"
+              className="pointer-events-auto flex h-[90px] shrink-0 items-center gap-6 pr-6"
               style={{ maxWidth: `${NAV_ROW_MAX_WIDTH}px` }}
             >
               <nav className="relative flex h-full flex-1 items-center justify-evenly">
