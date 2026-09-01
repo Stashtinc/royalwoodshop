@@ -29,6 +29,7 @@ build
 
 # Secrets — never commit. Use .env.example as the template.
 .env
+.env.*
 .env.local
 .env.*.local
 .data/
