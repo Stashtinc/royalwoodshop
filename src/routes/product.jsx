@@ -6,7 +6,7 @@ import { pageMeta, truncate, BASE, SITE } from '../seo'
 const AVAIL_SCHEMA = {
   in_stock: 'https://schema.org/InStock',
   quick_ship: 'https://schema.org/LimitedAvailability',
-  special_order: 'https://schema.org/PreOrder',
+  made_to_order: 'https://schema.org/PreOrder',
 }
 
 export function loader({ params }) {

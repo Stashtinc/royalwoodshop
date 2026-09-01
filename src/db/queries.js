@@ -21,7 +21,7 @@ const SIZE_BAND = (w) => {
 const AVAILABILITY_LABEL = {
   in_stock: 'In Stock',
   quick_ship: 'Quick Ship',
-  special_order: 'Special Order',
+  made_to_order: 'Made-to-Order',
 }
 
 /**
@@ -56,6 +56,16 @@ export async function getAllProducts(db) {
          join ${attributeValues} av on av.id = pa.attribute_value_id
          join ${attributes} a on a.id = av.attribute_id and a.key = 'species'
          where pa.product_id = ${products.id}), '{}')`.as('species'),
+      /** Species with the availability recorded against each one, so the
+       *  product page can say "poplar in stock, walnut made to order"
+       *  instead of flattening it to a single value. */
+      speciesAvailability: sql`coalesce(
+        (select json_agg(json_build_object('name', av.value, 'availability', pa.availability)
+                         order by av.sort_order)
+         from ${productAttributes} pa
+         join ${attributeValues} av on av.id = pa.attribute_value_id
+         join ${attributes} a on a.id = av.attribute_id and a.key = 'species'
+         where pa.product_id = ${products.id}), '[]')`.as('speciesAvailability'),
       subcategory: sql`coalesce(
         (select c2.name from ${categories} c2
          join product_categories pc on pc.category_id = c2.id
@@ -83,6 +93,9 @@ function shape(r) {
   const width = r.widthIn == null ? null : Number(r.widthIn)
   const catSlug = r.categorySlug && CATEGORY_NAMES[r.categorySlug] ? r.categorySlug : 'trim-mouldings'
   const species = Array.isArray(r.species) ? r.species : []
+  const detail = Array.isArray(r.speciesAvailability)
+    ? r.speciesAvailability
+    : JSON.parse(r.speciesAvailability ?? '[]')
   return {
     id: r.slug,
     slug: r.slug,
@@ -102,6 +115,11 @@ function shape(r) {
     material: species.length ? species.join(', ') : 'Unspecified',
     availability: r.availability ?? null,
     availabilityLabel: r.availability ? AVAILABILITY_LABEL[r.availability] : null,
+    speciesAvailability: detail.map((d) => ({
+      name: d.name,
+      availability: d.availability ?? null,
+      label: d.availability ? AVAILABILITY_LABEL[d.availability] : null,
+    })),
     flexAvailable: !!r.flexAvailable,
     leadTime: r.leadTime ?? null,
     image: r.image ?? '',

@@ -10,5 +10,25 @@ export const SPECIES = [
 export const AVAILABILITY = [
   ['in_stock', 'In Stock'],
   ['quick_ship', 'Quick Ship'],
-  ['special_order', 'Special Order'],
+  ['made_to_order', 'Made-to-Order'],
 ]
+
+export const AVAILABILITY_LABEL = Object.fromEntries(AVAILABILITY)
+
+/** What Royal Wood Shop type into a species column on the audit sheet. The
+ *  tick says both "milled in this wood" and "and this is how it ships". */
+export const TICK_CODES = [
+  ['X', 'in_stock'],
+  ['QS', 'quick_ship'],
+  ['MTO', 'made_to_order'],
+]
+
+/** Best first. A product's own availability is the best of its species: if a
+ *  profile is in stock in any wood, the catalogue should find it under
+ *  In Stock, and the per-species detail says which wood. */
+export const AVAILABILITY_RANK = ['in_stock', 'quick_ship', 'made_to_order']
+
+export function bestAvailability(values) {
+  for (const key of AVAILABILITY_RANK) if (values.includes(key)) return key
+  return null
+}

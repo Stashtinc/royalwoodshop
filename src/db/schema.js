@@ -6,12 +6,13 @@ import { relations } from 'drizzle-orm'
 
 /* ------------------------------------------------------------------ enums */
 
-/** Every product is exactly one of these. Mandatory, mutually exclusive.
- *  Collected from Royal Wood Shop on the Phase 0 audit sheet. */
+/** How a product ships. Collected from Royal Wood Shop on the Phase 0 audit
+ *  sheet, where it is recorded per species rather than per product: the tick
+ *  in each wood's column carries the code (X, QS, MTO). */
 export const availabilityEnum = pgEnum('availability', [
   'in_stock',
   'quick_ship',
-  'special_order',
+  'made_to_order',
 ])
 
 export const productStatusEnum = pgEnum('product_status', [
@@ -73,6 +74,10 @@ export const products = pgTable('products', {
   /** The original string, preserved for display: '3/4 X 2-3/4', '5/8 x 5" face'. */
   sizeDisplay: varchar('size_display', { length: 200 }),
 
+  /** The product as a whole: the best availability across the species it is
+   *  milled in, so the catalogue filter and sort have one value to work with.
+   *  Derived on import — product_attributes.availability is the truth. It is
+   *  still set directly for the products that have no species recorded yet. */
   availability: availabilityEnum('availability'),
   leadTime: varchar('lead_time', { length: 120 }),
 
@@ -135,9 +140,14 @@ export const attributeValues = pgTable('attribute_values', {
 export const productAttributes = pgTable('product_attributes', {
   productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
   attributeValueId: integer('attribute_value_id').notNull().references(() => attributeValues.id, { onDelete: 'cascade' }),
+  /** How the product ships in THIS species. A profile is often in stock in
+   *  poplar and made to order in walnut, so availability belongs on the tick
+   *  rather than on the product. Null on non-species attributes. */
+  availability: availabilityEnum('availability'),
 }, (t) => ({
   pk: primaryKey({ columns: [t.productId, t.attributeValueId] }),
   valueIdx: index('product_attributes_value_idx').on(t.attributeValueId),
+  availIdx: index('product_attributes_availability_idx').on(t.availability),
 }))
 
 /* ----------------------------------------------------------------- images */

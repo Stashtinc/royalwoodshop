@@ -4,6 +4,7 @@ import { requireUser } from '../../lib/auth.server'
 import { listProducts } from '../../lib/admin-queries.server'
 import { thumbSrc } from '../../lib/images'
 import Pagination from '../../components/admin/Pagination'
+import { AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
 
 export async function loader({ request }) {
   await requireUser(request)
@@ -149,7 +150,7 @@ export default function Products() {
                 </td>
                 <td className="px-4 py-2.5 text-gray-600">
                   {r.availability
-                    ? r.availability.replace('_', ' ')
+                    ? AVAILABILITY_LABEL[r.availability] ?? r.availability.replace(/_/g, ' ')
                     : <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">not set</span>}
                 </td>
                 <td className="px-4 py-2.5 text-right">

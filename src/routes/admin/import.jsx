@@ -3,7 +3,7 @@ import { Form, Link, useActionData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { parseUpload, analyse, apply } from '../../lib/species-import.server'
 import { log } from '../../lib/activity.server'
-import { SPECIES, AVAILABILITY } from '../../lib/catalogue-constants'
+import { SPECIES, AVAILABILITY, AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
 
 export async function loader({ request }) {
   await requireUser(request)
@@ -144,13 +144,28 @@ function PencilIcon() {
 }
 
 function RowEditor({ change, initial, onSave, onCancel }) {
-  const [species, setSpecies] = useState(initial.species)
+  // One control per wood, mirroring the sheet: choosing an availability is
+  // what ticks the species, because on the sheet they are the same mark.
+  const [picked, setPicked] = useState(() =>
+    Object.fromEntries((initial.species ?? []).map((x) => [x.name, x.availability ?? ''])))
   const [flex, setFlex] = useState(initial.flex)
-  const [availability, setAvailability] = useState(initial.availability ?? '')
 
-  function toggleSpecies(s) {
-    setSpecies((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])
+  function setWood(name, value) {
+    setPicked((prev) => {
+      const next = { ...prev }
+      if (value === 'none') delete next[name]
+      else next[name] = value
+      return next
+    })
   }
+
+  const values = () => ({
+    species: Object.entries(picked).map(([name, availability]) => ({
+      name,
+      availability: availability || null,
+    })),
+    flex,
+  })
 
   return (
     <div className="col-span-full border-t border-royal-blue/10 bg-blue-50/40 px-4 py-4">
@@ -158,61 +173,53 @@ function RowEditor({ change, initial, onSave, onCancel }) {
         Editing <span className="font-mono text-gray-700">{change.code}</span>
       </p>
 
-      <div className="flex flex-wrap gap-6">
-        {/* Species checkboxes */}
+      <div className="flex flex-wrap gap-8">
+        {/* One availability per wood */}
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-medium text-gray-600">Species</p>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-3">
-            {SPECIES.map((s) => (
-              <label key={s} className="flex cursor-pointer items-center gap-1.5">
-                <input
-                  type="checkbox"
-                  checked={species.includes(s)}
-                  onChange={() => toggleSpecies(s)}
-                  className="h-3.5 w-3.5 rounded accent-royal-blue"
-                />
-                <span className="text-xs text-gray-700">{s}</span>
+          <p className="text-xs font-medium text-gray-600">
+            Species and how each one ships
+          </p>
+          <div className="grid gap-x-8 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
+            {SPECIES.map((name) => (
+              <label key={name} className="flex items-center justify-between gap-2">
+                <span className={`text-xs ${name in picked ? 'text-gray-800' : 'text-gray-400'}`}>
+                  {name}
+                </span>
+                <select
+                  value={name in picked ? (picked[name] || '') : 'none'}
+                  onChange={(e) => setWood(name, e.target.value)}
+                  className="rounded border border-gray-300 py-0.5 pl-1.5 pr-5 text-xs text-gray-700 outline-none focus:border-royal-blue"
+                >
+                  <option value="none">— not milled —</option>
+                  <option value="">milled, no code</option>
+                  {AVAILABILITY.map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
               </label>
             ))}
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
-          {/* Flex */}
-          <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-medium text-gray-600">Options</p>
-            <label className="flex cursor-pointer items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={flex}
-                onChange={(e) => setFlex(e.target.checked)}
-                className="h-3.5 w-3.5 rounded accent-royal-blue"
-              />
-              <span className="text-xs text-gray-700">Flex available</span>
-            </label>
-          </div>
-
-          {/* Availability */}
-          <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-medium text-gray-600">Availability</p>
-            <select
-              value={availability}
-              onChange={(e) => setAvailability(e.target.value)}
-              className="rounded border border-gray-300 py-1 pl-2 pr-6 text-xs text-gray-700 outline-none focus:border-royal-blue"
-            >
-              <option value="">— unchanged —</option>
-              {AVAILABILITY.map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
+        {/* Flex */}
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-medium text-gray-600">Options</p>
+          <label className="flex cursor-pointer items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={flex}
+              onChange={(e) => setFlex(e.target.checked)}
+              className="h-3.5 w-3.5 rounded accent-royal-blue"
+            />
+            <span className="text-xs text-gray-700">Flex available</span>
+          </label>
         </div>
       </div>
 
       <div className="mt-4 flex items-center gap-3">
         <button
           type="button"
-          onClick={() => onSave({ species, flex, availability: availability || null })}
+          onClick={() => onSave(values())}
           className="rounded bg-royal-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-royal-blue-dark"
         >
           Save edit
@@ -313,10 +320,23 @@ export default function Import() {
             </div>
           )}
 
-          {s.tooManyAvailability.length > 0 && (
+          {s.badCodes.length > 0 && (
             <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              <p className="font-medium">More than one availability ticked — availability will be left unchanged for:</p>
-              <p className="mt-1 font-mono text-xs">{s.tooManyAvailability.join(', ')}</p>
+              <p className="font-medium">Ticks that are not X, QS or MTO — the wood is recorded, but with no availability against it:</p>
+              <p className="mt-1 font-mono text-xs">{s.badCodes.slice(0, 12).join(' · ')}</p>
+            </div>
+          )}
+
+          {s.noCode.length > 0 && (
+            <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">
+                {s.noCode.length} row{s.noCode.length === 1 ? '' : 's'} in the sheet have a product
+                name but no product code, so there is nothing to match them to:
+              </p>
+              <p className="mt-1 text-xs">{s.noCode.slice(0, 8).join(' · ')}</p>
+              <p className="mt-1 text-xs text-amber-700">
+                Anything ticked on these rows is skipped. They need a product code in the sheet.
+              </p>
             </div>
           )}
 
@@ -339,9 +359,14 @@ export default function Import() {
                         <span className="font-mono text-xs text-gray-500">{c.code}</span>
                         <span className="text-gray-800">{c.name}</span>
                         <span className={`ml-auto text-xs ${edit ? 'font-medium text-royal-blue' : 'text-gray-600'}`}>
-                          {display.species.join(', ') || '—'}
+                          {display.species.length
+                            ? display.species
+                                .map((x) => x.availability
+                                  ? `${x.name} (${AVAILABILITY_LABEL[x.availability]})`
+                                  : x.name)
+                                .join(', ')
+                            : '—'}
                           {display.flex && ' · flex'}
-                          {display.availability && ` · ${display.availability.replace('_', ' ')}`}
                           {edit && <span className="ml-1 text-[10px] text-royal-blue/70">(edited)</span>}
                         </span>
                         <button
@@ -360,7 +385,7 @@ export default function Import() {
                       {isEditing && (
                         <RowEditor
                           change={c}
-                          initial={edit ?? { species: c.species, flex: c.flex, availability: c.availability }}
+                          initial={edit ?? { species: c.species, flex: c.flex }}
                           onSave={(values) => {
                             setEdits((prev) => ({ ...prev, [c.code]: values }))
                             setEditingCode(null)
@@ -406,6 +431,7 @@ export default function Import() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Stat label="Products with species, in total" value={r.totals.withSpecies} tone="good" />
             <Stat label="Products with availability, in total" value={r.totals.withAvail} tone="good" />
+            <Stat label="Species ticks carrying an availability" value={r.totals.ticksWithAvail} tone="good" />
           </div>
           <p className="text-sm text-gray-600">
             The species and availability filters on the public site show only values that have

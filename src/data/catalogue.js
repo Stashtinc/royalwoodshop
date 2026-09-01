@@ -57,13 +57,45 @@ export function speciesFacet(rows = products) {
     .map(([value, count]) => ({ value, count }))
 }
 
+const AVAILABILITY_LABELS = {
+  in_stock: 'In Stock',
+  quick_ship: 'Quick Ship',
+  made_to_order: 'Made-to-Order',
+}
+
+/**
+ * Every way a product can be had.
+ *
+ * Availability is recorded per species, so one profile can be in stock in
+ * poplar and made to order in walnut. It belongs under both filters — a
+ * contractor who needs it today and one who can wait should each find it —
+ * so a product contributes every distinct value it carries, not just the
+ * best one.
+ */
+export function availabilityKeys(p) {
+  const keys = new Set()
+  if (p.availability) keys.add(p.availability)
+  for (const s of p.speciesAvailability ?? []) if (s.availability) keys.add(s.availability)
+  return [...keys]
+}
+
+/** "Poplar (In Stock), Black Walnut (Made-to-Order)" — or just the wood names
+ *  while the sheet still has no codes against them. */
+export function speciesSummary(p) {
+  const detail = p.speciesAvailability ?? []
+  if (!detail.length) return (p.species ?? []).join(', ')
+  if (!detail.some((s) => s.label)) return detail.map((s) => s.name).join(', ')
+  return detail.map((s) => (s.label ? `${s.name} (${s.label})` : s.name)).join(', ')
+}
+
 export function availabilityFacet(rows = products) {
-  const labels = { in_stock: 'In Stock', quick_ship: 'Quick Ship', special_order: 'Special Order' }
   const counts = new Map()
-  for (const p of rows) if (p.availability) counts.set(p.availability, (counts.get(p.availability) ?? 0) + 1)
-  return ['in_stock', 'quick_ship', 'special_order']
+  for (const p of rows) {
+    for (const k of availabilityKeys(p)) counts.set(k, (counts.get(k) ?? 0) + 1)
+  }
+  return ['in_stock', 'quick_ship', 'made_to_order']
     .filter((k) => counts.has(k))
-    .map((k) => ({ key: k, value: labels[k], count: counts.get(k) }))
+    .map((k) => ({ key: k, value: AVAILABILITY_LABELS[k], count: counts.get(k) }))
 }
 
 export const flexCount = (rows = products) => rows.filter((p) => p.flexAvailable).length

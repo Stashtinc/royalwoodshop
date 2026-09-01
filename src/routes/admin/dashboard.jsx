@@ -88,7 +88,7 @@ export default function Dashboard() {
         <Card label="Awaiting species" value={stats.noSpecies} tone={stats.noSpecies ? 'warn' : 'good'}
           to="/admin/products?missing=species" hint="Species filter stays hidden until this is 0" />
         <Card label="Awaiting availability" value={stats.noAvailability} tone={stats.noAvailability ? 'warn' : 'good'}
-          to="/admin/products?missing=availability" hint="In stock / quick ship / special order" />
+          to="/admin/products?missing=availability" hint="In stock / quick ship / made-to-order" />
         <Card label="No description" value={stats.noDescription} tone={stats.noDescription ? 'warn' : 'good'}
           to="/admin/products?missing=description" hint="Blank pages cannot rank" />
       </div>

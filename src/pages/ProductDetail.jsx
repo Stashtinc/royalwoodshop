@@ -1,5 +1,5 @@
 import { Link, useParams, useNavigate } from 'react-router'
-import { catalogueProducts, productPath, relatedTo } from '../data/catalogue'
+import { catalogueProducts, productPath, relatedTo, speciesSummary } from '../data/catalogue'
 import { srcSet, thumbSrc, imageFit } from '../lib/images'
 
 function ChevronRight() {
@@ -30,7 +30,7 @@ function SpecSheet({ product }) {
   const rows = [
     ['Product code', product.productCode],
     ['Size', product.size],
-    ['Species', product.species?.length ? product.species.join(', ') : null],
+    ['Species', product.species?.length ? speciesSummary(product) : null],
     ['Flexible version', product.flexAvailable ? 'Available' : null],
     ['Category', product.category],
     ['Type', product.subcategory],
@@ -154,7 +154,7 @@ export default function ProductDetail({ product: productProp = null, related: re
     // Species comes from the sheet Royal Wood Shop are completing. Until a
     // product has it, the row is omitted rather than showing a bare 'wood'.
     { label: product.species?.length > 1 ? 'Available in' : 'Species',
-      value: product.species?.length ? product.species.join(', ') : null },
+      value: product.species?.length ? speciesSummary(product) : null },
     { label: 'Flexible version', value: product.flexAvailable ? 'Available' : null },
     { label: 'Category', value: product.category },
     { label: 'Type', value: product.subcategory },

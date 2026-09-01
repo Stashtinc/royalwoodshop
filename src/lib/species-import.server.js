@@ -2,11 +2,15 @@ import { parse } from 'csv-parse/sync'
 import { eq, inArray, sql } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { products, attributes, attributeValues, productAttributes } from '../db/schema.js'
-import { SPECIES, AVAILABILITY } from './catalogue-constants.js'
+import { SPECIES, TICK_CODES, bestAvailability } from './catalogue-constants.js'
 
 /** Ticked beside species on the sheet, but stored as a product flag. */
 const FLEX = 'Flex'
 const ticked = (v) => String(v ?? '').trim() !== ''
+
+/** 'X' | 'QS' | 'MTO' -> the stored availability value. */
+const CODE = new Map(TICK_CODES.map(([tick, key]) => [tick, key]))
+const readCode = (v) => CODE.get(String(v ?? '').trim().toUpperCase()) ?? null
 
 /**
  * Turns a grid of cells into rows, skipping whatever sits above the headers.
@@ -79,23 +83,38 @@ export function parseSheet(text) {
   return parseGrid(parse(text, { skip_empty_lines: false, relax_column_count: true, bom: true }))
 }
 
-/** Turns a sheet row into the change it represents. */
+/**
+ * Turns a sheet row into the change it represents.
+ *
+ * Each species column carries both facts at once: that the profile is milled
+ * in that wood, and how it ships in it. An unrecognised code still counts as
+ * a tick — the species is real even when the code is a typo — and is reported
+ * so it can be fixed rather than silently dropped.
+ */
 function readRow(r) {
   const code = String(r['PRODUCT CODE'] ?? '').trim()
-  if (!code) return null
-  const species = SPECIES.filter((s) => ticked(r[s]))
-  // AVAILABILITY is [key, label]; the sheet's column header is the label in
-  // capitals — 'in_stock' is the stored value, 'IN STOCK' is the column.
-  const picked = AVAILABILITY.filter(([, label]) => ticked(r[label.toUpperCase()]))
-  const other = String(r.OTHER ?? '').split('|').map((s) => s.trim()).filter(Boolean)
+  const name = String(r['PRODUCT NAME'] ?? '').trim()
+  if (!code && !name) return null
+
+  const species = []
+  const badCodes = []
+  for (const s of SPECIES) {
+    const cell = String(r[s] ?? '').trim()
+    if (!cell) continue
+    const availability = readCode(cell)
+    if (!availability) badCodes.push(`${s}: ${cell}`)
+    species.push({ name: s, availability })
+  }
+
+  const other = String(r.OTHER ?? '').split('|').map((x) => x.trim()).filter(Boolean)
   return {
     code,
-    name: String(r['PRODUCT NAME'] ?? '').trim(),
+    name,
     species,
     other,
     flex: ticked(r[FLEX]),
-    availability: picked.length === 1 ? picked[0][0] : null,
-    tooManyAvailability: picked.length > 1,
+    availability: bestAvailability(species.map((x) => x.availability).filter(Boolean)),
+    badCodes,
     notes: String(r.NOTES ?? '').trim(),
   }
 }
@@ -106,7 +125,13 @@ function readRow(r) {
  */
 export async function analyse(rows) {
   const db = await getDb()
-  const parsed = rows.map(readRow).filter(Boolean)
+  const all = rows.map(readRow).filter(Boolean)
+  const parsed = all.filter((p) => p.code)
+  // Rows carrying a product name but no product code cannot be matched to
+  // anything. They are reported rather than dropped, because on the current
+  // sheet there are 66 of them — mostly doors — and silently ignoring a row
+  // Royal Wood Shop have filled in is worse than saying so.
+  const noCode = all.filter((p) => !p.code).map((p) => p.name)
 
   const codes = [...new Set(parsed.map((p) => p.code))]
   const found = codes.length
@@ -125,7 +150,8 @@ export async function analyse(rows) {
     willSetAvailability: 0,
     willSetFlex: 0,
     blank: 0,
-    tooManyAvailability: [],
+    noCode,
+    badCodes: [],
     unknownOther: [],
     changes: [],
   }
@@ -140,7 +166,7 @@ export async function analyse(rows) {
     if (p.flex) summary.willSetFlex++
     if (p.species.length || p.availability || p.flex) summary.willChange++
     else summary.blank++
-    if (p.tooManyAvailability) summary.tooManyAvailability.push(p.code)
+    for (const bad of p.badCodes) summary.badCodes.push(`${p.code} — ${bad}`)
     for (const o of p.other) {
       if (!known.has(o.toLowerCase())) summary.unknownOther.push(`${p.code}: ${o}`)
     }
@@ -204,10 +230,14 @@ export async function apply(rows, overrides = {}) {
     if (p.species.length) {
       await db.delete(productAttributes).where(eq(productAttributes.productId, product.id))
       for (const s of p.species) {
-        const vid = valueIds.get(s.toLowerCase())
+        const vid = valueIds.get(s.name.toLowerCase())
         if (vid) {
           await db.insert(productAttributes)
-            .values({ productId: product.id, attributeValueId: vid }).onConflictDoNothing()
+            .values({ productId: product.id, attributeValueId: vid, availability: s.availability })
+            .onConflictDoUpdate({
+              target: [productAttributes.productId, productAttributes.attributeValueId],
+              set: { availability: s.availability },
+            })
         }
       }
     }
@@ -226,6 +256,9 @@ export async function apply(rows, overrides = {}) {
     .from(productAttributes)
   const [{ withAvail }] = await db.select({ withAvail: sql`count(*)::int` })
     .from(products).where(sql`${products.availability} is not null`)
+  const [{ ticksWithAvail }] = await db
+    .select({ ticksWithAvail: sql`count(*)::int` })
+    .from(productAttributes).where(sql`${productAttributes.availability} is not null`)
 
-  return { ...summary, written, totals: { withSpecies, withAvail } }
+  return { ...summary, written, totals: { withSpecies, withAvail, ticksWithAvail } }
 }

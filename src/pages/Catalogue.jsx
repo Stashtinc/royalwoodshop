@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { srcSet, thumbSrc, imageFit } from '../lib/images'
 import {
   productPath, catalogueProducts as snapshotProducts,
-  categoryTree, speciesFacet, availabilityFacet, CATEGORY_BY_SLUG,
+  categoryTree, speciesFacet, availabilityFacet, availabilityKeys, CATEGORY_BY_SLUG,
 } from '../data/catalogue'
 
 const PAGE_SIZE = 8
@@ -297,7 +297,9 @@ export default function Catalogue({ initialCategory = null, products = null }) {
       if (codeTerm && !product.productCode.toLowerCase().includes(codeTerm)) return false
       if (sizeCategory !== 'All' && product.sizeCategory !== sizeCategory) return false
       if (species !== 'All' && !(product.species ?? []).includes(species)) return false
-      if (availability !== 'All' && product.availability !== availability) return false
+      // Availability is per species, so a profile in stock in poplar and made
+      // to order in walnut answers to both filters.
+      if (availability !== 'All' && !availabilityKeys(product).includes(availability)) return false
       if (selectedSubs.size > 0 && !selectedSubs.has(`${product.category}::${product.subcategory}`)) {
         return false
       }
