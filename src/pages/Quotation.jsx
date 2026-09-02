@@ -90,15 +90,15 @@ const lineItems = [
   },
   {
     step: '7',
-    title: 'Generate product images — AI generated',
-    who: 'Design',
+    title: 'Create Google Search Console & Analytics dashboard',
+    who: 'Development — completed',
+    completed: true,
     buckets: 2,
     bullets: [
-      'AI-generated imagery built from your existing profile drawings and product data',
-      'Consistent styling, lighting and background across the whole range',
-      'Sized and optimised for web delivery',
-      'Covers products with no usable image at present',
-      'Royal Wood Shop reviews and approves; anything inaccurate is regenerated',
+      'Google Search Console integration via service account API',
+      'Google Analytics 4 Data API integration — users, sessions, page views, channels',
+      'Admin dashboard panels with live data, sparkline trend chart and top pages',
+      'Cached reporting with background refresh — dashboard never waits on Google',
     ],
   },
   {
@@ -116,6 +116,17 @@ const lineItems = [
 ]
 
 const optionalItems = [
+  {
+    title: 'Generate product images — AI generated',
+    who: 'Design',
+    buckets: 2,
+    bullets: [
+      'AI-generated imagery built from your existing profile drawings and product data',
+      'Consistent styling, lighting and background across the whole range',
+      'Sized and optimised for web delivery — covers products with no usable image',
+      'Royal Wood Shop reviews and approves; anything inaccurate is regenerated',
+    ],
+  },
   { title: 'Ongoing support and maintenance — per month', who: 'Support', buckets: 1 },
   { title: 'SEO support and reporting — per month', who: 'SEO', buckets: 1 },
 ]
@@ -307,14 +318,25 @@ export default function Quotation() {
           </p>
           <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
             {optionalItems.map((item, idx) => (
-              <div key={idx} className={`flex items-center justify-between gap-4 px-5 py-3.5 font-sans text-sm ${idx > 0 ? 'border-t border-gray-100' : ''}`}>
-                <div className="min-w-0">
-                  <span className="text-gray-700">{item.title}</span>
-                  <span className="ml-3 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">{item.who}</span>
-                </div>
-                <div className="flex shrink-0 items-center gap-6 text-right">
-                  <span className="text-gray-400">{item.buckets} {item.buckets === 1 ? 'bucket' : 'buckets'}</span>
-                  <span className="w-16 font-semibold text-gray-700">{fmt(item.buckets * RATE)}</span>
+              <div key={idx} className={`px-5 py-3.5 font-sans text-sm ${idx > 0 ? 'border-t border-gray-100' : ''}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-gray-700 font-medium">{item.title}</span>
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">{item.who}</span>
+                    </div>
+                    {item.bullets && (
+                      <ul className="mt-1.5 space-y-0.5">
+                        {item.bullets.map((b, i) => (
+                          <li key={i} className="text-xs text-gray-400 before:mr-1.5 before:content-['–']">{b}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-6 text-right">
+                    <span className="text-gray-400">{item.buckets} {item.buckets === 1 ? 'bucket' : 'buckets'}</span>
+                    <span className="w-16 font-semibold text-gray-700">{fmt(item.buckets * RATE)}</span>
+                  </div>
                 </div>
               </div>
             ))}
