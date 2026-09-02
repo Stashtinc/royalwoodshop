@@ -51,7 +51,7 @@ function Card({ label, value, tone = 'default', to, hint }) {
       {hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
     </div>
   )
-  return to ? <Link to={to} className="block transition-shadow hover:shadow-md">{body}</Link> : body
+  return to ? <Link to={to} className="block rounded-2xl transition-shadow hover:shadow-lg">{body}</Link> : body
 }
 
 export default function Dashboard() {
