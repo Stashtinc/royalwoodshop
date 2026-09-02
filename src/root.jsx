@@ -62,7 +62,7 @@ export default function Root() {
   // Pages that render standalone, without the site header, banner or footer.
   // The admin has its own chrome, and the quotation page is a printable
   // document, so wrapping either in the marketing layout is wrong.
-  const isBare = pathname === '/quotation' || pathname.startsWith('/admin')
+  const isBare = pathname === '/workorder' || pathname.startsWith('/admin')
 
   if (isBare) return <Outlet />
 

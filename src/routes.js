@@ -26,7 +26,7 @@ export default [
   route('resources/glossary', 'routes/glossary.jsx'),
   route('resources/faq', 'routes/faq.jsx'),
   route('resources/installation-tips', 'routes/installation-tips.jsx'),
-  route('quotation', 'routes/quotation.jsx'),
+  route('workorder', 'routes/quotation.jsx'),
 
   // Admin. Never prerendered — it runs on the server that holds the database.
   route('admin/login', 'routes/admin/login.jsx'),
