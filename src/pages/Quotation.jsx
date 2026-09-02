@@ -210,7 +210,7 @@ export default function Quotation() {
         {/* From / To */}
         <div className="mb-8 grid grid-cols-2 gap-6">
           {[
-            { label: 'FROM', lines: ['Christian Beckermann', '18 Saxon Rd.', 'Barrie, ON L4M 7G9'] },
+            { label: 'FROM', lines: ['Christian Beckermann', '18 Saxon Rd.', 'Barrie, ON L4M 7G9', 'GST/HST# 741325559 RT0001'] },
             { label: 'TO', lines: ['The Royal Wood Shop Ltd', 'Attn: Brad Gerrits', '18237 Woodbine Ave', 'East Gwillimbury, ON L0G 1V0'] },
           ].map(({ label, lines }) => (
             <div key={label} className="rounded-xl border border-gray-200 bg-white px-5 py-4">
