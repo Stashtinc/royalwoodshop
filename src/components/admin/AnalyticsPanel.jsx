@@ -268,9 +268,16 @@ export default function AnalyticsPanel({ analytics }) {
               <tbody>
                 {pages.map((p) => (
                   <tr key={p.path} className="border-t border-gray-50">
-                    <td className="max-w-0 truncate px-4 py-2 text-gray-700"
-                      title={`${p.title} — ${p.path}`}>
-                      {p.path}
+                    <td className="max-w-0 truncate px-4 py-2">
+                      <a
+                        href={`https://www.royalwoodshop.com${p.path}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`${p.title} — ${p.path}`}
+                        className="text-royal-blue hover:underline"
+                      >
+                        {p.path}
+                      </a>
                       {p.title && <span className="ml-2 text-xs text-gray-400">{p.title}</span>}
                     </td>
                     <td className="px-2 py-2 text-right font-medium text-gray-700">{fmt.count(p.views)}</td>
