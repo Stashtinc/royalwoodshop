@@ -466,6 +466,27 @@ export default function Quotation() {
             </div>
           </div>
 
+          {/* HST owing on previously paid amounts */}
+          {(() => {
+            const paidUSD = paymentRows.filter(r => r.paid).reduce((s, r) => s + subtotal * r.pct, 0)
+            const paidCAD = hourlyPeriods.filter(p => p.paid).reduce((s, p) => s + Math.round(p.hours * p.rate), 0)
+            const hstOwing = Math.round((Math.round(paidUSD * CAD_RATE) + paidCAD) * HST)
+            return (
+              <div className="flex items-center justify-between border-t border-amber-100 bg-amber-50/60 px-5 py-3.5 font-sans text-sm">
+                <div className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-amber-900">HST owing on previous payments</span>
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Due</span>
+                  </div>
+                  <span className="text-xs text-amber-700">
+                    ({fmt(Math.round(paidUSD * CAD_RATE))} + {fmt(paidCAD)}) CAD × 13% — not charged at time of billing
+                  </span>
+                </div>
+                <span className="font-bold text-amber-900 shrink-0">{fmt(hstOwing)} <span className="font-normal text-amber-700 text-xs">CAD</span></span>
+              </div>
+            )
+          })()}
+
           {/* Due: milestone payments */}
           {paymentRows.filter(r => r.due).map((row) => (
             <div key={row.milestone} className="flex items-center justify-between border-t border-amber-100 bg-amber-50/60 px-5 py-3.5 font-sans text-sm">
@@ -495,19 +516,28 @@ export default function Quotation() {
             if (!dueMilestones.length && !dueHourly.length) return null
             const dueUSD = dueMilestones.reduce((s, r) => s + subtotal * r.pct, 0)
             const dueCAD = dueHourly.reduce((s, p) => s + Math.round(p.hours * p.rate), 0)
+            const paidUSD = paymentRows.filter(r => r.paid).reduce((s, r) => s + subtotal * r.pct, 0)
+            const paidCAD = hourlyPeriods.filter(p => p.paid).reduce((s, p) => s + Math.round(p.hours * p.rate), 0)
+            const hstOwing = Math.round((Math.round(paidUSD * CAD_RATE) + paidCAD) * HST)
+            const currentSubtotalCAD = Math.round(dueUSD * CAD_RATE) + dueCAD
+            const currentHST = Math.round(currentSubtotalCAD * HST)
+            const grandTotal = currentSubtotalCAD + currentHST + hstOwing
             return (
               <div className="flex items-center justify-between border-t-2 border-amber-300 bg-amber-100 px-5 py-4 font-sans font-bold text-amber-900">
                 <span className="text-base">Total Due Now</span>
                 <div className="text-right">
                   {dueUSD > 0 && (
                     <p className="text-sm font-normal text-amber-700">
-                      {fmt(dueUSD)} USD × {CAD_RATE} = {fmt(Math.round(dueUSD * CAD_RATE))} CAD + {fmt(dueCAD)} CAD = {fmt(Math.round(dueUSD * CAD_RATE) + dueCAD)} CAD subtotal
+                      {fmt(dueUSD)} USD × {CAD_RATE} = {fmt(Math.round(dueUSD * CAD_RATE))} CAD + {fmt(dueCAD)} CAD = {fmt(currentSubtotalCAD)} CAD
                     </p>
                   )}
                   <p className="text-sm font-normal text-amber-700">
-                    + HST 13% = {fmt(Math.round((Math.round(dueUSD * CAD_RATE) + dueCAD) * HST))} CAD
+                    + HST 13% on current = {fmt(currentHST)} CAD
                   </p>
-                  <p className="text-xl">{fmt(Math.round((Math.round(dueUSD * CAD_RATE) + dueCAD) * (1 + HST)))} <span className="text-sm font-normal text-amber-700">CAD</span></p>
+                  <p className="text-sm font-normal text-amber-700">
+                    + HST owing on previous = {fmt(hstOwing)} CAD
+                  </p>
+                  <p className="text-xl">{fmt(grandTotal)} <span className="text-sm font-normal text-amber-700">CAD</span></p>
                 </div>
               </div>
             )
