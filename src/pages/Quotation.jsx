@@ -173,7 +173,7 @@ export default function Quotation() {
         <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-1 items-start justify-between gap-4">
             <div>
-              <p className="font-serif text-2xl font-bold text-royal-blue">PROPOSAL & QUOTATION</p>
+              <p className="font-serif text-2xl font-bold text-royal-blue">WORK ORDER</p>
               <p className="mt-1 max-w-lg font-sans text-sm text-gray-500">
                 Website Rebuild — Product Catalogue & Content Management System
               </p>
@@ -585,16 +585,6 @@ export default function Quotation() {
                 Signed by <strong>{signedBy.name}</strong>{signedBy.position ? `, ${signedBy.position}` : ''} · {signedBy.date}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="flex shrink-0 items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 font-sans text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
-            >
-              <svg width="14" height="14" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3.5 5V2.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V5M3 10H2a.5.5 0 0 1-.5-.5v-4A.5.5 0 0 1 2 5h11a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5h-1M3.5 8h8v4.5a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V8z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Print
-            </button>
           </div>
         </div>
       )}
