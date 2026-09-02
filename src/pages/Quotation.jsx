@@ -3,6 +3,7 @@ import SignaturePad from '../components/SignaturePad'
 
 const RATE = 500
 const CAD_RATE = 1.38
+const HST = 0.13
 
 const lineItems = [
   {
@@ -296,17 +297,17 @@ export default function Quotation() {
               <span>Subtotal</span>
               <span className="font-medium text-gray-700">{fmt(subtotal)}</span>
             </div>
-            <div className="flex justify-between border-t border-gray-100 px-5 py-3 font-sans text-sm text-gray-400">
-              <span>Tax</span>
-              <span>—</span>
+            <div className="flex justify-between border-t border-gray-100 px-5 py-3 font-sans text-sm text-gray-500">
+              <span>HST (13%)</span>
+              <span className="font-medium text-gray-700">{fmt(Math.round(subtotal * HST))}</span>
             </div>
             <div className="flex justify-between border-t border-royal-blue/20 bg-royal-blue px-5 py-3.5 font-sans text-sm font-bold text-white">
               <span>TOTAL (USD)</span>
-              <span>{fmt(subtotal)}</span>
+              <span>{fmt(Math.round(subtotal * (1 + HST)))}</span>
             </div>
             <div className="flex justify-between border-t border-royal-blue/40 bg-royal-blue/90 px-5 py-3 font-sans text-sm text-white/80">
               <span>≈ CAD <span className="text-xs font-normal opacity-70">(@ {CAD_RATE} rate)</span></span>
-              <span className="font-semibold">${Math.round(subtotal * CAD_RATE).toLocaleString('en-CA')} CAD</span>
+              <span className="font-semibold">${Math.round(subtotal * (1 + HST) * CAD_RATE).toLocaleString('en-CA')} CAD</span>
             </div>
           </div>
         </div>
@@ -498,8 +499,15 @@ export default function Quotation() {
               <div className="flex items-center justify-between border-t-2 border-amber-300 bg-amber-100 px-5 py-4 font-sans font-bold text-amber-900">
                 <span className="text-base">Total Due Now</span>
                 <div className="text-right">
-                  {dueUSD > 0 && <p className="text-sm font-normal text-amber-700">{fmt(dueUSD)} USD @ {CAD_RATE} = {fmt(Math.round(dueUSD * CAD_RATE))} CAD + {fmt(dueCAD)} CAD</p>}
-                  <p className="text-xl">{fmt(Math.round(dueUSD * CAD_RATE) + dueCAD)} <span className="text-sm font-normal text-amber-700">CAD</span></p>
+                  {dueUSD > 0 && (
+                    <p className="text-sm font-normal text-amber-700">
+                      {fmt(dueUSD)} USD × {CAD_RATE} = {fmt(Math.round(dueUSD * CAD_RATE))} CAD + {fmt(dueCAD)} CAD = {fmt(Math.round(dueUSD * CAD_RATE) + dueCAD)} CAD subtotal
+                    </p>
+                  )}
+                  <p className="text-sm font-normal text-amber-700">
+                    + HST 13% = {fmt(Math.round((Math.round(dueUSD * CAD_RATE) + dueCAD) * HST))} CAD
+                  </p>
+                  <p className="text-xl">{fmt(Math.round((Math.round(dueUSD * CAD_RATE) + dueCAD) * (1 + HST)))} <span className="text-sm font-normal text-amber-700">CAD</span></p>
                 </div>
               </div>
             )
