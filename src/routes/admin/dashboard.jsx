@@ -96,15 +96,6 @@ export default function Dashboard() {
       <SearchConsolePanel search={search} />
 
       <AnalyticsPanel analytics={analytics} />
-
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <h2 className="font-serif text-lg font-bold text-tundora">Publishing</h2>
-        <p className="mt-1 text-sm text-gray-600">
-          Changes saved here are stored in the database. The public site is rebuilt
-          from it — run <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">npm run sync:data</code> then
-          {' '}<code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">npm run build</code> to publish.
-        </p>
-      </div>
     </div>
   )
 }

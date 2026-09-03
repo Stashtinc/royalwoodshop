@@ -38,6 +38,19 @@ function shortPath(url) {
   }
 }
 
+/* --------------------------------------------------------- tooltip cell */
+
+function TooltipCell({ full, children }) {
+  return (
+    <span className="group relative block overflow-visible">
+      <span className="block truncate">{children}</span>
+      <span className="pointer-events-none absolute left-0 top-full z-[200] mt-1 hidden w-max max-w-[320px] break-all rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 shadow-xl group-hover:block">
+        {full}
+      </span>
+    </span>
+  )
+}
+
 /* ------------------------------------------------------------ small pieces */
 
 /** Position is the one metric where down is good, hence `lowerIsBetter`. */
@@ -128,20 +141,22 @@ function RankTable({ title, hint, rows, render }) {
         {hint && <p className="mt-0.5 text-xs text-gray-400">{hint}</p>}
       </div>
       {rows?.length ? (
-        <table className="w-full text-sm">
+        <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="text-xs text-gray-400">
               <th className="px-4 py-2 text-left font-medium"> </th>
-              <th className="px-2 py-2 text-right font-medium">Clicks</th>
-              <th className="px-2 py-2 text-right font-medium">Impr.</th>
-              <th className="px-4 py-2 text-right font-medium">Pos.</th>
+              <th className="w-16 px-2 py-2 text-right font-medium">Clicks</th>
+              <th className="w-20 px-2 py-2 text-right font-medium">Impr.</th>
+              <th className="w-14 px-4 py-2 text-right font-medium">Pos.</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.key} className="border-t border-gray-50">
-                <td className="max-w-0 truncate px-4 py-2 text-gray-700" title={r.key}>
-                  {render(r)}
+                <td className="overflow-visible px-4 py-2 text-gray-700">
+                  <TooltipCell full={r.key}>
+                    {render(r)}
+                  </TooltipCell>
                 </td>
                 <td className="px-2 py-2 text-right font-medium text-gray-700">{fmt.count(r.clicks)}</td>
                 <td className="px-2 py-2 text-right text-gray-500">{fmt.count(r.impressions)}</td>
@@ -291,7 +306,8 @@ export default function SearchConsolePanel({ search }) {
           rows={queries} render={(r) => r.key} />
         <RankTable title="Top pages" hint="Which pages Google sends people to"
           rows={pages} render={(r) => (
-            <a href={r.key} target="_blank" rel="noreferrer" className="hover:underline">
+            <a href={r.key} target="_blank" rel="noreferrer"
+              className="text-blue-600 hover:underline">
               {shortPath(r.key)}
             </a>
           )} />
