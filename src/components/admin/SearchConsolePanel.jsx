@@ -38,19 +38,6 @@ function shortPath(url) {
   }
 }
 
-/* --------------------------------------------------------- tooltip cell */
-
-function TooltipCell({ full, children }) {
-  return (
-    <span className="group relative block overflow-visible">
-      <span className="block truncate">{children}</span>
-      <span className="pointer-events-none absolute left-0 top-full z-[200] mt-1 hidden w-max max-w-[320px] break-all rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 shadow-xl group-hover:block">
-        {full}
-      </span>
-    </span>
-  )
-}
-
 /* ------------------------------------------------------------ small pieces */
 
 /** Position is the one metric where down is good, hence `lowerIsBetter`. */
@@ -153,10 +140,8 @@ function RankTable({ title, hint, rows, render }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r.key} className="border-t border-gray-50">
-                <td className="overflow-visible px-4 py-2 text-gray-700">
-                  <TooltipCell full={r.key}>
-                    {render(r)}
-                  </TooltipCell>
+                <td className="truncate px-4 py-2 text-gray-700">
+                  {render(r)}
                 </td>
                 <td className="px-2 py-2 text-right font-medium text-gray-700">{fmt.count(r.clicks)}</td>
                 <td className="px-2 py-2 text-right text-gray-500">{fmt.count(r.impressions)}</td>
