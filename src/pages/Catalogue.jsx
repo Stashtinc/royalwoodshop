@@ -262,9 +262,12 @@ export default function Catalogue({ initialCategory = null, products = null }) {
   function toggleSub(category, sub) {
     const key = `${category}::${sub}`
     setSelectedSubs((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
+      const sameCat = [...prev].filter((k) => k.startsWith(`${category}::`))
+      const wasExclusive = sameCat.length === 1 && sameCat[0] === key
+      // Keep selections from other categories, clear this category's subs
+      const next = new Set([...prev].filter((k) => !k.startsWith(`${category}::`)))
+      // Toggle: if it was already the only one selected, clear it; otherwise select it exclusively
+      if (!wasExclusive) next.add(key)
       return next
     })
     setPage(1)
