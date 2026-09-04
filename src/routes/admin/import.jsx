@@ -34,6 +34,9 @@ export async function action({ request }) {
     catch (e) { return { error: e.message } }
 
     const { summary } = await analyse(parsedSheet.rows)
+    // The code list is only needed server-side, when the import is applied.
+    // Sending 473 of them down to the browser buys nothing.
+    delete summary.sheetCodes
 
     // Hold the file so applying it uses exactly what was previewed.
     await mkdir(STAGING, { recursive: true })
@@ -64,7 +67,11 @@ export async function action({ request }) {
     let overrides = {}
     try { const raw = form.get('overrides'); if (raw) overrides = JSON.parse(raw) } catch { /* ignore malformed */ }
 
-    const result = await apply(rows, overrides)
+    const result = await apply(rows, overrides, {
+      archiveMissing: form.get('archiveMissing') === 'yes',
+      fileName: String(form.get('fileName') ?? ''),
+      userEmail: user?.email ?? null,
+    })
     await unlink(`${STAGING}/${token}`).catch(() => {})
 
     await log(user, 'import.species', {
@@ -75,6 +82,7 @@ export async function action({ request }) {
         species: result.willSetSpecies,
         availability: result.willSetAvailability,
         unmatched: result.unmatched.length,
+        archived: result.archived.length,
       },
     })
 
@@ -245,6 +253,7 @@ export default function Import() {
 
   const [edits, setEdits] = useState({})
   const [editingCode, setEditingCode] = useState(null)
+  const [archiveMissing, setArchiveMissing] = useState(false)
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -340,6 +349,67 @@ export default function Import() {
             </div>
           )}
 
+          {!s.hasBaseline && (
+            <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
+              <p className="font-medium">No previous sheet on record.</p>
+              <p className="mt-1 text-xs">
+                Products removed from the sheet can only be spotted by comparing against the
+                sheet before it. Run{' '}
+                <code className="rounded bg-gray-200 px-1">npm run import:baseline -- &lt;previous sheet&gt;</code>{' '}
+                once, and every import after this one will report them.
+              </p>
+            </div>
+          )}
+
+          {s.removed.length > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">
+                {s.removed.length} product{s.removed.length === 1 ? '' : 's'} dropped out of the
+                sheet since the last import
+                {s.previousImportAt
+                  ? ` (${new Date(s.previousImportAt).toLocaleDateString('en-CA')})`
+                  : ''}
+                .
+              </p>
+              <ul className="mt-2 max-h-48 overflow-y-auto text-xs">
+                {s.removed.map((r) => (
+                  <li key={r.code} className="py-0.5">
+                    <span className="font-mono text-amber-800">{r.code}</span>
+                    <span className="ml-2 text-amber-900">{r.name}</span>
+                  </li>
+                ))}
+              </ul>
+              <label className="mt-3 flex cursor-pointer items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={archiveMissing}
+                  onChange={(e) => setArchiveMissing(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5 rounded accent-royal-blue"
+                />
+                <span className="text-xs">
+                  Archive these when the import is applied. They drop off the catalogue but keep
+                  their address and history, so they can still be redirected at cutover and
+                  brought back if this was not intended. Leave unticked to change nothing.
+                </span>
+              </label>
+            </div>
+          )}
+
+          {s.removedOrphans.length > 0 && (
+            <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">
+                {s.removedOrphans.length} row{s.removedOrphans.length === 1 ? '' : 's'} also left
+                the sheet, but no product was ever created for {s.removedOrphans.length === 1 ? 'it' : 'them'}:
+              </p>
+              <p className="mt-1 font-mono text-xs">{s.removedOrphans.slice(0, 20).join(' · ')}</p>
+              <p className="mt-1 text-xs text-amber-700">
+                There is nothing to archive. These are parts from the inventory lists that never
+                became products — but taking a row out is still a decision, so it is worth asking
+                what it meant before the parts are created.
+              </p>
+            </div>
+          )}
+
           {s.changes.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
               <p className="border-b border-gray-100 bg-gray-50 px-4 py-2 text-xs tracking-wide text-gray-600 uppercase">
@@ -408,6 +478,7 @@ export default function Import() {
               {Object.keys(edits).length > 0 && (
                 <input type="hidden" name="overrides" value={JSON.stringify(edits)} />
               )}
+              {archiveMissing && <input type="hidden" name="archiveMissing" value="yes" />}
               <button disabled={busy || s.willChange === 0}
                 className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
                 {busy
@@ -433,6 +504,29 @@ export default function Import() {
             <Stat label="Products with availability, in total" value={r.totals.withAvail} tone="good" />
             <Stat label="Species ticks carrying an availability" value={r.totals.ticksWithAvail} tone="good" />
           </div>
+
+          {r.archived.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+              <p className="border-b border-gray-100 bg-gray-50 px-4 py-2 text-xs tracking-wide text-gray-600 uppercase">
+                {r.archived.length} product{r.archived.length === 1 ? '' : 's'} archived — no longer in the sheet
+              </p>
+              <ul className="max-h-64 overflow-y-auto">
+                {r.archived.map((a) => (
+                  <li key={a.code} className="flex flex-wrap items-baseline gap-2 border-b border-gray-100 px-4 py-2 text-sm last:border-0">
+                    <span className="font-mono text-xs text-gray-500">{a.code}</span>
+                    <span className="text-gray-800">{a.name}</span>
+                    <Link to={`/admin/products/${a.id}`} className="ml-auto text-xs text-royal-blue hover:underline">
+                      Open
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <p className="border-t border-gray-100 bg-gray-50 px-4 py-2 text-xs text-gray-600">
+                Archived products keep their address and history. Open one and set it back to
+                published to undo this.
+              </p>
+            </div>
+          )}
           <p className="text-sm text-gray-600">
             The species and availability filters on the public site show only values that have
             products behind them, so they will reflect this the next time the site is published.

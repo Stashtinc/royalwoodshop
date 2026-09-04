@@ -109,11 +109,28 @@ function PaginationControls({ page, totalPages, onChange }) {
   )
 }
 
+const AVAILABILITY_PILL = {
+  in_stock:      { label: 'In Stock',       className: 'bg-green-100 text-green-800' },
+  quick_ship:    { label: 'Quick Ship',     className: 'bg-amber-100 text-amber-800' },
+  made_to_order: { label: 'Made-to-Order',  className: 'bg-gray-100 text-gray-600' },
+}
+
+function AvailabilityPill({ availability, className = '' }) {
+  if (!availability) return null
+  const pill = AVAILABILITY_PILL[availability]
+  if (!pill) return null
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-sans text-xs font-medium ${pill.className} ${className}`}>
+      {pill.label}
+    </span>
+  )
+}
+
 function ProductCard({ product }) {
   return (
     <Link
       to={productPath(product)}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-lg"
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-lg"
     >
       {/* Profile drawings are wide technical illustrations — contain, never
           crop, or the detail a customer is reading gets cut off. */}
@@ -127,6 +144,11 @@ function ProductCard({ product }) {
           className={`h-full w-full ${imageFit(product.imageRole).className} transition-transform duration-300 group-hover:scale-105`}
         />
       </div>
+      {product.availability && (
+        <div className="absolute top-3 left-3">
+          <AvailabilityPill availability={product.availability} />
+        </div>
+      )}
       <div className="flex flex-1 flex-col gap-2 p-4">
         <p className="font-serif text-base leading-snug font-medium text-tundora">{product.name}</p>
         <div className="mt-auto flex flex-col gap-0.5 font-sans text-xs text-gray-500">
@@ -158,7 +180,7 @@ function ProductRow({ product }) {
           {product.subcategory}
         </p>
         <p className="font-serif text-lg leading-snug font-medium text-tundora">{product.name}</p>
-        <div className="flex flex-wrap gap-x-6 gap-y-0.5 font-sans text-sm text-gray-500">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 font-sans text-sm text-gray-500">
           <p>
             <span className="font-medium text-gray-700">Product Code </span>
             {product.productCode}
@@ -167,10 +189,14 @@ function ProductRow({ product }) {
             <span className="font-medium text-gray-700">Size </span>
             {product.size}
           </p>
-          <p>
-            <span className="font-medium text-gray-700">Material </span>
-            {product.availabilityLabel ?? product.material}
-          </p>
+          {product.availability
+            ? <AvailabilityPill availability={product.availability} />
+            : product.material && (
+              <p>
+                <span className="font-medium text-gray-700">Material </span>
+                {product.material}
+              </p>
+            )}
         </div>
       </div>
     </Link>

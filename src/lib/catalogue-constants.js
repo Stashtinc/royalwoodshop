@@ -1,10 +1,12 @@
 /** Shared by the admin UI and the server. Deliberately free of imports so it
  *  can be used on both sides without pulling anything with it. */
 
+/** Order matters: it is the sort order of the species filter on the site, and
+ *  it mirrors the column order on the audit sheet so the two read alike. */
 export const SPECIES = [
-  'Poplar', 'FJ Primed Poplar', 'FJ Primed Pine', 'Clear Pine', 'Primed MDF',
-  'White Oak', 'Red Oak', 'Hard Maple', 'Black Walnut', 'Douglas Fir',
-  'Western Red Cedar', 'PVC', 'Steel', 'Plastic',
+  'Poplar', 'FJ Primed Poplar', 'FJ Primed Pine', 'Clear Pine', 'Knotty Pine',
+  'Primed MDF', 'White Oak', 'Red Oak', 'Hard Maple', 'Black Walnut', 'Mahogany',
+  'Douglas Fir', 'Western Red Cedar', 'PVC', 'Steel', 'Plastic',
 ]
 
 export const AVAILABILITY = [

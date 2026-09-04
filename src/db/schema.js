@@ -150,6 +150,34 @@ export const productAttributes = pgTable('product_attributes', {
   availIdx: index('product_attributes_availability_idx').on(t.availability),
 }))
 
+/* --------------------------------------------------- species import runs */
+
+/** One row per species-sheet import, holding every product code that sheet
+ *  carried.
+ *
+ *  The sheet is not the catalogue — it has never covered every product — so
+ *  "absent from the sheet" cannot mean "discontinued" on its own. What it can
+ *  mean is "Royal Wood Shop took this row out since last time", and that is
+ *  only knowable by comparing against the previous sheet. This table is that
+ *  memory. */
+export const speciesImportRuns = pgTable('species_import_runs', {
+  id: serial('id').primaryKey(),
+  fileName: varchar('file_name', { length: 300 }),
+  userEmail: varchar('user_email', { length: 254 }),
+  rowCount: integer('row_count').notNull().default(0),
+  matched: integer('matched').notNull().default(0),
+  /** JSON array of the product codes present in the sheet. */
+  codes: text('codes').notNull(),
+  /** JSON array of the codes this run archived, if any. */
+  archived: text('archived'),
+  /** A baseline run records the codes without writing any species — used once,
+   *  to give the first real import something to compare against. */
+  baseline: boolean('baseline').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  createdIdx: index('species_import_runs_created_idx').on(t.createdAt),
+}))
+
 /* ----------------------------------------------------------------- images */
 
 export const productImages = pgTable('product_images', {

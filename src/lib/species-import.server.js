@@ -1,7 +1,9 @@
 import { parse } from 'csv-parse/sync'
-import { eq, inArray, sql } from 'drizzle-orm'
+import { desc, eq, inArray, sql } from 'drizzle-orm'
 import { getDb } from './db.server.js'
-import { products, attributes, attributeValues, productAttributes } from '../db/schema.js'
+import {
+  products, attributes, attributeValues, productAttributes, speciesImportRuns,
+} from '../db/schema.js'
 import { SPECIES, TICK_CODES, bestAvailability } from './catalogue-constants.js'
 
 /** Ticked beside species on the sheet, but stored as a product flag. */
@@ -119,6 +121,55 @@ function readRow(r) {
   }
 }
 
+/** The codes the last sheet carried, or null if none has been recorded. */
+async function previousCodes(db) {
+  const [run] = await db.select({ codes: speciesImportRuns.codes, at: speciesImportRuns.createdAt })
+    .from(speciesImportRuns).orderBy(desc(speciesImportRuns.createdAt)).limit(1)
+  if (!run) return null
+  try { return { codes: new Set(JSON.parse(run.codes)), at: run.at } }
+  catch { return null }
+}
+
+/**
+ * Rows Royal Wood Shop have taken OUT of the sheet since last time.
+ *
+ * Deliberately not "every product missing from the sheet": the sheet covers
+ * 473 of 533 products and never has covered the rest, so absence on its own
+ * says nothing. Only a code that was on the previous sheet and is not on this
+ * one counts as a removal.
+ *
+ * Those removals split two ways, and both need saying:
+ *
+ *   `products`  — a live product sits behind the code, so removing the row is
+ *                 a decision about the catalogue and can be acted on.
+ *   `orphans`   — no product was ever created for it. Nothing to archive, but
+ *                 silence is the wrong answer: the seven KP- knotty pine
+ *                 boards left the sheet in the same pass that asked for a
+ *                 Knotty Pine column, and nobody would have seen it.
+ */
+async function findRemoved(db, previous, current) {
+  if (!previous) return { products: [], orphans: [] }
+  const gone = [...previous.codes].filter((c) => !current.has(c))
+  if (!gone.length) return { products: [], orphans: [] }
+
+  const rows = await db
+    .select({
+      id: products.id,
+      code: products.productCode,
+      name: products.name,
+      status: products.status,
+    })
+    .from(products)
+    .where(inArray(products.productCode, gone))
+
+  const known = new Map(rows.filter((r) => r.code).map((r) => [r.code, r]))
+  return {
+    // Already-archived products are left out: re-archiving them says nothing.
+    products: [...known.values()].filter((r) => r.status === 'published'),
+    orphans: gone.filter((c) => !known.has(c)),
+  }
+}
+
 /**
  * Works out what an import would do, without changing anything.
  * Brad sees this before committing to it.
@@ -132,6 +183,10 @@ export async function analyse(rows) {
   // sheet there are 66 of them — mostly doors — and silently ignoring a row
   // Royal Wood Shop have filled in is worse than saying so.
   const noCode = all.filter((p) => !p.code).map((p) => p.name)
+
+  const sheetCodes = new Set(parsed.map((p) => p.code))
+  const previous = await previousCodes(db)
+  const { products: removed, orphans: removedOrphans } = await findRemoved(db, previous, sheetCodes)
 
   const codes = [...new Set(parsed.map((p) => p.code))]
   const found = codes.length
@@ -151,6 +206,16 @@ export async function analyse(rows) {
     willSetFlex: 0,
     blank: 0,
     noCode,
+    /** Rows dropped from the sheet since the last import that have a live
+     *  product behind them. Never archived automatically — the preview offers
+     *  it and someone has to choose. */
+    removed,
+    /** Dropped rows with no product behind them: nothing to archive, but they
+     *  are still Royal Wood Shop telling us something. */
+    removedOrphans,
+    hasBaseline: Boolean(previous),
+    previousImportAt: previous?.at ?? null,
+    sheetCodes: [...sheetCodes],
     badCodes: [],
     unknownOther: [],
     changes: [],
@@ -185,8 +250,34 @@ export async function analyse(rows) {
   return { summary, parsed, byCode }
 }
 
-/** Applies the import. Returns the same summary shape, plus what was written. */
-export async function apply(rows, overrides = {}) {
+/**
+ * Records a sheet's codes without writing any species.
+ *
+ * Needed once: the first real import has nothing to compare against, so the
+ * sheet Royal Wood Shop were working from previously is recorded as the
+ * baseline and the next import can tell what they have since taken out.
+ */
+export async function recordBaseline(rows, { fileName = null, userEmail = null } = {}) {
+  const db = await getDb()
+  const codes = [...new Set(
+    rows.map(readRow).filter(Boolean).map((r) => r.code).filter(Boolean),
+  )]
+  await db.insert(speciesImportRuns).values({
+    fileName, userEmail, rowCount: rows.length, matched: 0,
+    codes: JSON.stringify(codes), baseline: true,
+  })
+  return { codes: codes.length, rows: rows.length }
+}
+
+/**
+ * Applies the import. Returns the same summary shape, plus what was written.
+ *
+ * `options.archiveMissing` archives the products in `summary.removed`. It is
+ * off unless asked for: taking a product off the site is not something a
+ * spreadsheet upload should decide on its own.
+ */
+export async function apply(rows, overrides = {}, options = {}) {
+  const { archiveMissing = false, fileName = null, userEmail = null, baseline = false } = options
   const db = await getDb()
   const { summary, parsed: base, byCode } = await analyse(rows)
 
@@ -260,5 +351,25 @@ export async function apply(rows, overrides = {}) {
     .select({ ticksWithAvail: sql`count(*)::int` })
     .from(productAttributes).where(sql`${productAttributes.availability} is not null`)
 
-  return { ...summary, written, totals: { withSpecies, withAvail, ticksWithAvail } }
+  // Archive last, so a failure here cannot lose the species work above.
+  let archived = []
+  if (archiveMissing && summary.removed.length) {
+    const ids = summary.removed.map((r) => r.id)
+    await db.update(products)
+      .set({ status: 'archived', updatedAt: new Date() })
+      .where(inArray(products.id, ids))
+    archived = summary.removed
+  }
+
+  await db.insert(speciesImportRuns).values({
+    fileName,
+    userEmail,
+    rowCount: summary.rows,
+    matched: summary.matched,
+    codes: JSON.stringify(summary.sheetCodes),
+    archived: archived.length ? JSON.stringify(archived.map((a) => a.code)) : null,
+    baseline,
+  })
+
+  return { ...summary, written, archived, totals: { withSpecies, withAvail, ticksWithAvail } }
 }
