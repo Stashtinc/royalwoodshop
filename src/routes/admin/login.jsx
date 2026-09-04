@@ -32,9 +32,11 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6">
       <div className="w-full max-w-sm">
-        <img src="/logo.svg" alt="Royal Wood Shop" className="mb-6 h-14" />
-        <h1 className="mb-6 font-serif text-2xl font-bold text-tundora">Sign in</h1>
         <Form method="post" className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6">
+          <div className="flex flex-col items-center gap-3 pb-2">
+            <img src="/logo.svg" alt="Royal Wood Shop" className="h-24" />
+            <h1 className="font-serif text-2xl font-bold text-tundora">Sign in</h1>
+          </div>
           <input type="hidden" name="next" value={params.get('next') ?? '/admin'} />
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-gray-700">Email</span>
