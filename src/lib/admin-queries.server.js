@@ -141,7 +141,18 @@ export async function createProduct(data) {
     name: data.name,
     slug,
     productCode: data.productCode || null,
+    description: data.description || null,
+    sizeDisplay: data.sizeDisplay || null,
+    thicknessIn: data.thicknessIn || null,
+    widthIn: data.widthIn || null,
+    availability: data.availability || null,
+    leadTime: data.leadTime || null,
+    flexAvailable: !!data.flexAvailable,
+    price: data.price || null,
+    salePrice: data.salePrice || null,
     status: data.status ?? 'draft',
+    seoTitle: data.seoTitle || null,
+    seoDescription: data.seoDescription || null,
     primaryCategoryId: data.categoryId ? Number(data.categoryId) : null,
   }).returning({ id: products.id })
   return row.id
