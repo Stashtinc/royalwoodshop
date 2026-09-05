@@ -291,13 +291,10 @@ export default function Catalogue({ initialCategory = null, products = null }) {
   function toggleSub(category, sub) {
     const key = `${category}::${sub}`
     setSelectedSubs((prev) => {
-      const sameCat = [...prev].filter((k) => k.startsWith(`${category}::`))
-      const wasExclusive = sameCat.length === 1 && sameCat[0] === key
-      // Keep selections from other categories, clear this category's subs
-      const next = new Set([...prev].filter((k) => !k.startsWith(`${category}::`)))
-      // Toggle: if it was already the only one selected, clear it; otherwise select it exclusively
-      if (!wasExclusive) next.add(key)
-      return next
+      // If this sub is already the only thing selected, restore all
+      if (prev.size === 1 && prev.has(key)) return allSubKeys(catalogueCategoryOrder)
+      // Otherwise exclusively select just this sub across all categories
+      return new Set([key])
     })
     setPage(1)
   }
@@ -305,10 +302,11 @@ export default function Catalogue({ initialCategory = null, products = null }) {
   function toggleCategory(category, subs) {
     setSelectedSubs((prev) => {
       const keys = subs.map((sub) => `${category}::${sub}`)
-      const allSelected = keys.every((key) => prev.has(key))
-      const next = new Set(prev)
-      keys.forEach((key) => (allSelected ? next.delete(key) : next.add(key)))
-      return next
+      const allOfCatSelected = keys.every((key) => prev.has(key)) && prev.size === keys.length
+      // If this category is already exclusively selected, restore all
+      if (allOfCatSelected) return allSubKeys(catalogueCategoryOrder)
+      // Otherwise exclusively select this entire category
+      return new Set(keys)
     })
     setPage(1)
   }
