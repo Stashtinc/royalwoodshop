@@ -155,9 +155,11 @@ function ProductCard({ product }) {
           className={`h-full w-full ${imageFit(product.imageRole).className} transition-transform duration-300 group-hover:scale-105`}
         />
       </div>
-      {product.availability && (
-        <div className="absolute top-3 left-3">
-          <AvailabilityPill availability={product.availability} />
+      {availabilityKeys(product).length > 0 && (
+        <div className="absolute top-3 left-3 flex flex-col gap-1">
+          {availabilityKeys(product).map((key) => (
+            <AvailabilityPill key={key} availability={key} />
+          ))}
         </div>
       )}
       <div className="flex flex-1 flex-col gap-2 p-4">
