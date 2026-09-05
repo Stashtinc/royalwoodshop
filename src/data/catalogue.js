@@ -45,7 +45,8 @@ const order = [
 ]
 
 export function categoryTree(rows = products) {
-  const map = new Map()
+  // Pre-seed every known category so empty ones still appear in the sidebar
+  const map = new Map(order.map((name) => [name, new Set()]))
   for (const p of rows) {
     if (!map.has(p.category)) map.set(p.category, new Set())
     map.get(p.category).add(p.subcategory)
