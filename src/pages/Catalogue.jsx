@@ -238,6 +238,18 @@ function ProductCard({ product }) {
             <span className="font-medium text-gray-700">Size </span>
             {product.size}
           </p>
+          {product.price != null && (
+            <p className="mt-1 font-sans text-sm font-semibold text-tundora">
+              {product.salePrice != null ? (
+                <>
+                  <span className="text-red-600">${Number(product.salePrice).toFixed(2)}</span>
+                  <span className="ml-1.5 text-xs font-normal text-gray-400 line-through">${Number(product.price).toFixed(2)}</span>
+                </>
+              ) : (
+                <span>${Number(product.price).toFixed(2)}</span>
+              )}
+            </p>
+          )}
         </div>
       </div>
     </Link>
