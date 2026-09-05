@@ -6,7 +6,7 @@
  */
 import 'dotenv/config'
 import { connect } from '../src/db/client.mjs'
-import { products, productImages } from '../src/db/schema.js'
+import { products, productImages, activityLog } from '../src/db/schema.js'
 import { eq, inArray } from 'drizzle-orm'
 
 const API = 'https://royalwoodshop.com/wp-json/wp/v2/upcp_product'
@@ -132,6 +132,14 @@ async function main() {
   console.log(`  Added:     ${totalAdded} images`)
   console.log(`  Skipped:   ${totalSkipped} already present`)
   console.log(`  Unmatched: ${totalUnmatched} WP products with no DB match`)
+
+  await db.insert(activityLog).values({
+    action: 'image.added',
+    level: 'milestone',
+    entityLabel: 'Scraped images from old WordPress site',
+    details: JSON.stringify({ count: totalAdded, skipped: totalSkipped, unmatched: totalUnmatched }),
+  })
+  console.log('  Logged to activity log.')
   process.exit(0)
 }
 
