@@ -223,7 +223,7 @@ export default function ProductDetail({ product: productProp = null, related: re
               {product.speciesAvailability.map((s) => {
                 const badge = s.availability ? AVAILABILITY_BADGE[s.availability] : null
                 return (
-                  <span key={s.name} className="flex items-center justify-between gap-2">
+                  <span key={s.name} className="flex items-center gap-2">
                     <span className="font-sans text-sm text-tundora">{s.name}</span>
                     {badge && (
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>
