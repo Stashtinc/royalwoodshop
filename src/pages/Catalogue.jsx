@@ -57,6 +57,66 @@ const countBy = (rows) => rows.reduce((counts, product) => {
   return counts
 }, {})
 
+function CustomSelect({ value, onChange, options }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const selected = options.find((o) => o.value === value) ?? options[0]
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e) {
+      if (!ref.current?.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  function handleKey(e) {
+    if (e.key === 'Escape') setOpen(false)
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o) }
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        onKeyDown={handleKey}
+        className="flex w-full items-center justify-between rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span>{selected?.label}</span>
+        <svg
+          width="12" height="12" viewBox="0 0 12 12" fill="none"
+          className={`shrink-0 text-gray-400 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+        >
+          <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <ul
+          role="listbox"
+          className="absolute z-50 mt-1 w-full overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+          style={{ maxHeight: '240px' }}
+        >
+          {options.map((o) => (
+            <li
+              key={o.value}
+              role="option"
+              aria-selected={o.value === value}
+              onClick={() => { onChange(o.value); setOpen(false) }}
+              className={`cursor-pointer px-3 py-2 font-sans text-sm transition-colors hover:bg-gray-50 ${o.value === value ? 'font-semibold text-royal-blue' : 'text-gray-900'}`}
+            >
+              {o.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function SearchIcon({ className = '' }) {
   return (
     <svg width="16" height="16" viewBox="0 0 18 18" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -468,32 +528,30 @@ export default function Catalogue({ initialCategory = null, products = null }) {
                   </div>
                   <div className="flex flex-col gap-2">
                     <p className="font-serif text-base font-bold text-tundora">Width</p>
-                    <select
+                    <CustomSelect
                       value={sizeCategory}
-                      onChange={(e) => withPageReset(setSizeCategory)(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
-                    >
-                      <option value="All">All</option>
-                      <option value='Under 2&quot;'>Under 2&quot;</option>
-                      <option value='2&quot; – 4&quot;'>2&quot; – 4&quot;</option>
-                      <option value='4&quot; – 7&quot;'>4&quot; – 7&quot;</option>
-                      <option value='Over 7&quot;'>Over 7&quot;</option>
-                      <option value="Made to order">Made to order</option>
-                    </select>
+                      onChange={withPageReset(setSizeCategory)}
+                      options={[
+                        { value: 'All', label: 'All' },
+                        { value: 'Under 2"', label: 'Under 2"' },
+                        { value: '2" – 4"', label: '2" – 4"' },
+                        { value: '4" – 7"', label: '4" – 7"' },
+                        { value: 'Over 7"', label: 'Over 7"' },
+                        { value: 'Made to order', label: 'Made to order' },
+                      ]}
+                    />
                   </div>
                   {speciesOptions.length > 0 && (
                     <div className="flex flex-col gap-2">
                       <p className="font-serif text-base font-bold text-tundora">Wood species</p>
-                      <select
+                      <CustomSelect
                         value={species}
-                        onChange={(e) => withPageReset(setSpecies)(e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
-                      >
-                        <option value="All">All</option>
-                        {speciesOptions.map((o) => (
-                          <option key={o.value} value={o.value}>{o.value} ({o.count})</option>
-                        ))}
-                      </select>
+                        onChange={withPageReset(setSpecies)}
+                        options={[
+                          { value: 'All', label: 'All' },
+                          ...speciesOptions.map((o) => ({ value: o.value, label: `${o.value} (${o.count})` })),
+                        ]}
+                      />
                     </div>
                   )}
                 </div>
@@ -590,35 +648,31 @@ export default function Catalogue({ initialCategory = null, products = null }) {
 
             <div className="flex flex-col gap-3">
               <p className="font-serif text-base font-bold text-tundora">Width</p>
-              <select
+              <CustomSelect
                 value={sizeCategory}
-                onChange={(e) => withPageReset(setSizeCategory)(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
-              >
-                <option value="All">All</option>
-                <option value='Under 2&quot;'>Under 2&quot;</option>
-                <option value='2&quot; – 4&quot;'>2&quot; – 4&quot;</option>
-                <option value='4&quot; – 7&quot;'>4&quot; – 7&quot;</option>
-                <option value='Over 7&quot;'>Over 7&quot;</option>
-                <option value="Made to order">Made to order</option>
-              </select>
+                onChange={withPageReset(setSizeCategory)}
+                options={[
+                  { value: 'All', label: 'All' },
+                  { value: 'Under 2"', label: 'Under 2"' },
+                  { value: '2" – 4"', label: '2" – 4"' },
+                  { value: '4" – 7"', label: '4" – 7"' },
+                  { value: 'Over 7"', label: 'Over 7"' },
+                  { value: 'Made to order', label: 'Made to order' },
+                ]}
+              />
             </div>
 
-            {/* Hidden until the species sheet comes back — an empty filter is
-                worse than no filter. */}
             {speciesOptions.length > 0 && (
               <div className="flex flex-col gap-3">
                 <p className="font-serif text-base font-bold text-tundora">Wood species</p>
-                <select
+                <CustomSelect
                   value={species}
-                  onChange={(e) => withPageReset(setSpecies)(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
-                >
-                  <option value="All">All</option>
-                  {speciesOptions.map((o) => (
-                    <option key={o.value} value={o.value}>{o.value} ({o.count})</option>
-                  ))}
-                </select>
+                  onChange={withPageReset(setSpecies)}
+                  options={[
+                    { value: 'All', label: 'All' },
+                    ...speciesOptions.map((o) => ({ value: o.value, label: `${o.value} (${o.count})` })),
+                  ]}
+                />
               </div>
             )}
 
