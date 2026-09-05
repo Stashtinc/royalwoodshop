@@ -159,8 +159,29 @@ export default function ProductDetail({ product: productProp = null, related: re
     { label: 'Size', value: product.size },
     // Species comes from the sheet Royal Wood Shop are completing. Until a
     // product has it, the row is omitted rather than showing a bare 'wood'.
-    { label: product.species?.length > 1 ? 'Available in' : 'Species',
-      value: product.species?.length ? speciesSummary(product) : null },
+    {
+      label: product.species?.length > 1 ? 'Available in' : 'Species',
+      value: product.species?.length ? speciesSummary(product) : null,
+      render: product.speciesAvailability?.length
+        ? () => (
+            <span className="flex flex-col gap-1.5 pt-0.5">
+              {product.speciesAvailability.map((s) => {
+                const badge = s.availability ? AVAILABILITY_BADGE[s.availability] : null
+                return (
+                  <span key={s.name} className="flex items-center justify-between gap-2">
+                    <span className="font-sans text-sm text-tundora">{s.name}</span>
+                    {badge && (
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>
+                        {badge.label}
+                      </span>
+                    )}
+                  </span>
+                )
+              })}
+            </span>
+          )
+        : null,
+    },
     { label: 'Flexible version', value: product.flexAvailable ? 'Available' : null },
     { label: 'Category', value: product.category },
     { label: 'Type', value: product.subcategory },
