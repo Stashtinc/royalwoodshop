@@ -92,8 +92,11 @@ export async function getProduct(id) {
     status: products.status, seoTitle: products.seoTitle,
     seoDescription: products.seoDescription,
     primaryCategoryId: products.primaryCategoryId,
+    categorySlug: categories.slug,
     species: speciesSubquery.as('species'),
-  }).from(products).where(eq(products.id, Number(id))).limit(1)
+  }).from(products)
+    .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
+    .where(eq(products.id, Number(id))).limit(1)
   if (!row) return null
   return { ...row, species: Array.isArray(row.species) ? row.species : [] }
 }

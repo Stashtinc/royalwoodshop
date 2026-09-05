@@ -250,9 +250,24 @@ export default function ProductEdit() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-baseline gap-3">
-        <Link to="/admin/products" className="text-sm text-royal-blue hover:underline">← Products</Link>
-        <span className="font-mono text-xs text-gray-500">{product.productCode}</span>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-baseline gap-3">
+          <Link to="/admin/products" className="text-sm text-royal-blue hover:underline">← Products</Link>
+          <span className="font-mono text-xs text-gray-500">{product.productCode}</span>
+        </div>
+        {product.categorySlug && product.slug && product.status === 'published' && (
+          <a
+            href={`/products/${product.categorySlug}/${product.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 font-sans text-xs text-gray-600 hover:border-royal-blue hover:text-royal-blue"
+          >
+            View on site
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+              <path d="M2 9L9 2M9 2H4M9 2v5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
+        )}
       </div>
       <h1 className="font-serif text-2xl font-bold text-tundora">{product.name}</h1>
 
