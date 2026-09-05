@@ -54,9 +54,9 @@ function SpecSheet({ product }) {
         <p className="mt-1 font-sans text-sm tracking-wide text-gray-700">{product.productCode}</p>
       )}
 
-      {product.image && (
+      {(product.images?.[1]?.url || product.image) && (
         <img
-          src={product.image}
+          src={product.images?.[1]?.url || product.image}
           alt={`${product.name} profile drawing`}
           className="mx-auto my-5 max-h-[75mm] w-auto object-contain"
         />
