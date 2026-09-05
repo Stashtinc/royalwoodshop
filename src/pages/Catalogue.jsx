@@ -23,6 +23,14 @@ const PAGE_SIZE = 8
  * Comma-separated slugs are accepted so /products?category=a,b is possible
  * later without changing the contract.
  */
+function allSubKeys(tree) {
+  const keys = new Set()
+  for (const cat of tree) {
+    for (const sub of cat.subcategories) keys.add(`${cat.name}::${sub}`)
+  }
+  return keys
+}
+
 function subsFromUrl({ initialCategory, categoryParam, tree }) {
   const wanted = new Set()
   if (initialCategory) wanted.add(initialCategory)
@@ -30,6 +38,9 @@ function subsFromUrl({ initialCategory, categoryParam, tree }) {
     const name = CATEGORY_BY_SLUG[slug.trim()]
     if (name) wanted.add(name)
   }
+
+  // No filter specified → all categories selected
+  if (wanted.size === 0) return allSubKeys(tree)
 
   const keys = new Set()
   for (const cat of tree) {
@@ -299,9 +310,14 @@ export default function Catalogue({ initialCategory = null, products = null }) {
     setSizeCategory('All')
     setSpecies('All')
     setAvailability('All')
-    setSelectedSubs(new Set())
+    setSelectedSubs(allSubKeys(catalogueCategoryOrder))
     setPage(1)
   }
+
+  const totalSubCount = useMemo(
+    () => catalogueCategoryOrder.reduce((s, cat) => s + cat.subcategories.length, 0),
+    [catalogueCategoryOrder],
+  )
 
   const hasActiveFilters =
     Boolean(search.trim()) ||
@@ -309,7 +325,7 @@ export default function Catalogue({ initialCategory = null, products = null }) {
     sizeCategory !== 'All' ||
     species !== 'All' ||
     availability !== 'All' ||
-    selectedSubs.size > 0
+    selectedSubs.size < totalSubCount
 
   const filtered = useMemo(() => {
     const searchTerm = search.trim().toLowerCase()
@@ -329,16 +345,19 @@ export default function Catalogue({ initialCategory = null, products = null }) {
       // Availability is per species, so a profile in stock in poplar and made
       // to order in walnut answers to both filters.
       if (availability !== 'All' && !availabilityKeys(product).includes(availability)) return false
-      if (selectedSubs.size > 0 && !selectedSubs.has(`${product.category}::${product.subcategory}`)) {
-        return false
-      }
+      if (!selectedSubs.has(`${product.category}::${product.subcategory}`)) return false
       return true
     })
   }, [allProducts, search, productCode, sizeCategory, species, availability, selectedSubs])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const sorted = useMemo(() => {
+    const catIndex = Object.fromEntries(catalogueCategoryOrder.map((c, i) => [c.name, i]))
+    return [...filtered].sort((a, b) => (catIndex[a.category] ?? 99) - (catIndex[b.category] ?? 99))
+  }, [filtered, catalogueCategoryOrder])
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
-  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const pageItems = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   const grouped = catalogueCategoryOrder
     .map((cat) => ({ name: cat.name, items: pageItems.filter((p) => p.category === cat.name) }))
@@ -354,7 +373,7 @@ export default function Catalogue({ initialCategory = null, products = null }) {
       <div className="mx-auto flex max-w-[1280px] flex-col gap-12 px-6 lg:px-8">
         <div className="flex flex-col gap-5">
           <h1 className="font-serif text-3xl font-bold text-royal-blue lg:text-[36px]">
-            Trim, Mouldings &amp; Interior Doors Catalogue
+            Products Catalogue
           </h1>
           <p className="font-sans text-lg leading-relaxed text-gray-600">
             Browse The Royal Wood Shop&rsquo;s selection of in-stock mouldings, trim profiles, and
@@ -451,23 +470,7 @@ export default function Catalogue({ initialCategory = null, products = null }) {
               />
             </div>
 
-            {/* Availability first — a contractor working to a date filters on
-                this before anything else. */}
-            {availabilityOptions.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <p className="font-serif text-base font-bold text-tundora">Availability</p>
-                <select
-                  value={availability}
-                  onChange={(e) => withPageReset(setAvailability)(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
-                >
-                  <option value="All">All</option>
-                  {availabilityOptions.map((o) => (
-                    <option key={o.key} value={o.key}>{o.value} ({o.count})</option>
-                  ))}
-                </select>
-              </div>
-            )}
+
 
             <div className="flex flex-col gap-3">
               <p className="font-serif text-base font-bold text-tundora">Width</p>
@@ -516,9 +519,32 @@ export default function Catalogue({ initialCategory = null, products = null }) {
 
           <div ref={resultsRef} className="flex min-w-0 flex-1 scroll-mt-28 flex-col gap-8">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 pb-5">
-              <p className="font-sans text-sm text-gray-500">
-                {filtered.length} product{filtered.length === 1 ? '' : 's'}
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="font-sans text-sm text-gray-500">
+                  {filtered.length} product{filtered.length === 1 ? '' : 's'}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { key: 'All', label: 'All' },
+                    { key: 'in_stock', label: 'In Stock' },
+                    { key: 'quick_ship', label: 'Quick Ship' },
+                    { key: 'made_to_order', label: 'Made to Order' },
+                  ].map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => withPageReset(setAvailability)(key)}
+                      className={`rounded-full px-3 py-1 font-sans text-xs transition-colors ${
+                        availability === key
+                          ? 'bg-royal-blue text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1 rounded-lg border border-gray-200 p-1">
                   <button
@@ -548,15 +574,30 @@ export default function Catalogue({ initialCategory = null, products = null }) {
 
             {grouped.length === 0 ? (
               <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-gray-300 py-20 text-center">
-                <p className="font-serif text-xl font-bold text-tundora">No products match your filters</p>
-                <p className="font-sans text-gray-500">Try adjusting or clearing your search and filters.</p>
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="mt-2 rounded-lg border border-royal-blue bg-royal-blue px-5 py-2.5 font-sans text-sm text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark"
-                >
-                  Clear all filters
-                </button>
+                {selectedSubs.size === 0 ? (
+                  <>
+                    <p className="font-serif text-xl font-bold text-tundora">Please select items from our catalogue or use search</p>
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="mt-2 rounded-lg border border-royal-blue bg-royal-blue px-5 py-2.5 font-sans text-sm text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark"
+                    >
+                      Show all products
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-serif text-xl font-bold text-tundora">No products match your filters</p>
+                    <p className="font-sans text-gray-500">Try adjusting or clearing your search and filters.</p>
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="mt-2 rounded-lg border border-royal-blue bg-royal-blue px-5 py-2.5 font-sans text-sm text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark"
+                    >
+                      Clear all filters
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <div className="flex flex-col gap-12">

@@ -3,8 +3,8 @@ import { pageMeta } from '../seo'
 
 export const meta = () => [
   ...pageMeta({
-    title: 'Request a Quotation',
-    description: 'Request a material estimate or quotation from The Royal Wood Shop.',
+    title: 'Work Order',
+    description: 'Work order for The Royal Wood Shop website rebuild.',
     path: '/quotation',
   }),
   { name: 'robots', content: 'noindex, follow' },

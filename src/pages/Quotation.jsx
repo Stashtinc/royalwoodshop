@@ -192,16 +192,16 @@ export default function Quotation() {
           <div className="shrink-0 rounded-xl border border-gray-200 bg-white px-5 py-4 text-right font-sans text-sm">
             <div className="flex gap-8">
               <div className="text-left text-gray-400 space-y-1">
-                <p>Quote No.</p>
+                <p>Order No.</p>
                 <p>Date</p>
-                <p>Valid until</p>
+                <p>Status</p>
                 <p>Currency</p>
               </div>
               <div className="text-right text-gray-700 space-y-1">
                 <p className="font-semibold text-royal-blue">RWS-2026-001</p>
-                <p>3 August 2026</p>
-                <p>30 September 2026</p>
-                <p>USD</p>
+                <p>28 August 2026</p>
+                <p>In Progress</p>
+                <p>USD / CAD</p>
               </div>
             </div>
           </div>
@@ -565,7 +565,7 @@ export default function Quotation() {
           <div className="mb-16 rounded-xl border border-gray-200 bg-white px-5 py-6">
             <p className="mb-1 font-sans text-xs font-bold tracking-widest text-gray-400 uppercase">Acceptance</p>
             <p className="mb-6 font-sans text-sm text-gray-500">
-              Signing below confirms acceptance of this quotation.
+              Signing below confirms acceptance of this work order.
             </p>
             <SignaturePad onAccepted={setSignedBy} />
           </div>
