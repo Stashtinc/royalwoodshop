@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link, Form, useLoaderData, useSearchParams, useSubmit, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { listProducts, listCategories } from '../../lib/admin-queries.server'
-import { SPECIES, AVAILABILITY, AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
+import { AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
 import { thumbSrc } from '../../lib/images'
 import Pagination from '../../components/admin/Pagination'
 
@@ -39,10 +39,6 @@ export default function Products() {
   const [params] = useSearchParams()
   const missing = params.get('missing') ?? ''
   const q = params.get('q') ?? ''
-  const filterCategory = params.get('category') ?? ''
-  const filterSpecies = params.get('species') ?? ''
-  const filterAvailability = params.get('availability') ?? ''
-
   function sortLink(col) {
     const next = new URLSearchParams(params)
     next.set('sortBy', col)
@@ -52,8 +48,20 @@ export default function Products() {
   }
 
   function SortIndicator({ col }) {
-    if (sortBy !== col) return <span className="ml-1 text-gray-300">↕</span>
-    return <span className="ml-1 text-royal-blue">{sortDir === 'asc' ? '↑' : '↓'}</span>
+    if (sortBy !== col) return (
+      <span className="ml-1.5 flex flex-col gap-[1px] opacity-30">
+        <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d="M4 0L8 5H0z"/></svg>
+        <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d="M4 5L0 0H8z"/></svg>
+      </span>
+    )
+    return (
+      <span className="ml-1.5 text-royal-blue">
+        {sortDir === 'asc'
+          ? <svg width="10" height="10" viewBox="0 0 8 5" fill="currentColor"><path d="M4 0L8 5H0z"/></svg>
+          : <svg width="10" height="10" viewBox="0 0 8 5" fill="currentColor"><path d="M4 5L0 0H8z"/></svg>
+        }
+      </span>
+    )
   }
 
   const submit = useSubmit()
@@ -129,66 +137,22 @@ export default function Products() {
       <div className={`overflow-hidden rounded-2xl border border-gray-200 bg-white transition-opacity ${searching ? 'opacity-60' : ''}`}>
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-200 bg-gray-50">
-            <tr className="text-xs tracking-wide text-gray-600 uppercase">
-              <th className="w-14 px-4 pt-2.5 pb-1" />
-              <th className="px-4 pt-2.5 pb-1">
-                <Link to={sortLink('code')} className="inline-flex items-center hover:text-royal-blue">Code<SortIndicator col="code" /></Link>
+            <tr className="text-xs font-bold tracking-wide text-gray-500 uppercase">
+              <th className="w-14 px-4 py-3" />
+              <th className="px-4 py-3">
+                <Link to={sortLink('code')} className="inline-flex items-center gap-1 hover:text-royal-blue">Code<SortIndicator col="code" /></Link>
               </th>
-              <th className="px-4 pt-2.5 pb-1">
-                <Link to={sortLink('name')} className="inline-flex items-center hover:text-royal-blue">Name<SortIndicator col="name" /></Link>
+              <th className="px-4 py-3">
+                <Link to={sortLink('name')} className="inline-flex items-center gap-1 hover:text-royal-blue">Name<SortIndicator col="name" /></Link>
               </th>
-              <th className="px-4 pt-2.5 pb-1">
-                <Link to={sortLink('category')} className="inline-flex items-center hover:text-royal-blue">Category<SortIndicator col="category" /></Link>
+              <th className="px-4 py-3">
+                <Link to={sortLink('category')} className="inline-flex items-center gap-1 hover:text-royal-blue">Category<SortIndicator col="category" /></Link>
               </th>
-              <th className="px-4 pt-2.5 pb-1">Species</th>
-              <th className="px-4 pt-2.5 pb-1">
-                <Link to={sortLink('availability')} className="inline-flex items-center hover:text-royal-blue">Availability<SortIndicator col="availability" /></Link>
+              <th className="px-4 py-3">Species</th>
+              <th className="px-4 py-3">
+                <Link to={sortLink('availability')} className="inline-flex items-center gap-1 hover:text-royal-blue">Availability<SortIndicator col="availability" /></Link>
               </th>
-              <th className="px-4 pt-2.5 pb-1" />
-            </tr>
-            <tr>
-              <th className="w-14 px-4 pb-2" />
-              <th className="px-4 pb-2" />
-              <th className="px-4 pb-2" />
-              <th className="px-4 pb-2">
-                <select
-                  value={filterCategory}
-                  onChange={(e) => { const f = e.currentTarget.form; setTimeout(() => submit(f, { replace: true }), 0) }}
-                  name="category"
-                  form="products-filter"
-                  className="w-full rounded border border-gray-200 bg-white px-1.5 py-1 text-xs font-normal text-gray-700 normal-case tracking-normal outline-none focus:border-royal-blue"
-                >
-                  <option value="">All categories</option>
-                  {categoryOptions.map((c) => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
-              </th>
-              <th className="px-4 pb-2">
-                <select
-                  value={filterSpecies}
-                  onChange={(e) => { const f = e.currentTarget.form; setTimeout(() => submit(f, { replace: true }), 0) }}
-                  name="species"
-                  form="products-filter"
-                  className="w-full rounded border border-gray-200 bg-white px-1.5 py-1 text-xs font-normal text-gray-700 normal-case tracking-normal outline-none focus:border-royal-blue"
-                >
-                  <option value="">All species</option>
-                  {SPECIES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </th>
-              <th className="px-4 pb-2">
-                <select
-                  value={filterAvailability}
-                  onChange={(e) => { const f = e.currentTarget.form; setTimeout(() => submit(f, { replace: true }), 0) }}
-                  name="availability"
-                  form="products-filter"
-                  className="w-full rounded border border-gray-200 bg-white px-1.5 py-1 text-xs font-normal text-gray-700 normal-case tracking-normal outline-none focus:border-royal-blue"
-                >
-                  <option value="">All</option>
-                  {AVAILABILITY.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                </select>
-              </th>
-              <th className="px-4 pb-2" />
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
