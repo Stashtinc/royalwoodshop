@@ -54,25 +54,8 @@ function HighlightColumn({ eyebrow, title, description, ctaLabel, ctaTo }) {
 
 function ProductsPanel() {
   return (
-    <div className={`grid ${PANEL_WIDTH} grid-cols-[1fr_220px] bg-white shadow-2xl`}>
-      <div className="flex flex-col gap-1 p-6 -mx-2">
-        <p className="font-serif text-sm font-bold text-royal-blue px-2 mb-2">Browse by Category</p>
-        {productsMenu.categories.map((item) => (
-          <Link
-            key={item.label}
-            to={item.path}
-            className="block rounded-md px-2 py-2 font-body text-[15px] text-gray-700 transition-colors hover:bg-royal-blue/5 hover:text-royal-blue"
-          >
-            {item.label}
-          </Link>
-        ))}
-        <Link
-          to="/products"
-          className="mt-3 px-2 font-sans text-sm font-medium text-royal-blue hover:underline"
-        >
-          View full catalogue →
-        </Link>
-      </div>
+    <div className={`grid ${PANEL_WIDTH} grid-cols-2 gap-8 bg-white p-6 shadow-2xl`}>
+      <MenuColumn heading="Categories" items={productsMenu.categories} />
       <HighlightColumn
         eyebrow="In-Stock & Ready"
         title="Toronto's trim & door specialists"
