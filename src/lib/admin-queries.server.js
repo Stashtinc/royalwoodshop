@@ -14,7 +14,15 @@ const speciesSubquery = sql`coalesce(
    join attributes a on a.id = av.attribute_id and a.key = 'species'
    where pa.product_id = products.id), '{}')`
 
-export async function listProducts({ q = '', page = 1, perPage = 25, missing = '' } = {}) {
+export async function listCategories() {
+  const db = await getDb()
+  return db.select({ id: categories.id, name: categories.name })
+    .from(categories)
+    .where(sql`${categories.parentId} is null`)
+    .orderBy(asc(categories.name))
+}
+
+export async function listProducts({ q = '', page = 1, perPage = 25, missing = '', category = '', species = '', availability = '' } = {}) {
   const db = await getDb()
   const where = []
   if (q.trim()) {
@@ -27,6 +35,9 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
   if (missing === 'species') where.push(sql`${speciesSubquery} = '{}'`)
   if (missing === 'availability') where.push(sql`${products.availability} is null`)
   if (missing === 'description') where.push(sql`(${products.description} is null or ${products.description} = '')`)
+  if (category) where.push(ilike(categories.name, category))
+  if (species) where.push(sql`${speciesSubquery}::text[] @> array[${species}]::text[]`)
+  if (availability) where.push(eq(products.availability, availability))
 
   const clause = where.length ? and(...where) : undefined
   const [{ total }] = await db.select({ total: sql`count(*)::int` }).from(products).where(clause)

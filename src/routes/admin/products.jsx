@@ -1,22 +1,29 @@
 import { useEffect, useRef } from 'react'
 import { Link, Form, useLoaderData, useSearchParams, useSubmit, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { listProducts } from '../../lib/admin-queries.server'
+import { listProducts, listCategories } from '../../lib/admin-queries.server'
+import { SPECIES, AVAILABILITY, AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
 import { thumbSrc } from '../../lib/images'
 import Pagination from '../../components/admin/Pagination'
-import { AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
 
 export async function loader({ request }) {
   await requireUser(request)
   const url = new URL(request.url)
   const allowed = [25, 50, 100]
   const requested = Number(url.searchParams.get('perPage') ?? 25)
-  return listProducts({
-    q: url.searchParams.get('q') ?? '',
-    page: Math.max(1, Number(url.searchParams.get('page') ?? 1)),
-    perPage: allowed.includes(requested) ? requested : 25,
-    missing: url.searchParams.get('missing') ?? '',
-  })
+  const [data, categoryOptions] = await Promise.all([
+    listProducts({
+      q: url.searchParams.get('q') ?? '',
+      page: Math.max(1, Number(url.searchParams.get('page') ?? 1)),
+      perPage: allowed.includes(requested) ? requested : 25,
+      missing: url.searchParams.get('missing') ?? '',
+      category: url.searchParams.get('category') ?? '',
+      species: url.searchParams.get('species') ?? '',
+      availability: url.searchParams.get('availability') ?? '',
+    }),
+    listCategories(),
+  ])
+  return { ...data, categoryOptions }
 }
 
 const MISSING_LABEL = {
@@ -26,10 +33,13 @@ const MISSING_LABEL = {
 }
 
 export default function Products() {
-  const { rows, total, page, pages, perPage } = useLoaderData()
+  const { rows, total, page, pages, perPage, categoryOptions } = useLoaderData()
   const [params] = useSearchParams()
   const missing = params.get('missing') ?? ''
   const q = params.get('q') ?? ''
+  const filterCategory = params.get('category') ?? ''
+  const filterSpecies = params.get('species') ?? ''
+  const filterAvailability = params.get('availability') ?? ''
 
   const submit = useSubmit()
   const navigation = useNavigation()
@@ -66,7 +76,7 @@ export default function Products() {
         {missing && <Link to="/admin/products" className="text-sm text-royal-blue underline">clear filter</Link>}
       </div>
 
-      <Form method="get" role="search" className="flex max-w-md gap-2">
+      <Form id="products-filter" method="get" role="search" className="flex max-w-md gap-2">
         {missing && <input type="hidden" name="missing" value={missing} />}
         <div className="relative flex-1">
           <input
@@ -103,15 +113,59 @@ export default function Products() {
 
       <div className={`overflow-hidden rounded-2xl border border-gray-200 bg-white transition-opacity ${searching ? 'opacity-60' : ''}`}>
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50 text-xs tracking-wide text-gray-600 uppercase">
+          <thead className="border-b border-gray-200 bg-gray-50">
+            <tr className="text-xs tracking-wide text-gray-600 uppercase">
+              <th className="w-14 px-4 pt-2.5 pb-1" />
+              <th className="px-4 pt-2.5 pb-1">Code</th>
+              <th className="px-4 pt-2.5 pb-1">Name</th>
+              <th className="px-4 pt-2.5 pb-1">Category</th>
+              <th className="px-4 pt-2.5 pb-1">Species</th>
+              <th className="px-4 pt-2.5 pb-1">Availability</th>
+              <th className="px-4 pt-2.5 pb-1" />
+            </tr>
             <tr>
-              <th className="w-14 px-4 py-2.5" />
-              <th className="px-4 py-2.5">Code</th>
-              <th className="px-4 py-2.5">Name</th>
-              <th className="px-4 py-2.5">Category</th>
-              <th className="px-4 py-2.5">Species</th>
-              <th className="px-4 py-2.5">Availability</th>
-              <th className="px-4 py-2.5" />
+              <th className="w-14 px-4 pb-2" />
+              <th className="px-4 pb-2" />
+              <th className="px-4 pb-2" />
+              <th className="px-4 pb-2">
+                <select
+                  value={filterCategory}
+                  onChange={(e) => { const f = e.currentTarget.form; setTimeout(() => submit(f, { replace: true }), 0) }}
+                  name="category"
+                  form="products-filter"
+                  className="w-full rounded border border-gray-200 bg-white px-1.5 py-1 text-xs font-normal text-gray-700 normal-case tracking-normal outline-none focus:border-royal-blue"
+                >
+                  <option value="">All categories</option>
+                  {categoryOptions.map((c) => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </th>
+              <th className="px-4 pb-2">
+                <select
+                  value={filterSpecies}
+                  onChange={(e) => { const f = e.currentTarget.form; setTimeout(() => submit(f, { replace: true }), 0) }}
+                  name="species"
+                  form="products-filter"
+                  className="w-full rounded border border-gray-200 bg-white px-1.5 py-1 text-xs font-normal text-gray-700 normal-case tracking-normal outline-none focus:border-royal-blue"
+                >
+                  <option value="">All species</option>
+                  {SPECIES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </th>
+              <th className="px-4 pb-2">
+                <select
+                  value={filterAvailability}
+                  onChange={(e) => { const f = e.currentTarget.form; setTimeout(() => submit(f, { replace: true }), 0) }}
+                  name="availability"
+                  form="products-filter"
+                  className="w-full rounded border border-gray-200 bg-white px-1.5 py-1 text-xs font-normal text-gray-700 normal-case tracking-normal outline-none focus:border-royal-blue"
+                >
+                  <option value="">All</option>
+                  {AVAILABILITY.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                </select>
+              </th>
+              <th className="px-4 pb-2" />
             </tr>
           </thead>
           <tbody>
