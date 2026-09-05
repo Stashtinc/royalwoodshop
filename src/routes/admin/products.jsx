@@ -20,6 +20,8 @@ export async function loader({ request }) {
       category: url.searchParams.get('category') ?? '',
       species: url.searchParams.get('species') ?? '',
       availability: url.searchParams.get('availability') ?? '',
+      sortBy: url.searchParams.get('sortBy') ?? 'code',
+      sortDir: url.searchParams.get('sortDir') === 'desc' ? 'desc' : 'asc',
     }),
     listCategories(),
   ])
@@ -33,13 +35,26 @@ const MISSING_LABEL = {
 }
 
 export default function Products() {
-  const { rows, total, page, pages, perPage, categoryOptions } = useLoaderData()
+  const { rows, total, page, pages, perPage, categoryOptions, sortBy, sortDir } = useLoaderData()
   const [params] = useSearchParams()
   const missing = params.get('missing') ?? ''
   const q = params.get('q') ?? ''
   const filterCategory = params.get('category') ?? ''
   const filterSpecies = params.get('species') ?? ''
   const filterAvailability = params.get('availability') ?? ''
+
+  function sortLink(col) {
+    const next = new URLSearchParams(params)
+    next.set('sortBy', col)
+    next.set('sortDir', sortBy === col && sortDir === 'asc' ? 'desc' : 'asc')
+    next.delete('page')
+    return `?${next.toString()}`
+  }
+
+  function SortIndicator({ col }) {
+    if (sortBy !== col) return <span className="ml-1 text-gray-300">↕</span>
+    return <span className="ml-1 text-royal-blue">{sortDir === 'asc' ? '↑' : '↓'}</span>
+  }
 
   const submit = useSubmit()
   const navigation = useNavigation()
@@ -116,11 +131,19 @@ export default function Products() {
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr className="text-xs tracking-wide text-gray-600 uppercase">
               <th className="w-14 px-4 pt-2.5 pb-1" />
-              <th className="px-4 pt-2.5 pb-1">Code</th>
-              <th className="px-4 pt-2.5 pb-1">Name</th>
-              <th className="px-4 pt-2.5 pb-1">Category</th>
+              <th className="px-4 pt-2.5 pb-1">
+                <Link to={sortLink('code')} className="inline-flex items-center hover:text-royal-blue">Code<SortIndicator col="code" /></Link>
+              </th>
+              <th className="px-4 pt-2.5 pb-1">
+                <Link to={sortLink('name')} className="inline-flex items-center hover:text-royal-blue">Name<SortIndicator col="name" /></Link>
+              </th>
+              <th className="px-4 pt-2.5 pb-1">
+                <Link to={sortLink('category')} className="inline-flex items-center hover:text-royal-blue">Category<SortIndicator col="category" /></Link>
+              </th>
               <th className="px-4 pt-2.5 pb-1">Species</th>
-              <th className="px-4 pt-2.5 pb-1">Availability</th>
+              <th className="px-4 pt-2.5 pb-1">
+                <Link to={sortLink('availability')} className="inline-flex items-center hover:text-royal-blue">Availability<SortIndicator col="availability" /></Link>
+              </th>
               <th className="px-4 pt-2.5 pb-1" />
             </tr>
             <tr>

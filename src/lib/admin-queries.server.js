@@ -22,7 +22,7 @@ export async function listCategories() {
     .orderBy(asc(categories.name))
 }
 
-export async function listProducts({ q = '', page = 1, perPage = 25, missing = '', category = '', species = '', availability = '' } = {}) {
+export async function listProducts({ q = '', page = 1, perPage = 25, missing = '', category = '', species = '', availability = '', sortBy = 'code', sortDir = 'asc' } = {}) {
   const db = await getDb()
   const where = []
   if (q.trim()) {
@@ -65,10 +65,19 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
     .from(products)
     .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
     .where(clause)
-    .orderBy(asc(products.productCode), asc(products.name))
+    .orderBy(...(() => {
+      const d = sortDir === 'desc' ? desc : asc
+      const cols = {
+        code: [d(products.productCode), asc(products.name)],
+        name: [d(products.name)],
+        category: [d(categories.name), asc(products.productCode)],
+        availability: [d(products.availability), asc(products.productCode)],
+      }
+      return cols[sortBy] ?? [asc(products.productCode), asc(products.name)]
+    })())
     .limit(perPage).offset((page - 1) * perPage)
 
-  return { rows, total, page, perPage, pages: Math.max(1, Math.ceil(total / perPage)) }
+  return { rows, total, page, perPage, pages: Math.max(1, Math.ceil(total / perPage)), sortBy, sortDir }
 }
 
 export async function getProduct(id) {
