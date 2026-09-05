@@ -33,7 +33,6 @@ build
 .env.local
 .env.*.local
 .data/
-public/uploads/
 .data/imports/
 
 # Google service-account keys. Drop them in .secrets/ — never commit one.
