@@ -79,13 +79,11 @@ export function availabilityKeys(p) {
   return [...keys]
 }
 
-/** "Poplar (In Stock), Black Walnut (Made-to-Order)" — or just the wood names
- *  while the sheet still has no codes against them. */
+/** "Poplar, Black Walnut, Clear Pine" — availability shown separately on the page. */
 export function speciesSummary(p) {
   const detail = p.speciesAvailability ?? []
   if (!detail.length) return (p.species ?? []).join(', ')
-  if (!detail.some((s) => s.label)) return detail.map((s) => s.name).join(', ')
-  return detail.map((s) => (s.label ? `${s.name} (${s.label})` : s.name)).join(', ')
+  return detail.map((s) => s.name).join(', ')
 }
 
 export function availabilityFacet(rows = products) {

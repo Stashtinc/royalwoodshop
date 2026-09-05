@@ -148,6 +148,12 @@ export default function ProductDetail({ product: productProp = null, related: re
     (p) => p.id !== product.id && p.subcategory === product.subcategory,
   ).slice(0, 4)
 
+  const AVAILABILITY_BADGE = {
+    in_stock:      { label: 'In Stock',      className: 'bg-green-100 text-green-800' },
+    quick_ship:    { label: 'Quick Ship',    className: 'bg-amber-100 text-amber-800' },
+    made_to_order: { label: 'Made-to-Order', className: 'bg-gray-100 text-gray-600' },
+  }
+
   const specs = [
     { label: 'Product Code', value: product.productCode },
     { label: 'Size', value: product.size },
@@ -158,7 +164,18 @@ export default function ProductDetail({ product: productProp = null, related: re
     { label: 'Flexible version', value: product.flexAvailable ? 'Available' : null },
     { label: 'Category', value: product.category },
     { label: 'Type', value: product.subcategory },
-    { label: 'Availability', value: product.availabilityLabel ?? null },
+    {
+      label: 'Availability',
+      value: product.availabilityLabel ?? null,
+      render: product.availability
+        ? () => {
+            const badge = AVAILABILITY_BADGE[product.availability]
+            return badge
+              ? <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>{badge.label}</span>
+              : <span>{product.availabilityLabel}</span>
+          }
+        : null,
+    },
     { label: 'Lead time', value: product.leadTime ?? null },
   ].filter((s) => s.value)
 
@@ -217,10 +234,10 @@ export default function ProductDetail({ product: productProp = null, related: re
               <div className="flex flex-col gap-3">
                 <p className="font-serif text-sm font-bold text-tundora">Specifications</p>
                 <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {specs.map(({ label, value }) => (
+                  {specs.map(({ label, value, render }) => (
                     <div key={label} className="flex flex-col gap-0.5 rounded-xl bg-white p-3.5 border border-gray-100">
                       <dt className="font-sans text-xs font-semibold tracking-wide text-gray-400 uppercase">{label}</dt>
-                      <dd className="font-sans text-sm font-medium text-tundora">{value}</dd>
+                      <dd className="font-sans text-sm font-medium text-tundora">{render ? render() : value}</dd>
                     </div>
                   ))}
                 </dl>
