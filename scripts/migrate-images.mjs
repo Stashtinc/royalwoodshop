@@ -19,7 +19,7 @@ import sharp from 'sharp'
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'public/uploads'
 const PUBLIC_PREFIX = '/uploads'
-const WIDTHS = [400, 800, 1200]
+const WIDTHS = [320, 640, 960, 1440]
 
 function variantPath(storageKey, w) {
   return storageKey.replace(/(\.\w+)$/, `-${w}$1`)
