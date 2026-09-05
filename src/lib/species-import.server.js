@@ -226,21 +226,22 @@ export async function analyse(rows) {
     if (!product) { summary.unmatched.push(p.code); continue }
     summary.matched++
 
-    if (p.species.length) summary.willSetSpecies++
+    const allSpeciesCount = p.species.length + p.other.length
+    if (allSpeciesCount) summary.willSetSpecies++
     if (p.availability) summary.willSetAvailability++
     if (p.flex) summary.willSetFlex++
-    if (p.species.length || p.availability || p.flex) summary.willChange++
+    if (allSpeciesCount || p.availability || p.flex) summary.willChange++
     else summary.blank++
     for (const bad of p.badCodes) summary.badCodes.push(`${p.code} — ${bad}`)
     for (const o of p.other) {
       if (!known.has(o.toLowerCase())) summary.unknownOther.push(`${p.code}: ${o}`)
     }
 
-    if (summary.changes.length < 40 && (p.species.length || p.availability || p.flex)) {
+    if (summary.changes.length < 40 && (allSpeciesCount || p.availability || p.flex)) {
       summary.changes.push({
         code: p.code,
         name: product.name,
-        species: p.species,
+        species: [...p.species, ...p.other.map((name) => ({ name, availability: null }))],
         availability: p.availability,
         flex: p.flex,
       })
@@ -316,12 +317,29 @@ export async function apply(rows, overrides = {}, options = {}) {
     if (!product) continue
 
     // A row with nothing ticked is untouched rather than treated as "clear it".
-    if (!p.species.length && !p.availability && !p.flex) continue
+    const allSpecies = [
+      ...p.species,
+      ...p.other.map((name) => ({ name, availability: null })),
+    ]
+    if (!allSpecies.length && !p.availability && !p.flex) continue
 
-    if (p.species.length) {
+    if (allSpecies.length) {
       await db.delete(productAttributes).where(eq(productAttributes.productId, product.id))
-      for (const s of p.species) {
-        const vid = valueIds.get(s.name.toLowerCase())
+      for (const s of allSpecies) {
+        let vid = valueIds.get(s.name.toLowerCase())
+        if (!vid) {
+          // OTHER column: free-text species not in the named columns — create on the fly
+          const slug = s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+          const [v] = await db.insert(attributeValues)
+            .values({ attributeId: attr.id, slug, value: s.name, sortOrder: 999 })
+            .onConflictDoUpdate({
+              target: [attributeValues.attributeId, attributeValues.slug],
+              set: { value: s.name },
+            })
+            .returning({ id: attributeValues.id })
+          vid = v.id
+          valueIds.set(s.name.toLowerCase(), vid)
+        }
         if (vid) {
           await db.insert(productAttributes)
             .values({ productId: product.id, attributeValueId: vid, availability: s.availability })

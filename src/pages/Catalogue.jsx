@@ -236,6 +236,7 @@ export default function Catalogue({ initialCategory = null, products = null }) {
     subsFromUrl({ initialCategory, categoryParam: null, tree: categoryTree(allProducts) }),
   )
   const [expandedCats, setExpandedCats] = useState(new Set())
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [view, setView] = useState('grid')
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
@@ -412,6 +413,63 @@ export default function Catalogue({ initialCategory = null, products = null }) {
                   className="w-full rounded-lg border border-gray-300 py-2.5 pr-3 pl-10 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
                 />
               </div>
+              <button
+                type="button"
+                onClick={() => setAdvancedOpen((o) => !o)}
+                className="flex w-fit items-center gap-1 font-sans text-sm text-royal-blue hover:underline"
+              >
+                <svg
+                  width="12" height="12" viewBox="0 0 12 12" fill="none"
+                  className={`transition-transform duration-200 ${advancedOpen ? 'rotate-90' : ''}`}
+                >
+                  <path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Advanced search
+              </button>
+              {advancedOpen && (
+                <div className="flex flex-col gap-4 pt-1">
+                  <div className="flex flex-col gap-2">
+                    <p className="font-serif text-base font-bold text-tundora">Product Code</p>
+                    <input
+                      type="text"
+                      value={productCode}
+                      onChange={(e) => withPageReset(setProductCode)(e.target.value)}
+                      placeholder="e.g. BB-5014"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <p className="font-serif text-base font-bold text-tundora">Width</p>
+                    <select
+                      value={sizeCategory}
+                      onChange={(e) => withPageReset(setSizeCategory)(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
+                    >
+                      <option value="All">All</option>
+                      <option value='Under 2&quot;'>Under 2&quot;</option>
+                      <option value='2&quot; – 4&quot;'>2&quot; – 4&quot;</option>
+                      <option value='4&quot; – 7&quot;'>4&quot; – 7&quot;</option>
+                      <option value='Over 7&quot;'>Over 7&quot;</option>
+                      <option value="Made to order">Made to order</option>
+                    </select>
+                  </div>
+                  {speciesOptions.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <p className="font-serif text-base font-bold text-tundora">Wood species</p>
+                      <select
+                        value={species}
+                        onChange={(e) => withPageReset(setSpecies)(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
+                      >
+                        <option value="All">All</option>
+                        {speciesOptions.map((o) => (
+                          <option key={o.value} value={o.value}>{o.value} ({o.count})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-4">
