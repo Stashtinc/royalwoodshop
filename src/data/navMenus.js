@@ -17,43 +17,14 @@
 // people to the wrong products, which is worse than a dead link.
 
 export const productsMenu = {
-  groups: [
-    {
-      heading: 'Trim & Mouldings Catalogue',
-      items: [
-        { label: 'Stock Trim Profile List', path: '/products?category=trim-mouldings' },
-        'Price List',
-        'Curved & Arched Trim Made to Order',
-        'Flexible Trim',
-        'Custom Trim Made to Order',
-        'Quick Ship Alexandria Mouldings',
-        'Royal Woodworking Brochure',
-      ],
-    },
-    {
-      heading: 'Interior Doors',
-      items: [
-        { label: 'Interior Doors Product Catalogue', path: '/products?category=interior-doors' },
-        'KN Crowder Sliding Door Tracks',
-        'TRIMLITE Door Brochure 2026',
-        'Door Handing Sheet',
-        'Pre-Hanging Service',
-      ],
-    },
-  ],
-  items: [
-    { label: 'Full Product Catalogue', path: '/products' },
-    'S4S Flat Stock Lumber and Primed Dimensional Boards',
-    'Paneling Surfaces',
-    { label: 'Staircase & Railing', path: '/products?category=stair-railing' },
-    '4×8 Sheet Panels',
-    'Wood & Composite Siding',
-    {
-      label: 'Door Hardware, Handles & Sliding Systems in Toronto & GTA',
-      path: '/products?category=door-hardware',
-    },
-    'Columns & Post Covers',
-    'Fit & Finish Essentials',
+  categories: [
+    { label: 'Trim & Moulding',        path: '/products?category=trim-mouldings' },
+    { label: 'Interior Doors',          path: '/products?category=interior-doors' },
+    { label: 'Stair Components',        path: '/products?category=stair-railing' },
+    { label: 'Door Hardware',           path: '/products?category=door-hardware' },
+    { label: 'Sheet Stock',             path: '/products' },
+    { label: 'Wall & Ceiling Panelling',path: '/products' },
+    { label: 'Siding',                  path: '/products' },
   ],
 }
 
