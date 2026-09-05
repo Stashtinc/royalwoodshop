@@ -215,8 +215,13 @@ function ProductCard({ product }) {
           className={`h-full w-full ${imageFit(product.imageRole).className} transition-transform duration-300 group-hover:scale-105`}
         />
       </div>
-      {availabilityKeys(product).length > 0 && (
+      {(availabilityKeys(product).length > 0 || product.salePrice) && (
         <div className="absolute top-3 left-3 flex flex-col gap-1">
+          {product.salePrice && (
+            <span className="inline-flex items-center rounded-full bg-red-500 px-2.5 py-0.5 font-sans text-xs font-medium text-white">
+              On Sale
+            </span>
+          )}
           {availabilityKeys(product).map((key) => (
             <AvailabilityPill key={key} availability={key} />
           ))}

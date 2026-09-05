@@ -110,6 +110,8 @@ export async function action({ request, params }) {
     availability: AVAILABILITY.some(([k]) => k === avail) ? avail : null,
     leadTime: String(f.get('leadTime') ?? '').trim(),
     flexAvailable: f.get('flexAvailable') === 'on',
+    price: num(f.get('price')),
+    salePrice: num(f.get('salePrice')),
     status: ['draft', 'published', 'archived'].includes(String(f.get('status'))) ? String(f.get('status')) : 'draft',
     seoTitle: String(f.get('seoTitle') ?? '').trim(),
     seoDescription: String(f.get('seoDescription') ?? '').trim(),
@@ -311,6 +313,31 @@ export default function ProductEdit() {
               className="h-4 w-4 rounded border-gray-300" />
             Also available as a flexible moulding
           </label>
+        </section>
+
+        <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
+          <h2 className="font-serif font-bold text-tundora">Pricing</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5">
+              <Label hint="optional">Regular price</Label>
+              <div className="relative">
+                <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-gray-400">$</span>
+                <input name="price" defaultValue={product.price ?? ''} inputMode="decimal" placeholder="0.00"
+                  className={`${field} pl-6`} />
+              </div>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <Label hint="shows On Sale badge when filled">Sale price</Label>
+              <div className="relative">
+                <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-gray-400">$</span>
+                <input name="salePrice" defaultValue={product.salePrice ?? ''} inputMode="decimal" placeholder="0.00"
+                  className={`${field} pl-6`} />
+              </div>
+              {product.salePrice && (
+                <span className="w-fit rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">On Sale</span>
+              )}
+            </label>
+          </div>
         </section>
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">

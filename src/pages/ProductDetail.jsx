@@ -157,6 +157,25 @@ export default function ProductDetail({ product: productProp = null, related: re
   const specs = [
     { label: 'Product Code', value: product.productCode },
     { label: 'Size', value: product.size },
+    {
+      label: 'Price',
+      value: product.price != null ? String(product.price) : null,
+      render: product.price != null
+        ? () => (
+            <span className="flex flex-wrap items-center gap-2">
+              {product.salePrice != null ? (
+                <>
+                  <span className="font-semibold text-red-600">${Number(product.salePrice).toFixed(2)}</span>
+                  <span className="text-sm text-gray-400 line-through">${Number(product.price).toFixed(2)}</span>
+                  <span className="inline-flex items-center rounded-full bg-red-500 px-2 py-0.5 text-xs font-medium text-white">On Sale</span>
+                </>
+              ) : (
+                <span>${Number(product.price).toFixed(2)}</span>
+              )}
+            </span>
+          )
+        : null,
+    },
     // Species comes from the sheet Royal Wood Shop are completing. Until a
     // product has it, the row is omitted rather than showing a bare 'wood'.
     {

@@ -87,6 +87,7 @@ export const products = pgTable('products', {
   flexAvailable: boolean('flex_available').notNull().default(false),
 
   price: numeric('price', { precision: 10, scale: 2 }),
+  salePrice: numeric('sale_price', { precision: 10, scale: 2 }),
 
   status: productStatusEnum('status').notNull().default('draft'),
 
