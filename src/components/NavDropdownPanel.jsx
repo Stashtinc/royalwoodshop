@@ -58,7 +58,7 @@ function ProductsPanel() {
       <MenuColumn heading="Categories" items={productsMenu.categories} />
       <HighlightColumn
         eyebrow="In-Stock & Ready"
-        title="Toronto's trim & door specialists"
+        title="Your local trim & door specialists"
         description="Browse hundreds of mouldings, doors, and hardware available for pickup or delivery across the GTA."
         ctaLabel="Shop Now"
         ctaTo="/products"
