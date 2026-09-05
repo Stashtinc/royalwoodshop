@@ -442,13 +442,27 @@ export default function Catalogue({ initialCategory = null, products = null }) {
                 <div className="flex flex-col gap-4 pt-1">
                   <div className="flex flex-col gap-2">
                     <p className="font-serif text-base font-bold text-tundora">Product Code</p>
-                    <input
-                      type="text"
-                      value={productCode}
-                      onChange={(e) => withPageReset(setProductCode)(e.target.value)}
-                      placeholder="e.g. BB-5014"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={productCode}
+                        onChange={(e) => withPageReset(setProductCode)(e.target.value)}
+                        placeholder="e.g. BB-5014"
+                        className="w-full rounded-lg border border-gray-300 py-2.5 pl-3 pr-8 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
+                      />
+                      {productCode && (
+                        <button
+                          type="button"
+                          onClick={() => withPageReset(setProductCode)('')}
+                          className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          aria-label="Clear product code"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-col gap-2">
                     <p className="font-serif text-base font-bold text-tundora">Width</p>
@@ -547,13 +561,27 @@ export default function Catalogue({ initialCategory = null, products = null }) {
 
             <div className="flex flex-col gap-3">
               <p className="font-serif text-base font-bold text-tundora">Product Code</p>
-              <input
-                type="text"
-                value={productCode}
-                onChange={(e) => withPageReset(setProductCode)(e.target.value)}
-                placeholder="e.g. BB-5014"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={productCode}
+                  onChange={(e) => withPageReset(setProductCode)(e.target.value)}
+                  placeholder="e.g. BB-5014"
+                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-3 pr-8 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
+                />
+                {productCode && (
+                  <button
+                    type="button"
+                    onClick={() => withPageReset(setProductCode)('')}
+                    className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label="Clear product code"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
 
 
