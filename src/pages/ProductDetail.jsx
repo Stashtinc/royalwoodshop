@@ -1,4 +1,5 @@
 import { Link, useParams, useNavigate } from 'react-router'
+import { useState } from 'react'
 import { catalogueProducts, productPath, relatedTo, speciesSummary, availabilityKeys } from '../data/catalogue'
 import { srcSet, thumbSrc, imageFit } from '../lib/images'
 
@@ -124,6 +125,41 @@ function RelatedCard({ product }) {
   )
 }
 
+function Gallery({ product }) {
+  const images = product.images?.length ? product.images : [{ url: product.image, role: product.imageRole, width: product.imageWidth, alt: product.name }]
+  const [active, setActive] = useState(0)
+  const main = images[active] ?? images[0]
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className={`aspect-[4/3] w-full overflow-hidden rounded-2xl border border-gray-100 bg-white ${imageFit(main.role).pad ? 'p-6' : ''}`}>
+        <img
+          key={main.url}
+          src={main.url}
+          srcSet={srcSet(main.url, main.width) ?? undefined}
+          sizes="(min-width: 1024px) 480px, 92vw"
+          alt={main.alt || product.name}
+          className={`h-full w-full ${imageFit(main.role).className}`}
+        />
+      </div>
+      {images.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          {images.map((img, i) => (
+            <button
+              key={img.url}
+              type="button"
+              onClick={() => setActive(i)}
+              className={`h-16 w-16 overflow-hidden rounded-lg border-2 bg-white transition-colors ${i === active ? 'border-royal-blue' : 'border-gray-200 hover:border-gray-400'}`}
+            >
+              <img src={thumbSrc(img.url, img.width)} alt="" className="h-full w-full object-contain p-1" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ProductDetail({ product: productProp = null, related: relatedProp = null }) {
   const { slug } = useParams()
   const navigate = useNavigate()
@@ -242,18 +278,9 @@ export default function ProductDetail({ product: productProp = null, related: re
       <section className="py-12 lg:py-20">
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="flex flex-col gap-10 lg:flex-row lg:gap-16">
-            {/* Image */}
+            {/* Image gallery */}
             <div className="w-full shrink-0 lg:w-[480px]">
-              {/* The main image is the profile itself. Show all of it. */}
-              <div className={`aspect-[4/3] w-full overflow-hidden rounded-2xl border border-gray-100 bg-white ${imageFit(product.imageRole).pad ? 'p-6' : ''}`}>
-                <img
-                  src={product.image}
-                  srcSet={srcSet(product.image, product.imageWidth) ?? undefined}
-                  sizes="(min-width: 1024px) 480px, 92vw"
-                  alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
-                  className={`h-full w-full ${imageFit(product.imageRole).className}`}
-                />
-              </div>
+              <Gallery product={product} />
             </div>
 
             {/* Details */}
