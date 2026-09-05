@@ -21,9 +21,9 @@ export default function NewsletterSignup() {
       <div className="pointer-events-none absolute -bottom-40 -left-40 h-[600px] w-[600px] rounded-full border border-white/5" />
       <div className="pointer-events-none absolute -bottom-24 -left-24 h-[400px] w-[400px] rounded-full border border-white/5" />
 
-      {/* Amber accent glow */}
-      <div className="pointer-events-none absolute top-0 right-1/4 h-80 w-80 rounded-full bg-amber-500/10 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 left-1/4 h-60 w-60 rounded-full bg-royal-blue/20 blur-3xl" />
+      {/* Royal blue glows */}
+      <div className="pointer-events-none absolute top-0 right-1/4 h-80 w-80 rounded-full blur-3xl" style={{ background: 'rgba(0,101,171,0.18)' }} />
+      <div className="pointer-events-none absolute bottom-0 left-1/4 h-60 w-60 rounded-full blur-3xl" style={{ background: 'rgba(0,101,171,0.12)' }} />
 
       <div className="relative mx-auto max-w-[1280px] px-6 lg:px-8">
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
@@ -31,15 +31,15 @@ export default function NewsletterSignup() {
           {/* Left — copy */}
           <div className="flex flex-col gap-6">
             <div className="flex items-center gap-3">
-              <div className="h-px w-8 bg-amber-400" />
-              <span className="font-sans text-xs font-bold tracking-widest text-amber-400 uppercase">
+              <div className="h-px w-8 bg-royal-blue" />
+              <span className="font-sans text-xs font-bold tracking-widest text-royal-blue uppercase">
                 Newsletter
               </span>
             </div>
 
             <h2 className="font-serif text-4xl font-bold leading-tight text-white lg:text-5xl">
               Around<br />
-              <span className="italic text-amber-400">the Mill</span>
+              <span className="italic text-royal-blue">the Mill</span>
             </h2>
 
             <p className="max-w-sm font-sans text-base leading-relaxed text-white/60">
@@ -49,7 +49,7 @@ export default function NewsletterSignup() {
             <div className="flex flex-wrap gap-6 font-sans text-sm text-white/40">
               {['Product news', 'Project ideas', 'Trade tips'].map((item) => (
                 <span key={item} className="flex items-center gap-1.5">
-                  <span className="h-1 w-1 rounded-full bg-amber-400" />
+                  <span className="h-1 w-1 rounded-full bg-royal-blue" />
                   {item}
                 </span>
               ))}
@@ -70,20 +70,21 @@ export default function NewsletterSignup() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <div className="relative">
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Your email address"
-                    className="w-full rounded-xl border border-white/10 bg-white/8 px-5 py-4 font-sans text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-amber-400/60 focus:bg-white/10"
-                    style={{ background: 'rgba(255,255,255,0.06)' }}
-                  />
-                </div>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Your email address"
+                  className="w-full rounded-xl border border-white/10 px-5 py-4 font-sans text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-royal-blue"
+                  style={{ background: 'rgba(255,255,255,0.06)' }}
+                />
                 <button
                   type="submit"
-                  className="w-full rounded-xl bg-amber-400 px-6 py-4 font-sans text-sm font-bold text-[#0f1f2e] transition-all hover:bg-amber-300 hover:shadow-lg hover:shadow-amber-400/20 active:scale-[0.99]"
+                  className="w-full rounded-xl bg-royal-blue px-6 py-4 font-sans text-sm font-bold text-white transition-all hover:bg-royal-blue-dark hover:shadow-lg active:scale-[0.99]"
+                  style={{ boxShadow: undefined }}
+                  onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,101,171,0.35)'}
+                  onMouseLeave={e => e.currentTarget.style.boxShadow = ''}
                 >
                   Subscribe to Around the Mill
                 </button>
@@ -93,10 +94,10 @@ export default function NewsletterSignup() {
               </form>
             )}
 
-            {/* Issue count social proof */}
-            <div className="flex items-center gap-3 rounded-xl border border-white/8 px-4 py-3" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+            {/* Social proof */}
+            <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="flex -space-x-2">
-                {['#b45309', '#1d4ed8', '#065f46'].map((color, i) => (
+                {['#0065ab', '#004f87', '#1d4ed8'].map((color, i) => (
                   <div key={i} className="h-7 w-7 rounded-full border-2 border-[#0f1f2e]" style={{ background: color }} />
                 ))}
               </div>
