@@ -91,12 +91,23 @@ export default function Products() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-baseline gap-3">
-        <h1 className="font-serif text-2xl font-bold text-tundora">Products</h1>
-        <p className="text-sm text-gray-500">
-          {total} {missing ? MISSING_LABEL[missing] : 'total'}
-        </p>
-        {missing && <Link to="/admin/products" className="text-sm text-royal-blue underline">clear filter</Link>}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="font-serif text-2xl font-bold text-tundora">Products</h1>
+          <p className="text-sm text-gray-500">
+            {total} {missing ? MISSING_LABEL[missing] : 'total'}
+          </p>
+          {missing && <Link to="/admin/products" className="text-sm text-royal-blue underline">clear filter</Link>}
+        </div>
+        <Link
+          to="/admin/products/new"
+          className="flex items-center gap-1.5 rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+          Add New
+        </Link>
       </div>
 
       <Form id="products-filter" method="get" role="search" className="flex max-w-md gap-2">

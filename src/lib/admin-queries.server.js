@@ -131,6 +131,22 @@ export function diffProduct(before, data) {
   return changed
 }
 
+export async function createProduct(data) {
+  const db = await getDb()
+  const slug = data.productCode
+    ? data.productCode.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    : data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 80)
+
+  const [row] = await db.insert(products).values({
+    name: data.name,
+    slug,
+    productCode: data.productCode || null,
+    status: data.status ?? 'draft',
+    primaryCategoryId: data.categoryId ? Number(data.categoryId) : null,
+  }).returning({ id: products.id })
+  return row.id
+}
+
 export async function saveProduct(id, data) {
   const db = await getDb()
 
