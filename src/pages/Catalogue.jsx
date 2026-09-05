@@ -644,62 +644,6 @@ export default function Catalogue({ initialCategory = null, products = null }) {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3">
-              <p className="font-serif text-base font-bold text-tundora">Product Code</p>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={productCode}
-                  onChange={(e) => withPageReset(setProductCode)(e.target.value)}
-                  placeholder="e.g. BB-5014"
-                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-3 pr-8 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
-                />
-                {productCode && (
-                  <button
-                    type="button"
-                    onClick={() => withPageReset(setProductCode)('')}
-                    className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    aria-label="Clear product code"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            </div>
-
-
-
-            <div className="flex flex-col gap-3">
-              <p className="font-serif text-base font-bold text-tundora">Width</p>
-              <CustomSelect
-                value={sizeCategory}
-                onChange={withPageReset(setSizeCategory)}
-                options={[
-                  { value: 'All', label: 'All' },
-                  { value: 'Under 2"', label: 'Under 2"' },
-                  { value: '2" – 4"', label: '2" – 4"' },
-                  { value: '4" – 7"', label: '4" – 7"' },
-                  { value: 'Over 7"', label: 'Over 7"' },
-                  { value: 'Made to order', label: 'Made to order' },
-                ]}
-              />
-            </div>
-
-            {speciesOptions.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <p className="font-serif text-base font-bold text-tundora">Wood species</p>
-                <CustomSelect
-                  value={species}
-                  onChange={withPageReset(setSpecies)}
-                  options={[
-                    { value: 'All', label: 'All' },
-                    ...speciesOptions.map((o) => ({ value: o.value, label: `${o.value} (${o.count})` })),
-                  ]}
-                />
-              </div>
-            )}
 
             {hasActiveFilters && (
               <button
