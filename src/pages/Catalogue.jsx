@@ -370,11 +370,19 @@ export default function Catalogue({ initialCategory = null, products = null }) {
   function toggleCategory(category, subs) {
     setSelectedSubs((prev) => {
       const keys = subs.map((sub) => `${category}::${sub}`)
-      const allOfCatSelected = keys.every((key) => prev.has(key)) && prev.size === keys.length
-      // If this category is already exclusively selected, restore all
-      if (allOfCatSelected) return allSubKeys(catalogueCategoryOrder)
-      // Otherwise exclusively select this entire category
-      return new Set(keys)
+      const allOfCatSelected = keys.every((key) => prev.has(key))
+
+      if (allOfCatSelected) {
+        // Deselect this category
+        const next = new Set(prev)
+        keys.forEach((k) => next.delete(k))
+        // If nothing left, restore all
+        return next.size === 0 ? allSubKeys(catalogueCategoryOrder) : next
+      }
+      // Select all subs of this category (add to existing selection)
+      const next = new Set(prev)
+      keys.forEach((k) => next.add(k))
+      return next
     })
     setPage(1)
   }
