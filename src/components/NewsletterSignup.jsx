@@ -69,26 +69,24 @@ export default function NewsletterSignup() {
                 <p className="font-sans text-sm text-white/60">Watch for the next issue of Around the Mill.</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Your email address"
-                  className="w-full rounded-xl border border-white/10 px-5 py-4 font-sans text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-royal-blue"
-                  style={{ background: 'rgba(255,255,255,0.06)' }}
-                />
-                <button
-                  type="submit"
-                  className="w-full rounded-xl bg-royal-blue px-6 py-4 font-sans text-sm font-bold text-white transition-all hover:bg-royal-blue-dark hover:shadow-lg active:scale-[0.99]"
-                  style={{ boxShadow: undefined }}
-                  onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,101,171,0.35)'}
-                  onMouseLeave={e => e.currentTarget.style.boxShadow = ''}
-                >
-                  Subscribe to Around the Mill
-                </button>
-                <p className="text-center font-sans text-xs text-white/30">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                <div className="flex overflow-hidden rounded-xl border border-white/10" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Your email address"
+                    className="min-w-0 flex-1 bg-transparent px-5 py-4 font-sans text-sm text-white placeholder-white/30 outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="shrink-0 bg-royal-blue px-6 py-4 font-sans text-sm font-bold text-white transition-colors hover:bg-royal-blue-dark"
+                  >
+                    Subscribe
+                  </button>
+                </div>
+                <p className="font-sans text-xs text-white/30">
                   No spam. Unsubscribe any time.
                 </p>
               </form>
