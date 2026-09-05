@@ -15,7 +15,7 @@ const navLinks = [
 ]
 
 const mobileMenuItems = {
-  products: [...productsMenu.groups.flatMap((g) => g.items), ...productsMenu.items],
+  products: productsMenu.categories,
   services: servicesMenu,
   about: aboutMenu,
   resources: resourcesMenu,
