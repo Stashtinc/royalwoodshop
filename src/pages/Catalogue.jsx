@@ -6,7 +6,7 @@ import {
   categoryTree, speciesFacet, availabilityFacet, availabilityKeys, CATEGORY_BY_SLUG,
 } from '../data/catalogue'
 
-const PAGE_SIZE = 8
+const DEFAULT_PAGE_SIZE = 16
 
 /**
  * The sidebar selection implied by the URL.
@@ -238,7 +238,25 @@ export default function Catalogue({ initialCategory = null, products = null }) {
   const [expandedCats, setExpandedCats] = useState(new Set())
   const [page, setPage] = useState(1)
   const [view, setView] = useState('grid')
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const resultsRef = useRef(null)
+  const sidebarRef = useRef(null)
+
+  useEffect(() => {
+    const sidebar = sidebarRef.current
+    if (!sidebar || typeof ResizeObserver === 'undefined') return
+    const obs = new ResizeObserver(([entry]) => {
+      const h = entry.contentRect.height
+      // Grid: ~300px per card row. Use 4 cols at lg, 2 at smaller — assume 4.
+      // List: ~120px per row.
+      const rowHeight = view === 'list' ? 128 : 300
+      const cols = view === 'list' ? 1 : 4
+      const rows = Math.max(2, Math.ceil(h / rowHeight))
+      setPageSize(rows * cols)
+    })
+    obs.observe(sidebar)
+    return () => obs.disconnect()
+  }, [view])
 
   // A search result link can deep-link straight to a product via ?code=; re-sync
   // if the query param changes while already on this page (client-side nav).
@@ -355,9 +373,9 @@ export default function Catalogue({ initialCategory = null, products = null }) {
     return [...filtered].sort((a, b) => (catIndex[a.category] ?? 99) - (catIndex[b.category] ?? 99))
   }, [filtered, catalogueCategoryOrder])
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
   const currentPage = Math.min(page, totalPages)
-  const pageItems = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const pageItems = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   const grouped = catalogueCategoryOrder
     .map((cat) => ({ name: cat.name, items: pageItems.filter((p) => p.category === cat.name) }))
@@ -383,7 +401,7 @@ export default function Catalogue({ initialCategory = null, products = null }) {
         </div>
 
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
-          <aside className="flex w-full shrink-0 flex-col gap-8 lg:sticky lg:top-28 lg:w-[280px]">
+          <aside ref={sidebarRef} className="flex w-full shrink-0 flex-col gap-8 lg:sticky lg:top-28 lg:w-[280px]">
             <div className="flex flex-col gap-3">
               <p className="font-serif text-base font-bold text-tundora">Product Search</p>
               <div className="relative">
