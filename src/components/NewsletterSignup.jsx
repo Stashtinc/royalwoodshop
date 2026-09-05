@@ -92,17 +92,6 @@ export default function NewsletterSignup() {
               </form>
             )}
 
-            {/* Social proof */}
-            <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div className="flex -space-x-2">
-                {['#0065ab', '#004f87', '#1d4ed8'].map((color, i) => (
-                  <div key={i} className="h-7 w-7 rounded-full border-2 border-[#0f1f2e]" style={{ background: color }} />
-                ))}
-              </div>
-              <p className="font-sans text-xs text-white/40">
-                Join fellow woodworkers and trade professionals
-              </p>
-            </div>
           </div>
 
         </div>
