@@ -5,6 +5,7 @@ import stylesheet from './index.css?url'
 import Header from './components/Header'
 import PageHeader from './components/PageHeader'
 import Footer from './components/Footer'
+import NewsletterSignup from './components/NewsletterSignup'
 import royalEdgeHero from './assets/images/royal-edge-hero.jpg'
 import servicesHero from './assets/images/services-hero.jpg'
 
@@ -71,6 +72,7 @@ export default function Root() {
       <div data-print="hide"><Header /></div>
       {!isHome && <div data-print="hide"><PageHeader {...pageHeaderImages[pathname]} /></div>}
       <Outlet />
+      <div data-print="hide"><NewsletterSignup /></div>
       <div data-print="hide"><Footer /></div>
     </div>
   )
