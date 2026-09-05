@@ -18,10 +18,7 @@ export const searchIndex = [
     '/products',
     'Products',
   ),
-  ...productsMenu.groups.flatMap((group) =>
-    entries(group.items, '/products', 'Products'),
-  ),
-  ...entries(productsMenu.items, '/products', 'Products'),
+  ...entries(productsMenu.categories, '/products', 'Products'),
   ...entries(servicesMenu, '/services', 'Services'),
   ...entries(aboutMenu, '/#about', 'About Royal'),
   ...entries(resourcesMenu, '/resources', 'Resources'),
