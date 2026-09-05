@@ -218,7 +218,7 @@ function ProductCard({ product }) {
       {(availabilityKeys(product).length > 0 || product.salePrice) && (
         <div className="absolute top-3 left-3 flex flex-col gap-1">
           {product.salePrice && (
-            <span className="inline-flex items-center rounded-full bg-red-500 px-2.5 py-0.5 font-sans text-xs font-medium text-white">
+            <span className="inline-flex w-fit items-center rounded-full bg-red-500 px-2.5 py-0.5 font-sans text-xs font-medium text-white">
               On Sale
             </span>
           )}
