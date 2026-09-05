@@ -115,17 +115,19 @@ function SidebarContent({ user, onNavigate }) {
         ))}
       </nav>
 
-      <div className="mt-auto border-t border-gray-200 px-4 py-4">
+      <div className="mt-auto px-4 pb-2">
         <a
           href="/"
           target="_blank"
           rel="noreferrer"
-          className="mb-3 flex items-center gap-2 text-xs text-gray-400 transition-colors hover:text-gray-600"
+          className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
         >
           <SiteIcon />
           View site
           <span className="ml-auto text-[11px]">↗</span>
         </a>
+      </div>
+      <div className="border-t border-gray-200 px-4 py-4">
         <p className="truncate text-sm font-medium text-gray-700">{user.name || user.email}</p>
         <p className="truncate text-xs text-gray-400">{user.email}</p>
         <Form method="post" action="/admin/logout" className="mt-3">
