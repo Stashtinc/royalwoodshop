@@ -1,5 +1,5 @@
 import { Link, useParams, useNavigate } from 'react-router'
-import { catalogueProducts, productPath, relatedTo, speciesSummary } from '../data/catalogue'
+import { catalogueProducts, productPath, relatedTo, speciesSummary, availabilityKeys } from '../data/catalogue'
 import { srcSet, thumbSrc, imageFit } from '../lib/images'
 
 function ChevronRight() {
@@ -167,13 +167,17 @@ export default function ProductDetail({ product: productProp = null, related: re
     {
       label: 'Availability',
       value: product.availabilityLabel ?? null,
-      render: product.availability
-        ? () => {
-            const badge = AVAILABILITY_BADGE[product.availability]
-            return badge
-              ? <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>{badge.label}</span>
-              : <span>{product.availabilityLabel}</span>
-          }
+      render: availabilityKeys(product).length
+        ? () => (
+            <span className="flex flex-wrap gap-1.5">
+              {availabilityKeys(product).map((key) => {
+                const badge = AVAILABILITY_BADGE[key]
+                return badge
+                  ? <span key={key} className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>{badge.label}</span>
+                  : null
+              })}
+            </span>
+          )
         : null,
     },
     { label: 'Lead time', value: product.leadTime ?? null },
