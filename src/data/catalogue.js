@@ -11,10 +11,14 @@ export const TRIM_CATEGORY = 'Trim and Mouldings'
 export const DOORS_CATEGORY = 'Interior Doors'
 
 export const CATEGORY_SLUGS = {
-  'Trim and Mouldings': 'trim-mouldings',
-  'Interior Doors': 'interior-doors',
-  'Door Hardware': 'door-hardware',
-  'Stairs & Railings': 'stair-railing',
+  'Trim and Mouldings':     'trim-mouldings',
+  'Interior Doors':         'interior-doors',
+  'Stairs & Railings':      'stair-railing',
+  'Stair Components':       'stair-components',
+  'Door Hardware':          'door-hardware',
+  'Sheet Stock':            'sheet-stock',
+  'Wall & Ceiling Panelling': 'wall-ceiling-panelling',
+  'Siding':                 'siding',
 }
 
 /** The reverse of CATEGORY_SLUGS. The Products menu links to
@@ -35,7 +39,10 @@ export const relatedTo = (p, limit = 6) =>
 
 /* ---------------------------------------------------------------- facets */
 
-const order = ['Trim and Mouldings', 'Interior Doors', 'Door Hardware', 'Stairs & Railings']
+const order = [
+  'Trim and Mouldings', 'Interior Doors', 'Stairs & Railings', 'Stair Components',
+  'Door Hardware', 'Sheet Stock', 'Wall & Ceiling Panelling', 'Siding',
+]
 
 export function categoryTree(rows = products) {
   const map = new Map()

@@ -18,13 +18,13 @@
 
 export const productsMenu = {
   categories: [
-    { label: 'Trim & Moulding',        path: '/products?category=trim-mouldings' },
-    { label: 'Interior Doors',          path: '/products?category=interior-doors' },
-    { label: 'Stair Components',        path: '/products?category=stair-railing' },
-    { label: 'Door Hardware',           path: '/products?category=door-hardware' },
-    { label: 'Sheet Stock',             path: '/products' },
-    { label: 'Wall & Ceiling Panelling',path: '/products' },
-    { label: 'Siding',                  path: '/products' },
+    { label: 'Trim & Moulding',         path: '/products?category=trim-mouldings' },
+    { label: 'Interior Doors',           path: '/products?category=interior-doors' },
+    { label: 'Stair Components',         path: '/products?category=stair-components' },
+    { label: 'Door Hardware',            path: '/products?category=door-hardware' },
+    { label: 'Sheet Stock',              path: '/products?category=sheet-stock' },
+    { label: 'Wall & Ceiling Panelling', path: '/products?category=wall-ceiling-panelling' },
+    { label: 'Siding',                   path: '/products?category=siding' },
   ],
 }
 

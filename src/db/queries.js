@@ -4,10 +4,14 @@ import {
 } from './schema.js'
 
 const CATEGORY_NAMES = {
-  'trim-mouldings': 'Trim and Mouldings',
-  'interior-doors': 'Interior Doors',
-  'door-hardware': 'Door Hardware',
-  'stair-railing': 'Stairs & Railings',
+  'trim-mouldings':        'Trim and Mouldings',
+  'interior-doors':        'Interior Doors',
+  'stair-railing':         'Stairs & Railings',
+  'stair-components':      'Stair Components',
+  'door-hardware':         'Door Hardware',
+  'sheet-stock':           'Sheet Stock',
+  'wall-ceiling-panelling':'Wall & Ceiling Panelling',
+  'siding':                'Siding',
 }
 
 const SIZE_BAND = (w) => {
