@@ -16,7 +16,8 @@ export function loader({ params }) {
     throw new Response('Not found', { status: 404 })
   }
   const related = all
-    .filter((p) => p.slug !== product.slug && p.subcategory === product.subcategory)
+    .filter((p) => p.slug !== product.slug
+      && (p.subcategories ?? [p.subcategory]).some((s) => (product.subcategories ?? [product.subcategory]).includes(s)))
     .sort((a, b) => b.views - a.views)
     .slice(0, 6)
   return { product, related }

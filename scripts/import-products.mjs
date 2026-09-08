@@ -43,18 +43,22 @@ export async function run(db, file = 'data/products.csv') {
     catIds.set(slug, row.id)
   }
 
+  /** A product can sit under several sub-categories, pipe-separated on the
+   *  sheet the same way species are: "Backband|Base Cap". */
+  const subsOf = (r) => String(r.subcategory ?? '').split('|').map((s) => s.trim()).filter(Boolean)
+
   const subIds = new Map()
   for (const r of rows) {
-    const sub = nonEmpty(r.subcategory)
-    if (!sub) continue
-    const key = `${r.category_slug}/${sub}`
-    if (subIds.has(key)) continue
-    const slug = `${r.category_slug}-${slugify(sub)}`
-    const [row] = await db.insert(categories)
-      .values({ slug, name: sub, parentId: catIds.get(r.category_slug) ?? null })
-      .onConflictDoUpdate({ target: categories.slug, set: { name: sub, updatedAt: new Date() } })
-      .returning({ id: categories.id })
-    subIds.set(key, row.id)
+    for (const sub of subsOf(r)) {
+      const key = `${r.category_slug}/${sub}`
+      if (subIds.has(key)) continue
+      const slug = `${r.category_slug}-${slugify(sub)}`
+      const [row] = await db.insert(categories)
+        .values({ slug, name: sub, parentId: catIds.get(r.category_slug) ?? null })
+        .onConflictDoUpdate({ target: categories.slug, set: { name: sub, updatedAt: new Date() } })
+        .returning({ id: categories.id })
+      subIds.set(key, row.id)
+    }
   }
   console.log(`categories: ${catIds.size} top level, ${subIds.size} sub-categories`)
 
@@ -83,8 +87,7 @@ export async function run(db, file = 'data/products.csv') {
       .returning({ id: products.id })
 
     const links = [catIds.get(r.category_slug)]
-    const sub = nonEmpty(r.subcategory)
-    if (sub) links.push(subIds.get(`${r.category_slug}/${sub}`))
+    for (const sub of subsOf(r)) links.push(subIds.get(`${r.category_slug}/${sub}`))
     for (const cid of links) {
       if (cid) await db.insert(productCategories).values({ productId: p.id, categoryId: cid }).onConflictDoNothing()
     }

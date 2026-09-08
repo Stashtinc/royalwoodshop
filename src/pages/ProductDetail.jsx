@@ -1,6 +1,6 @@
 import { Link, useParams, useNavigate } from 'react-router'
 import { useState } from 'react'
-import { catalogueProducts, productPath, relatedTo, speciesSummary, availabilityKeys } from '../data/catalogue'
+import { catalogueProducts, productPath, relatedTo, speciesSummary, availabilityKeys, subsOf } from '../data/catalogue'
 import { srcSet, thumbSrc, imageFit } from '../lib/images'
 
 function ChevronRight() {
@@ -34,7 +34,7 @@ function SpecSheet({ product }) {
     ['Species', product.species?.length ? speciesSummary(product) : null],
     ['Flexible version', product.flexAvailable ? 'Available' : null],
     ['Category', product.category],
-    ['Type', product.subcategory],
+    ['Type', subsOf(product).join(', ')],
     ['Availability', product.availabilityLabel],
     ['Lead time', product.leadTime],
   ].filter(([, v]) => v)
@@ -190,7 +190,7 @@ export default function ProductDetail({ product: productProp = null, related: re
   }
 
   const related = relatedProp ?? catalogueProducts.filter(
-    (p) => p.id !== product.id && p.subcategory === product.subcategory,
+    (p) => p.id !== product.id && subsOf(p).some((s) => subsOf(product).includes(s)),
   ).slice(0, 4)
 
   const AVAILABILITY_BADGE = {
@@ -248,7 +248,7 @@ export default function ProductDetail({ product: productProp = null, related: re
     },
     { label: 'Flexible version', value: product.flexAvailable ? 'Available' : null },
     { label: 'Category', value: product.category },
-    { label: 'Type', value: product.subcategory },
+    { label: 'Type', value: subsOf(product).join(', ') },
     {
       label: 'Availability',
       value: product.availabilityLabel ?? null,

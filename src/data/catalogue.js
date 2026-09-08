@@ -31,11 +31,21 @@ export const CATEGORY_BY_SLUG = Object.fromEntries(
 export const getProduct = (slug) => products.find((p) => p.slug === slug) ?? null
 export const productPath = (p) => `/products/${p.categorySlug}/${p.slug}/`
 
-export const relatedTo = (p, limit = 6) =>
-  products
-    .filter((x) => x.slug !== p.slug && x.subcategory === p.subcategory)
+/** Every sub-category a product carries, always as an array. */
+export const subsOf = (p) =>
+  (p.subcategories?.length ? p.subcategories : [p.subcategory]).filter(Boolean)
+
+/** The keys a product answers to in the category filter. */
+export const subKeysOf = (p) => subsOf(p).map((sub) => `${p.category}::${sub}`)
+
+/** Products sharing any sub-category with this one. */
+export const relatedTo = (p, limit = 6) => {
+  const mine = new Set(subsOf(p))
+  return products
+    .filter((x) => x.slug !== p.slug && subsOf(x).some((s) => mine.has(s)))
     .sort((a, b) => b.views - a.views)
     .slice(0, limit)
+}
 
 /* ---------------------------------------------------------------- facets */
 
@@ -49,7 +59,7 @@ export function categoryTree(rows = products) {
   const map = new Map(order.map((name) => [name, new Set()]))
   for (const p of rows) {
     if (!map.has(p.category)) map.set(p.category, new Set())
-    map.get(p.category).add(p.subcategory)
+    for (const sub of subsOf(p)) map.get(p.category).add(sub)
   }
   return [...map.entries()]
     .sort((a, b) => (order.indexOf(a[0]) + 1 || 99) - (order.indexOf(b[0]) + 1 || 99))

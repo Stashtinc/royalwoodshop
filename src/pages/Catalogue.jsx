@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { srcSet, thumbSrc, imageFit } from '../lib/images'
 import {
   productPath, catalogueProducts as snapshotProducts,
-  categoryTree, speciesFacet, availabilityFacet, availabilityKeys, CATEGORY_BY_SLUG,
+  categoryTree, speciesFacet, availabilityFacet, availabilityKeys, subKeysOf, CATEGORY_BY_SLUG,
 } from '../data/catalogue'
 
 const DEFAULT_PAGE_SIZE = 16
@@ -52,8 +52,9 @@ function subsFromUrl({ initialCategory, categoryParam, tree }) {
 
 const countBy = (rows) => rows.reduce((counts, product) => {
   counts[product.category] = (counts[product.category] || 0) + 1
-  const subKey = `${product.category}::${product.subcategory}`
-  counts[subKey] = (counts[subKey] || 0) + 1
+  // A product under two sub-categories is counted under both — it genuinely
+  // belongs in both lists, and the category total still counts it once.
+  for (const key of subKeysOf(product)) counts[key] = (counts[key] || 0) + 1
   return counts
 }, {})
 
@@ -449,7 +450,7 @@ export default function Catalogue({ initialCategory = null, products = null }) {
       // Availability is per species, so a profile in stock in poplar and made
       // to order in walnut answers to both filters.
       if (availability !== 'All' && !availabilityKeys(product).includes(availability)) return false
-      if (!selectedSubs.has(`${product.category}::${product.subcategory}`)) return false
+      if (!subKeysOf(product).some((key) => selectedSubs.has(key))) return false
       return true
     })
   }, [allProducts, search, productCode, sizeCategory, species, availability, selectedSubs])
