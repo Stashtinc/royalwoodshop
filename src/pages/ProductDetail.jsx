@@ -54,13 +54,22 @@ function SpecSheet({ product }) {
         <p className="mt-1 font-sans text-sm tracking-wide text-gray-700">{product.productCode}</p>
       )}
 
-      {(product.images?.[1]?.url || product.image) && (
-        <img
-          src={product.images?.[1]?.url || product.image}
-          alt={`${product.name} profile drawing`}
-          className="mx-auto my-5 max-h-[75mm] w-auto object-contain"
-        />
-      )}
+      {(() => {
+        const first = product.images?.[0]?.url ?? product.image
+        const second = product.images?.[1]?.url
+        if (!first) return null
+        if (second) {
+          return (
+            <div className="my-5 flex justify-center gap-4">
+              <img src={first} alt={`${product.name} photo 1`} className="max-h-[75mm] max-w-[45%] object-contain" />
+              <img src={second} alt={`${product.name} photo 2`} className="max-h-[75mm] max-w-[45%] object-contain" />
+            </div>
+          )
+        }
+        return (
+          <img src={first} alt={`${product.name} profile drawing`} className="mx-auto my-5 max-h-[75mm] w-auto object-contain" />
+        )
+      })()}
 
       <table className="w-full border-collapse">
         <tbody>
