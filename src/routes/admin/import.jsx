@@ -33,7 +33,9 @@ export async function action({ request }) {
     try { parsedSheet = await parseUpload(buffer, file.name) }
     catch (e) { return { error: e.message } }
 
-    const { summary } = await analyse(parsedSheet.rows, { layout: parsedSheet.layout })
+    let summary
+    try { ({ summary } = await analyse(parsedSheet.rows, { layout: parsedSheet.layout })) }
+    catch (e) { return { error: `Analysis failed: ${e.message}` } }
     // The code list is only needed server-side, when the import is applied.
     // Sending 473 of them down to the browser buys nothing.
     delete summary.sheetCodes
