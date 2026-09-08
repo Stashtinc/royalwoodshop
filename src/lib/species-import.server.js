@@ -234,6 +234,7 @@ export async function analyse(rows) {
     matched: 0,
     willChange: 0,
     alreadyCorrect: 0,
+    willCreate: [],
     unmatched: [],
     willSetSpecies: 0,
     willSetAvailability: 0,
@@ -256,10 +257,6 @@ export async function analyse(rows) {
   }
 
   for (const p of parsed) {
-    const product = byCode.get(p.code)
-    if (!product) { summary.unmatched.push(p.code); continue }
-    summary.matched++
-
     const allSpecies = [
       ...p.species,
       ...p.other.map((name) => ({ name, availability: null })),
@@ -269,6 +266,26 @@ export async function analyse(rows) {
     for (const o of p.other) {
       if (!known.has(o.toLowerCase())) summary.unknownOther.push(`${p.code}: ${o}`)
     }
+
+    const product = byCode.get(p.code)
+
+    if (!product) {
+      // Code not in the DB yet — create it on apply if it has something to write
+      if (allSpecies.length || p.availability || p.flex) {
+        summary.willCreate.push({
+          code: p.code,
+          name: p.name || p.code,
+          species: allSpecies,
+          availability: p.availability,
+          flex: p.flex,
+        })
+      } else {
+        summary.unmatched.push(p.code)
+      }
+      continue
+    }
+
+    summary.matched++
 
     // Nothing ticked at all — apply skips these rows too
     if (!allSpecies.length && !p.availability && !p.flex) {
@@ -349,6 +366,29 @@ export async function apply(rows, overrides = {}, options = {}) {
       ...(('availability' in o) && { availability: o.availability }),
     }
   })
+
+  // Create new products (as drafts) for codes that have species data but no DB record.
+  let created = 0
+  for (const p of parsed) {
+    if (byCode.has(p.code)) continue
+    const allSpecies = [
+      ...p.species,
+      ...p.other.map((name) => ({ name, availability: null })),
+    ]
+    if (!allSpecies.length && !p.availability && !p.flex) continue
+
+    const slug = p.code.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    const [row] = await db.insert(products)
+      .values({ slug, productCode: p.code, name: p.name || p.code, status: 'draft', flexAvailable: false })
+      .onConflictDoUpdate({ target: products.slug, set: { productCode: p.code, updatedAt: new Date() } })
+      .returning({
+        id: products.id, productCode: products.productCode, name: products.name,
+        availability: products.availability, flexAvailable: products.flexAvailable,
+      })
+    byCode.set(p.code, row)
+    created++
+  }
+  summary.created = created
 
   const [attr] = await db.insert(attributes)
     .values({ key: 'species', name: 'Wood species', sortOrder: 1 })

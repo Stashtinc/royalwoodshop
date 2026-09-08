@@ -303,14 +303,16 @@ export default function Import() {
 
           <div className="grid gap-3 sm:grid-cols-4">
             <Stat label="Products will change" value={s.willChange} tone={s.willChange ? 'good' : 'warn'} />
-            <Stat label="of them gain species" value={s.willSetSpecies} />
+            <Stat label="New products (draft)" value={s.willCreate.length} tone={s.willCreate.length ? 'good' : 'default'} />
             <Stat label="Already up to date" value={s.alreadyCorrect} />
             <Stat label="Nothing ticked" value={s.blank} />
           </div>
 
           <p className="text-sm text-gray-600">
-            {s.matched} rows matched a product. {s.alreadyCorrect} already match what is in the
-            database and will be skipped. {s.blank} have nothing ticked and are also left as-is.
+            {s.matched} rows matched an existing product.
+            {s.willCreate.length > 0 && ` ${s.willCreate.length} new product code${s.willCreate.length === 1 ? '' : 's'} will be created as drafts.`}
+            {' '}{s.alreadyCorrect} already match the database and will be skipped.
+            {s.blank > 0 && ` ${s.blank} have nothing ticked and are left as-is.`}
           </p>
 
           {s.unmatched.length > 0 && (
@@ -409,6 +411,32 @@ export default function Import() {
             </div>
           )}
 
+          {s.willCreate.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-green-200 bg-white">
+              <p className="border-b border-green-100 bg-green-50 px-4 py-2 text-xs tracking-wide text-green-800 uppercase">
+                {s.willCreate.length} new product{s.willCreate.length === 1 ? '' : 's'} will be created as drafts
+                <span className="ml-2 normal-case font-normal text-green-600">— set category and publish in the admin after import</span>
+              </p>
+              <ul>
+                {s.willCreate.slice(0, 40).map((c) => (
+                  <li key={c.code} className="flex flex-wrap items-baseline gap-2 border-b border-gray-100 px-4 py-2 text-sm last:border-0">
+                    <span className="font-mono text-xs text-gray-500">{c.code}</span>
+                    <span className="text-gray-800">{c.name}</span>
+                    <span className="ml-auto text-xs text-gray-600">
+                      {c.species.map((x) => x.availability
+                        ? `${x.name} (${AVAILABILITY_LABEL[x.availability]})`
+                        : x.name).join(', ')}
+                      {c.flex && ' · flex'}
+                    </span>
+                  </li>
+                ))}
+                {s.willCreate.length > 40 && (
+                  <li className="px-4 py-2 text-xs text-gray-500">… and {s.willCreate.length - 40} more</li>
+                )}
+              </ul>
+            </div>
+          )}
+
           {s.changes.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
               <p className="border-b border-gray-100 bg-gray-50 px-4 py-2 text-xs tracking-wide text-gray-600 uppercase">
@@ -478,14 +506,16 @@ export default function Import() {
                 <input type="hidden" name="overrides" value={JSON.stringify(edits)} />
               )}
               {archiveMissing && <input type="hidden" name="archiveMissing" value="yes" />}
-              <button disabled={busy || s.willChange === 0}
-                className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
-                {busy
-                  ? 'Applying…'
-                  : s.willChange === 0
-                    ? 'Nothing to apply'
-                    : `Apply ${s.willChange} change${s.willChange === 1 ? '' : 's'}`}
-              </button>
+              {(() => {
+                const total = s.willChange + s.willCreate.length
+                return (
+                  <button disabled={busy || total === 0}
+                    className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
+                    {busy ? 'Applying…' : total === 0 ? 'Nothing to apply'
+                      : `Apply — update ${s.willChange}, create ${s.willCreate.length}`}
+                  </button>
+                )
+              })()}
             </Form>
             <Link to="/admin/import" className="text-sm text-gray-600 hover:underline">Choose a different file</Link>
           </div>
@@ -496,8 +526,14 @@ export default function Import() {
       {data?.stage === 'done' && r && (
         <div className="flex flex-col gap-5">
           <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-900">
-            Imported. {r.written} product{r.written === 1 ? '' : 's'} updated.
+            Done. {r.written} product{r.written === 1 ? '' : 's'} updated
+            {r.created > 0 && `, ${r.created} new product${r.created === 1 ? '' : 's'} created as drafts`}.
           </p>
+          {r.created > 0 && (
+            <p className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-900">
+              New products are set to <strong>Draft</strong> — open each one in the admin to assign a category and publish it to the catalogue.
+            </p>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <Stat label="Products with species, in total" value={r.totals.withSpecies} tone="good" />
             <Stat label="Products with availability, in total" value={r.totals.withAvail} tone="good" />
