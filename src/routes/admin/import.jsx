@@ -304,14 +304,13 @@ export default function Import() {
           <div className="grid gap-3 sm:grid-cols-4">
             <Stat label="Products will change" value={s.willChange} tone={s.willChange ? 'good' : 'warn'} />
             <Stat label="of them gain species" value={s.willSetSpecies} />
-            <Stat label="of them gain availability" value={s.willSetAvailability} />
-            <Stat label="Rows left untouched" value={s.blank} />
+            <Stat label="Already up to date" value={s.alreadyCorrect} />
+            <Stat label="Nothing ticked" value={s.blank} />
           </div>
 
           <p className="text-sm text-gray-600">
-            {s.matched} rows in the file matched a product. {s.blank} of those have nothing
-            ticked yet and are left exactly as they are — sending the sheet back in batches
-            never undoes work already done.
+            {s.matched} rows matched a product. {s.alreadyCorrect} already match what is in the
+            database and will be skipped. {s.blank} have nothing ticked and are also left as-is.
           </p>
 
           {s.unmatched.length > 0 && (

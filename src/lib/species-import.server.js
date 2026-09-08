@@ -1,5 +1,5 @@
 import { parse } from 'csv-parse/sync'
-import { desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import {
   products, attributes, attributeValues, productAttributes, speciesImportRuns,
@@ -190,16 +190,50 @@ export async function analyse(rows) {
 
   const codes = [...new Set(parsed.map((p) => p.code))]
   const found = codes.length
-    ? await db.select({ id: products.id, productCode: products.productCode, name: products.name })
-        .from(products).where(inArray(products.productCode, codes))
+    ? await db.select({
+        id: products.id,
+        productCode: products.productCode,
+        name: products.name,
+        availability: products.availability,
+        flexAvailable: products.flexAvailable,
+      }).from(products).where(inArray(products.productCode, codes))
     : []
   const byCode = new Map(found.map((f) => [f.productCode, f]))
+
+  // Fetch current per-species availability for all matched products so we can
+  // detect whether the sheet would actually change anything.
+  const productIds = found.map((f) => f.id)
+  const currentAttrs = productIds.length
+    ? await db.select({
+        productId: productAttributes.productId,
+        speciesName: attributeValues.value,
+        availability: productAttributes.availability,
+      })
+      .from(productAttributes)
+      .innerJoin(attributeValues, eq(attributeValues.id, productAttributes.attributeValueId))
+      .innerJoin(
+        attributes,
+        and(eq(attributes.id, attributeValues.attributeId), eq(attributes.key, 'species')),
+      )
+      .where(inArray(productAttributes.productId, productIds))
+    : []
+
+  const currentSpeciesById = new Map()
+  for (const row of currentAttrs) {
+    if (!currentSpeciesById.has(row.productId)) currentSpeciesById.set(row.productId, [])
+    currentSpeciesById.get(row.productId).push({ name: row.speciesName, availability: row.availability })
+  }
+
+  const speciesKey = (arr) =>
+    [...arr].sort((a, b) => a.name.localeCompare(b.name))
+      .map((x) => `${x.name}:${x.availability ?? ''}`).join('|')
 
   const known = new Set(SPECIES.map((s) => s.toLowerCase()))
   const summary = {
     rows: parsed.length,
     matched: 0,
     willChange: 0,
+    alreadyCorrect: 0,
     unmatched: [],
     willSetSpecies: 0,
     willSetAvailability: 0,
@@ -226,22 +260,44 @@ export async function analyse(rows) {
     if (!product) { summary.unmatched.push(p.code); continue }
     summary.matched++
 
-    const allSpeciesCount = p.species.length + p.other.length
-    if (allSpeciesCount) summary.willSetSpecies++
-    if (p.availability) summary.willSetAvailability++
-    if (p.flex) summary.willSetFlex++
-    if (allSpeciesCount || p.availability || p.flex) summary.willChange++
-    else summary.blank++
+    const allSpecies = [
+      ...p.species,
+      ...p.other.map((name) => ({ name, availability: null })),
+    ]
+
     for (const bad of p.badCodes) summary.badCodes.push(`${p.code} — ${bad}`)
     for (const o of p.other) {
       if (!known.has(o.toLowerCase())) summary.unknownOther.push(`${p.code}: ${o}`)
     }
 
-    if (summary.changes.length < 40 && (allSpeciesCount || p.availability || p.flex)) {
+    // Nothing ticked at all — apply skips these rows too
+    if (!allSpecies.length && !p.availability && !p.flex) {
+      summary.blank++
+      continue
+    }
+
+    // Compare incoming data to what is already in the DB
+    const currentSpecies = currentSpeciesById.get(product.id) ?? []
+    const speciesWouldChange = allSpecies.length > 0
+      && speciesKey(allSpecies) !== speciesKey(currentSpecies)
+    const flexWouldChange = p.flex !== Boolean(product.flexAvailable)
+    const availWouldChange = Boolean(p.availability) && p.availability !== product.availability
+
+    if (!speciesWouldChange && !flexWouldChange && !availWouldChange) {
+      summary.alreadyCorrect++
+      continue
+    }
+
+    summary.willChange++
+    if (allSpecies.length) summary.willSetSpecies++
+    if (p.availability) summary.willSetAvailability++
+    if (p.flex) summary.willSetFlex++
+
+    if (summary.changes.length < 40) {
       summary.changes.push({
         code: p.code,
         name: product.name,
-        species: [...p.species, ...p.other.map((name) => ({ name, availability: null }))],
+        species: allSpecies,
         availability: p.availability,
         flex: p.flex,
       })
