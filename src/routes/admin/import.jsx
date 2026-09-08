@@ -449,6 +449,33 @@ export default function Import() {
             </div>
           )}
 
+          {s.offMenuCategories.length > 0 && (
+            <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">
+                Categories the sheet uses that the public catalogue has no page for:
+              </p>
+              <p className="mt-1 font-mono text-xs">{s.offMenuCategories.slice(0, 10).join(' · ')}</p>
+              <p className="mt-1 text-xs text-amber-700">
+                The products are filed correctly and will import, but nothing on the site links to
+                these categories yet — the menu has Sheet Stock, not Sheet Goods.
+              </p>
+            </div>
+          )}
+
+          {s.unpairedSubs.length > 0 && (
+            <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">
+                More sub-categories than categories on these rows — the extras were attached to the
+                last category named:
+              </p>
+              <p className="mt-1 font-mono text-xs">{s.unpairedSubs.slice(0, 10).join(' · ')}</p>
+              <p className="mt-1 text-xs text-amber-700">
+                Category and sub-category pair up by position. Name a category for each sub to say
+                where it belongs.
+              </p>
+            </div>
+          )}
+
           {s.unknownCategories.length > 0 && (
             <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
               <p className="font-medium">Category names that do not match a catalogue category — ignored:</p>

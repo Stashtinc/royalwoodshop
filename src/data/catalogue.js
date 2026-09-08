@@ -31,12 +31,29 @@ export const CATEGORY_BY_SLUG = Object.fromEntries(
 export const getProduct = (slug) => products.find((p) => p.slug === slug) ?? null
 export const productPath = (p) => `/products/${p.categorySlug}/${p.slug}/`
 
+/**
+ * Where a product sits, as {category, sub} pairs.
+ *
+ * A sub-category belongs to a category, not to the product: a backer strip can
+ * be Decorative under Trim and Mouldings and Sheet Panels under Sheet Goods.
+ * Pairing every sub with the product's primary category files the second one
+ * under the wrong heading and its filter key matches nothing.
+ */
+export const placementsOf = (p) =>
+  p.placements?.length
+    ? p.placements.filter((x) => x && x.sub)
+    : subsOf(p).map((sub) => ({ category: p.category, sub }))
+
 /** Every sub-category a product carries, always as an array. */
 export const subsOf = (p) =>
   (p.subcategories?.length ? p.subcategories : [p.subcategory]).filter(Boolean)
 
+/** Every top-level category it browses under, canonical one first. */
+export const catsOf = (p) =>
+  (p.categories?.length ? p.categories : [p.category]).filter(Boolean)
+
 /** The keys a product answers to in the category filter. */
-export const subKeysOf = (p) => subsOf(p).map((sub) => `${p.category}::${sub}`)
+export const subKeysOf = (p) => placementsOf(p).map((x) => `${x.category}::${x.sub}`)
 
 /** Products sharing any sub-category with this one. */
 export const relatedTo = (p, limit = 6) => {
@@ -58,8 +75,10 @@ export function categoryTree(rows = products) {
   // Pre-seed every known category so empty ones still appear in the sidebar
   const map = new Map(order.map((name) => [name, new Set()]))
   for (const p of rows) {
-    if (!map.has(p.category)) map.set(p.category, new Set())
-    for (const sub of subsOf(p)) map.get(p.category).add(sub)
+    for (const { category, sub } of placementsOf(p)) {
+      if (!map.has(category)) map.set(category, new Set())
+      map.get(category).add(sub)
+    }
   }
   return [...map.entries()]
     .sort((a, b) => (order.indexOf(a[0]) + 1 || 99) - (order.indexOf(b[0]) + 1 || 99))

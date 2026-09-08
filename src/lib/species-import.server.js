@@ -1,5 +1,6 @@
 import { parse } from 'csv-parse/sync'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import { getDb } from './db.server.js'
 import {
   products, attributes, attributeValues, productAttributes, speciesImportRuns,
@@ -178,8 +179,23 @@ function readRow(r, layout = 'species') {
     uom: (uomKey ? cell(r, uomKey) : '') || null,
   }
   row.images = pipes(r['image name'])
-  row.category = cell(r, 'category') || null
-  row.subcategories = pipes(r['type sub-cat'] || r.subcategory)
+
+  // Category and sub-category pair up by position, so one product can be
+  // Decorative under Trim & Mouldings and Sheet Panels under Sheet Goods:
+  //   Category      TRIM & MOULDINGS|SHEET GOODS
+  //   type/sub-cat  Decorative|Sheet Panels
+  // The first pair is canonical — it is the address the product lives at.
+  const cats = pipes(r.category)
+  const subs = pipes(r['type sub-cat'] || r.subcategory)
+  row.categories = cats
+  row.category = cats[0] || null
+  row.subcategories = subs
+  row.placements = subs.map((sub, i) => ({ category: cats[i] ?? cats[cats.length - 1] ?? null, sub }))
+  // More sub-categories than categories is ambiguous; the extras are attached
+  // to the last category named and reported rather than guessed at silently.
+  row.unpairedSubs = cats.length > 1 && subs.length > cats.length
+    ? subs.slice(cats.length)
+    : []
   // The sheet's Availability column is a roll-up of the wood codes; a value
   // typed over it wins, because that is the point of being able to type over it.
   row.availability = readCode(cell(r, 'availability')) || row.availability
@@ -270,14 +286,38 @@ const imageRole = (name) =>
     : /install/i.test(name) ? 'installed_photo'
       : 'product_photo'
 
-/** Display name on the sheet -> the catalogue's category slug. */
-const CATEGORY_SLUG = {
-  'TRIM & MOULDINGS': 'trim-mouldings', 'TRIM AND MOULDINGS': 'trim-mouldings',
-  'INTERIOR DOORS': 'interior-doors', 'DOOR HARDWARE': 'door-hardware',
-  'STAIRS & RAILINGS': 'stair-railing', 'STAIR RAILING': 'stair-railing',
-  'S4S FLAT STOCK': 's4s-flat-stock', 'SHEET GOODS': 'sheet-goods',
+/**
+ * Category names on the sheet are shouted — TRIM & MOULDINGS — because that is
+ * how the list reads. The catalogue stores them in sentence case, so the two
+ * are mapped here rather than letting an import shout a category's name at the
+ * rest of the site.
+ *
+ * `siteKnows` marks the slugs the public catalogue can actually render. The
+ * sheet also carries S4S Flat Stock and Sheet Goods, which the site's menu does
+ * not have yet; products land there correctly but the mismatch is reported.
+ */
+const CATEGORY_DEFS = [
+  ['trim-mouldings', 'Trim and Mouldings', ['TRIM & MOULDINGS', 'TRIM AND MOULDINGS'], true],
+  ['interior-doors', 'Interior Doors', [], true],
+  ['door-hardware', 'Door Hardware', [], true],
+  ['stair-railing', 'Stairs & Railings', ['STAIR RAILING', 'STAIRS AND RAILINGS'], true],
+  ['stair-components', 'Stair Components', [], true],
+  ['sheet-stock', 'Sheet Stock', [], true],
+  ['wall-ceiling-panelling', 'Wall & Ceiling Panelling', ['PANELLING'], true],
+  ['siding', 'Siding', [], true],
+  ['s4s-flat-stock', 'S4S Flat Stock', ['FLAT STOCK'], false],
+  ['sheet-goods', 'Sheet Goods', [], false],
+]
+const CATEGORY_SLUG = {}
+const CATEGORY_TITLE = {}
+const SITE_KNOWS = new Set()
+for (const [slug, title, aliases, known] of CATEGORY_DEFS) {
+  CATEGORY_TITLE[slug] = title
+  if (known) SITE_KNOWS.add(slug)
+  for (const key of [title.toUpperCase(), slug.toUpperCase(), ...aliases]) CATEGORY_SLUG[key] = slug
 }
 const categorySlug = (name) => CATEGORY_SLUG[String(name ?? '').trim().toUpperCase()] ?? null
+const categoryTitle = (name) => CATEGORY_TITLE[categorySlug(name)] ?? String(name ?? '').trim()
 
 /** Which of the extra columns differ from what the database already holds.
  *  A blank cell is "leave it alone" and never appears here. */
@@ -376,16 +416,20 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     }
   }
 
+  // Compared as "<parent slug>::<sub>", because moving a sub from one category
+  // to another is a change even when the sub keeps its name.
   const currentSubsById = new Map()
   if (layout === 'master' && productIds.length) {
+    const parent = alias(categories, 'parent_cat')
     const rows_ = await db
-      .select({ productId: productCategories.productId, name: categories.name })
+      .select({ productId: productCategories.productId, name: categories.name, parentSlug: parent.slug })
       .from(productCategories)
       .innerJoin(categories, eq(categories.id, productCategories.categoryId))
-      .where(and(inArray(productCategories.productId, productIds), sql`${categories.parentId} is not null`))
+      .innerJoin(parent, eq(parent.id, categories.parentId))
+      .where(inArray(productCategories.productId, productIds))
     for (const row of rows_) {
       if (!currentSubsById.has(row.productId)) currentSubsById.set(row.productId, [])
-      currentSubsById.get(row.productId).push(row.name)
+      currentSubsById.get(row.productId).push(`${row.parentSlug}::${row.name}`)
     }
   }
   const sameSubs = (a, b) =>
@@ -443,6 +487,10 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     /** Image files the sheet names that are not in public/uploads. */
     missingImages: [],
     willSetImages: 0,
+    /** Sub-categories with no category of their own to pair with. */
+    unpairedSubs: [],
+    /** Categories the sheet uses that the public catalogue has no page for. */
+    offMenuCategories: [],
   }
 
   for (const p of parsed) {
@@ -500,19 +548,27 @@ export async function analyse(rows, { layout = 'species' } = {}) {
           summary.fieldChanges.push({ code: p.code, name: product.name, fields })
         }
       }
+      for (const c of (p.categories ?? [])) {
+        const slug = categorySlug(c)
+        if (!slug) summary.unknownCategories.push(`${p.code}: ${c}`)
+        else if (!SITE_KNOWS.has(slug)) summary.offMenuCategories.push(`${p.code}: ${c}`)
+      }
+      for (const sub of (p.unpairedSubs ?? [])) {
+        summary.unpairedSubs.push(`${p.code}: "${sub}" -> ${p.categories[p.categories.length - 1]}`)
+      }
       if (p.category) {
         const slug = categorySlug(p.category)
-        if (!slug) {
-          summary.unknownCategories.push(`${p.code}: ${p.category}`)
-        } else if (product.categorySlug && slug !== product.categorySlug) {
+        if (slug && product.categorySlug && slug !== product.categorySlug) {
           summary.categoryMoves.push({
             code: p.code, name: product.name, from: product.categorySlug, to: slug,
           })
         }
       }
     }
-    const subsWouldChange = (p.subcategories?.length ?? 0) > 0
-      && !sameSubs(p.subcategories, currentSubsById.get(product.id) ?? [])
+    const wantedPlacements = (p.placements ?? [])
+      .map((x) => `${categorySlug(x.category) ?? product.categorySlug}::${x.sub}`)
+    const subsWouldChange = wantedPlacements.length > 0
+      && !sameSubs(wantedPlacements, currentSubsById.get(product.id) ?? [])
 
     const present = p.imageFiles
     const imagesWouldChange = present.length > 0
@@ -624,7 +680,7 @@ export async function apply(rows, overrides = {}, options = {}) {
     const wantedSlug = layout === 'master' ? categorySlug(p.category) : null
     if (wantedSlug) {
       const [top] = await db.insert(categories)
-        .values({ slug: wantedSlug, name: p.category })
+        .values({ slug: wantedSlug, name: categoryTitle(p.category) })
         .onConflictDoUpdate({ target: categories.slug, set: { updatedAt: new Date() } })
         .returning({ id: categories.id })
       primaryCategoryId = top.id
@@ -729,7 +785,7 @@ export async function apply(rows, overrides = {}, options = {}) {
       // No category yet: filling a blank is not a move, so it needs no opt-in.
       if (wanted && !product.categorySlug && !parentId) {
         const [top] = await db.insert(categories)
-          .values({ slug: wanted, name: p.category })
+          .values({ slug: wanted, name: categoryTitle(p.category) })
           .onConflictDoUpdate({ target: categories.slug, set: { updatedAt: new Date() } })
           .returning({ id: categories.id })
         parentId = top.id
@@ -738,7 +794,7 @@ export async function apply(rows, overrides = {}, options = {}) {
 
       if (wanted && product.categorySlug && wanted !== product.categorySlug && moveCategories) {
         const [top] = await db.insert(categories)
-          .values({ slug: wanted, name: p.category })
+          .values({ slug: wanted, name: categoryTitle(p.category) })
           .onConflictDoUpdate({ target: categories.slug, set: { updatedAt: new Date() } })
           .returning({ id: categories.id })
         parentId = top.id
@@ -775,31 +831,42 @@ export async function apply(rows, overrides = {}, options = {}) {
         imaged++
       }
 
-      // Sub-categories are facets, not addresses, so they are rewritten
-      // whenever the sheet names any — no URL moves, nothing to confirm.
-      if (p.subcategories.length && parentId) {
-        const childIds = []
-        for (const sub of p.subcategories) {
-          const slug = `${wanted ?? product.categorySlug ?? 'category'}-${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
-          const [child] = await db.insert(categories)
-            .values({ slug, name: sub, parentId })
-            .onConflictDoUpdate({ target: categories.slug, set: { name: sub, parentId, updatedAt: new Date() } })
+      // Placements are facets, not addresses — rewritten whenever the sheet
+      // names any. Each sub is created under ITS OWN category, so a product in
+      // two categories files correctly under both. The address does not move.
+      if (p.placements?.length) {
+        const wantedIds = []
+        for (const { category, sub } of p.placements) {
+          const topSlug = categorySlug(category) ?? wanted ?? product.categorySlug
+          if (!topSlug) continue
+          const [top] = await db.insert(categories)
+            .values({ slug: topSlug, name: categoryTitle(category ?? p.category) })
+            .onConflictDoUpdate({ target: categories.slug, set: { updatedAt: new Date() } })
             .returning({ id: categories.id })
-          childIds.push(child.id)
+          const childSlug = `${topSlug}-${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+          const [child] = await db.insert(categories)
+            .values({ slug: childSlug, name: sub, parentId: top.id })
+            .onConflictDoUpdate({
+              target: categories.slug,
+              set: { name: sub, parentId: top.id, updatedAt: new Date() },
+            })
+            .returning({ id: categories.id })
+          wantedIds.push(top.id, child.id)
         }
-        const existing = await db.select({ categoryId: productCategories.categoryId, parentId: categories.parentId })
-          .from(productCategories)
-          .innerJoin(categories, eq(categories.id, productCategories.categoryId))
-          .where(eq(productCategories.productId, product.id))
+        if (parentId) wantedIds.push(parentId)
+
+        const keep = new Set(wantedIds)
+        const existing = await db.select({ categoryId: productCategories.categoryId })
+          .from(productCategories).where(eq(productCategories.productId, product.id))
         for (const row of existing) {
-          if (row.parentId !== null && !childIds.includes(row.categoryId)) {
+          if (!keep.has(row.categoryId)) {
             await db.delete(productCategories).where(and(
               eq(productCategories.productId, product.id),
               eq(productCategories.categoryId, row.categoryId),
             ))
           }
         }
-        for (const cid of [parentId, ...childIds]) {
+        for (const cid of keep) {
           await db.insert(productCategories)
             .values({ productId: product.id, categoryId: cid }).onConflictDoNothing()
         }

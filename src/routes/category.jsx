@@ -1,6 +1,6 @@
 import { useLoaderData } from 'react-router'
 import Catalogue from '../pages/Catalogue'
-import { catalogueProducts } from '../data/catalogue'
+import { catalogueProducts, catsOf } from '../data/catalogue'
 import { CATEGORY_SLUGS } from '../data/catalogue'
 import { pageMeta, truncate } from '../seo'
 
@@ -16,8 +16,11 @@ const BLURB = {
 export function loader({ params }) {
   const name = NAMES[params.category]
   if (!name) throw new Response('Not found', { status: 404 })
+  // Matched on every category the product browses under, not just the one its
+  // address uses — a product placed in two categories belongs on both pages.
   const all = catalogueProducts
-  const products = all.filter((p) => p.categorySlug === params.category)
+  const products = all.filter((p) =>
+    p.categorySlug === params.category || catsOf(p).includes(name))
   if (!products.length) throw new Response('Not found', { status: 404 })
   return { category: params.category, name, products }
 }

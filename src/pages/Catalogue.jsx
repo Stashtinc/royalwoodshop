@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router'
 import { srcSet, thumbSrc, imageFit } from '../lib/images'
 import {
   productPath, catalogueProducts as snapshotProducts,
-  categoryTree, speciesFacet, availabilityFacet, availabilityKeys, subKeysOf, CATEGORY_BY_SLUG,
+  categoryTree, speciesFacet, availabilityFacet, availabilityKeys, subKeysOf, catsOf,
+  CATEGORY_BY_SLUG,
 } from '../data/catalogue'
 
 const DEFAULT_PAGE_SIZE = 16
@@ -51,7 +52,8 @@ function subsFromUrl({ initialCategory, categoryParam, tree }) {
 }
 
 const countBy = (rows) => rows.reduce((counts, product) => {
-  counts[product.category] = (counts[product.category] || 0) + 1
+  // Counted under every heading it browses under, once each.
+  for (const cat of catsOf(product)) counts[cat] = (counts[cat] || 0) + 1
   // A product under two sub-categories is counted under both — it genuinely
   // belongs in both lists, and the category total still counts it once.
   for (const key of subKeysOf(product)) counts[key] = (counts[key] || 0) + 1

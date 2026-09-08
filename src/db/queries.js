@@ -72,15 +72,30 @@ export async function getAllProducts(db) {
          join ${attributeValues} av on av.id = pa.attribute_value_id
          join ${attributes} a on a.id = av.attribute_id and a.key = 'species'
          where pa.product_id = ${products.id}), '[]')`.as('speciesAvailability'),
-      /** A product can sit under more than one sub-category — a backband that
-       *  is also a base cap. product_categories has always allowed it; this
-       *  used to take the first row and discard the rest. */
-      subcategories: sql`coalesce(
-        (select array_agg(c2.name order by c2.sort_order, c2.name)
+      /**
+       * Every sub-category the product sits under, each with the top-level
+       * category it belongs to.
+       *
+       * The parent matters: a backer strip can be Decorative under Trim and
+       * Mouldings AND Sheet Panels under Sheet Goods. Pairing a sub with the
+       * product's primary category instead of its own parent puts it under a
+       * heading it does not belong to, and the filter key never matches.
+       */
+      placements: sql`coalesce(
+        (select json_agg(json_build_object('category', parent.name, 'sub', c2.name)
+                         order by parent.sort_order, c2.sort_order, c2.name)
          from ${categories} c2
+         join ${categories} parent on parent.id = c2.parent_id
          join product_categories pc on pc.category_id = c2.id
-         where pc.product_id = ${products.id} and c2.parent_id is not null), '{}')`
-        .as('subcategories'),
+         where pc.product_id = ${products.id} and c2.parent_id is not null), '[]')`
+        .as('placements'),
+      /** Top-level categories the product is linked to, primary first. */
+      categoryNames: sql`coalesce(
+        (select array_agg(c3.name order by (c3.id = ${products.primaryCategoryId}) desc, c3.sort_order, c3.name)
+         from ${categories} c3
+         join product_categories pc on pc.category_id = c3.id
+         where pc.product_id = ${products.id} and c3.parent_id is null), '{}')`
+        .as('categoryNames'),
       image: sql`(select pi.storage_key from ${productImages} pi
                   where pi.product_id = ${products.id}
                   order by pi.sort_order, pi.id limit 1)`.as('image'),
@@ -111,7 +126,10 @@ function shape(r) {
   const width = r.widthIn == null ? null : Number(r.widthIn)
   const catSlug = r.categorySlug && CATEGORY_NAMES[r.categorySlug] ? r.categorySlug : 'trim-mouldings'
   const species = Array.isArray(r.species) ? r.species : []
-  const subcategories = (Array.isArray(r.subcategories) ? r.subcategories : []).filter(Boolean)
+  const placements = (Array.isArray(r.placements) ? r.placements : JSON.parse(r.placements ?? '[]'))
+    .filter((x) => x && x.sub)
+  const subcategories = [...new Set(placements.map((x) => x.sub))]
+  const categoryNames = (Array.isArray(r.categoryNames) ? r.categoryNames : []).filter(Boolean)
   const detail = Array.isArray(r.speciesAvailability)
     ? r.speciesAvailability
     : JSON.parse(r.speciesAvailability ?? '[]')
@@ -121,10 +139,17 @@ function shape(r) {
     productCode: r.productCode ?? '',
     name: r.name,
     description: r.description ?? '',
+    // `category` and `categorySlug` are the canonical one — the address the
+    // product lives at. `categories` is every heading it browses under.
     category: CATEGORY_NAMES[catSlug],
     categorySlug: catSlug,
+    categories: categoryNames.length ? categoryNames : [CATEGORY_NAMES[catSlug]],
+    /** {category, sub} pairs — a sub always carries its own parent. */
+    placements: placements.length
+      ? placements
+      : [{ category: CATEGORY_NAMES[catSlug], sub: 'Other' }],
     // `subcategory` stays as the single label for a breadcrumb or a card;
-    // `subcategories` is the full set the filters and related products use.
+    // `subcategories` is the full set, kept for anything reading the old shape.
     subcategories: subcategories.length ? subcategories : ['Other'],
     subcategory: subcategories[0] || 'Other',
     size: r.sizeDisplay ?? '',
