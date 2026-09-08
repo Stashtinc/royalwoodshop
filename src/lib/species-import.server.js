@@ -3,7 +3,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import {
   products, attributes, attributeValues, productAttributes, speciesImportRuns,
-  categories, productCategories,
+  categories, productCategories, productImages,
 } from '../db/schema.js'
 import { SPECIES, TICK_CODES, TICK_ALIASES, bestAvailability } from './catalogue-constants.js'
 
@@ -177,6 +177,7 @@ function readRow(r, layout = 'species') {
     price,
     uom: (uomKey ? cell(r, uomKey) : '') || null,
   }
+  row.images = pipes(r['image name'])
   row.category = cell(r, 'category') || null
   row.subcategories = pipes(r['type sub-cat'] || r.subcategory)
   // The sheet's Availability column is a roll-up of the wood codes; a value
@@ -238,6 +239,37 @@ async function findRemoved(db, previous, current) {
  * Works out what an import would do, without changing anything.
  * Brad sees this before committing to it.
  */
+/**
+ * What is actually in public/uploads, so a sheet can be imported without
+ * fetching anything: the Master Product List names real files, and this is how
+ * we check they are there and how wide they are.
+ *
+ * A base image is `<stem>-<10 hex>.webp`; its generated widths sit beside it as
+ * `<stem>-<10 hex>-<width>.webp`. The largest width present becomes the image's
+ * width, so srcset never offers a variant that was never generated.
+ */
+let uploadIndex = null
+async function readUploads() {
+  if (uploadIndex) return uploadIndex
+  const { readdir } = await import('node:fs/promises')
+  const widths = new Map()
+  let names = []
+  try { names = await readdir('public/uploads') } catch { /* nothing to attach */ }
+  for (const f of names) {
+    const m = f.match(/^(.*-[0-9a-f]{10})-(\d+)\.webp$/)
+    if (!m) continue
+    const base = `${m[1]}.webp`
+    widths.set(base, Math.max(widths.get(base) ?? 0, Number(m[2])))
+  }
+  uploadIndex = { files: new Set(names), widths }
+  return uploadIndex
+}
+
+const imageRole = (name) =>
+  /(^|[^a-z0-9])3d([^a-z0-9]|$)|profile/i.test(name) ? 'profile_drawing'
+    : /install/i.test(name) ? 'installed_photo'
+      : 'product_photo'
+
 /** Display name on the sheet -> the catalogue's category slug. */
 const CATEGORY_SLUG = {
   'TRIM & MOULDINGS': 'trim-mouldings', 'TRIM AND MOULDINGS': 'trim-mouldings',
@@ -285,6 +317,10 @@ export async function analyse(rows, { layout = 'species' } = {}) {
   }
   parsed = deduped
 
+  const uploads = layout === 'master'
+    ? await readUploads()
+    : { files: new Set(), widths: new Map() }
+
   const sheetCodes = new Set(parsed.map((p) => p.code))
   const previous = await previousCodes(db)
   const { products: removed, orphans: removedOrphans } = await findRemoved(db, previous, sheetCodes)
@@ -326,6 +362,19 @@ export async function analyse(rows, { layout = 'species' } = {}) {
       )
       .where(inArray(productAttributes.productId, productIds))
     : []
+
+  const currentImagesById = new Map()
+  if (layout === 'master' && productIds.length) {
+    const rows_ = await db
+      .select({ productId: productImages.productId, key: productImages.storageKey,
+                sortOrder: productImages.sortOrder, id: productImages.id })
+      .from(productImages).where(inArray(productImages.productId, productIds))
+    rows_.sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+    for (const row of rows_) {
+      if (!currentImagesById.has(row.productId)) currentImagesById.set(row.productId, [])
+      currentImagesById.get(row.productId).push(row.key)
+    }
+  }
 
   const currentSubsById = new Map()
   if (layout === 'master' && productIds.length) {
@@ -391,10 +440,26 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     unknownCategories: [],
     /** Codes appearing on more than one sheet row. Only the first is imported. */
     duplicateCodes: [...new Set(duplicateCodes)],
+    /** Image files the sheet names that are not in public/uploads. */
+    missingImages: [],
+    willSetImages: 0,
   }
 
   for (const p of parsed) {
     const allSpecies = speciesOf(p)
+
+    // Resolved before the match check: a row that creates a product needs its
+    // images just as much as one that updates an existing product.
+    p.imageFiles = (p.images ?? []).filter((f) => uploads.files.has(f))
+    for (const f of (p.images ?? [])) {
+      if (!uploads.files.has(f) && summary.missingImages.length < 40) {
+        summary.missingImages.push(`${p.code}: ${f}`)
+      }
+    }
+    const sheetHasContent = layout === 'master'
+      && (Object.values(p.fields ?? {}).some((v) => v !== null && v !== '')
+          || (p.subcategories?.length ?? 0) > 0
+          || p.imageFiles.length > 0)
 
     for (const bad of p.badCodes) summary.badCodes.push(`${p.code} — ${bad}`)
     for (const o of p.other) {
@@ -404,8 +469,10 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     const product = byCode.get(p.code)
 
     if (!product) {
-      // Code not in the DB yet — create it on apply if it has something to write
-      if (allSpecies.length || p.availability || p.flex) {
+      // Code not in the DB yet — create it on apply if it has anything to write.
+      // On the Master Product List that includes a name, a description or an
+      // image, not just a ticked wood.
+      if (allSpecies.length || p.availability || p.flex || sheetHasContent) {
         summary.willCreate.push({
           code: p.code,
           name: p.name || p.code,
@@ -413,6 +480,7 @@ export async function analyse(rows, { layout = 'species' } = {}) {
           availability: p.availability,
           flex: p.flex,
         })
+        if (p.imageFiles.length) summary.willSetImages++
       } else {
         summary.unmatched.push(p.code)
       }
@@ -445,7 +513,13 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     }
     const subsWouldChange = (p.subcategories?.length ?? 0) > 0
       && !sameSubs(p.subcategories, currentSubsById.get(product.id) ?? [])
-    const hasFieldWork = Object.keys(fields).length > 0 || subsWouldChange
+
+    const present = p.imageFiles
+    const imagesWouldChange = present.length > 0
+      && present.map((f) => `/uploads/${f}`).join('|') !== (currentImagesById.get(product.id) ?? []).join('|')
+    if (imagesWouldChange) summary.willSetImages++
+
+    const hasFieldWork = Object.keys(fields).length > 0 || subsWouldChange || imagesWouldChange
 
     // Nothing ticked at all — apply skips these rows too
     if (!allSpecies.length && !p.availability && !p.flex && !hasFieldWork) {
@@ -517,6 +591,7 @@ export async function apply(rows, overrides = {}, options = {}) {
   } = options
   const db = await getDb()
   const { summary, parsed: base, byCode } = await analyse(rows, { layout })
+  const uploads = layout === 'master' ? await readUploads() : { files: new Set(), widths: new Map() }
 
   // Merge any manual corrections made in the preview UI before writing.
   const parsed = base.map((p) => {
@@ -535,7 +610,11 @@ export async function apply(rows, overrides = {}, options = {}) {
   for (const p of parsed) {
     if (byCode.has(p.code)) continue
     const allSpecies = speciesOf(p)
-    if (!allSpecies.length && !p.availability && !p.flex) continue
+    const sheetHasContent = layout === 'master'
+      && (Object.values(p.fields ?? {}).some((v) => v !== null && v !== '')
+          || (p.subcategories?.length ?? 0) > 0
+          || (p.imageFiles?.length ?? 0) > 0)
+    if (!allSpecies.length && !p.availability && !p.flex && !sheetHasContent) continue
 
     const slug = p.code.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
 
@@ -587,7 +666,7 @@ export async function apply(rows, overrides = {}, options = {}) {
     valueIds.set(s.toLowerCase(), v.id)
   }
 
-  let written = 0, subcategorised = 0
+  let written = 0, subcategorised = 0, imaged = 0
   const moved = []
   for (const p of parsed) {
     const product = byCode.get(p.code)
@@ -598,7 +677,8 @@ export async function apply(rows, overrides = {}, options = {}) {
     const allSpecies = speciesOf(p)
     const hasFieldWork = layout === 'master'
       && (Object.values(p.fields ?? {}).some((v) => v !== null && v !== '')
-          || (p.subcategories?.length ?? 0) > 0)
+          || (p.subcategories?.length ?? 0) > 0
+          || (p.imageFiles?.length ?? 0) > 0)
     // `parsed` is already de-duplicated by code in analyse(), so each product
     // is written once per run and the result does not depend on row order.
     if (!allSpecies.length && !p.availability && !p.flex && !hasFieldWork) continue
@@ -664,6 +744,35 @@ export async function apply(rows, overrides = {}, options = {}) {
         parentId = top.id
         patch.primaryCategoryId = top.id
         moved.push({ code: p.code, from: product.categorySlug, to: wanted })
+      }
+
+      // Images come from files already on disk — the sheet names them, nothing
+      // is fetched. Replaced wholesale when the sheet names any, so the sheet
+      // decides the set and the order; left alone when it names none.
+      if (p.imageFiles?.length) {
+        const keys = p.imageFiles.map((f) => `/uploads/${f}`)
+        const existing = await db
+          .select({ key: productImages.storageKey, alt: productImages.altText, role: productImages.role })
+          .from(productImages).where(eq(productImages.productId, product.id))
+        const wasSet = new Map(existing.map((e) => [e.key, e]))
+
+        await db.delete(productImages).where(eq(productImages.productId, product.id))
+        for (const [i, key] of keys.entries()) {
+          const file = p.imageFiles[i]
+          await db.insert(productImages).values({
+            productId: product.id,
+            storageKey: key,
+            // alt_text is required; keep what was written for this image if we
+            // had it, otherwise the product name is a truthful starting point.
+            // Alt text and role are editorial: guessing from a file name is a
+            // starting point, never a reason to overwrite what someone chose.
+            altText: wasSet.get(key)?.alt || patch.name || product.name || p.code,
+            width: uploads.widths.get(file) ?? null,
+            role: wasSet.get(key)?.role ?? imageRole(file),
+            sortOrder: i,
+          })
+        }
+        imaged++
       }
 
       // Sub-categories are facets, not addresses, so they are rewritten
@@ -733,7 +842,7 @@ export async function apply(rows, overrides = {}, options = {}) {
   })
 
   return {
-    ...summary, written, archived, moved, subcategorised,
+    ...summary, written, archived, moved, subcategorised, imaged,
     totals: { withSpecies, withAvail, ticksWithAvail },
   }
 }

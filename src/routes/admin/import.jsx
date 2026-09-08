@@ -437,6 +437,18 @@ export default function Import() {
             </div>
           )}
 
+          {s.missingImages.length > 0 && (
+            <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">
+                Image files the sheet names that are not in public/uploads — skipped:
+              </p>
+              <p className="mt-1 font-mono text-xs">{s.missingImages.slice(0, 12).join(' · ')}</p>
+              <p className="mt-1 text-xs text-amber-700">
+                Nothing is downloaded during an import. The file has to be in the folder.
+              </p>
+            </div>
+          )}
+
           {s.unknownCategories.length > 0 && (
             <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
               <p className="font-medium">Category names that do not match a catalogue category — ignored:</p>
@@ -612,6 +624,9 @@ export default function Import() {
             <Stat label="Products with species, in total" value={r.totals.withSpecies} tone="good" />
             <Stat label="Products with availability, in total" value={r.totals.withAvail} tone="good" />
             <Stat label="Species ticks carrying an availability" value={r.totals.ticksWithAvail} tone="good" />
+            {r.imaged > 0 && (
+              <Stat label="Products whose images were attached from the folder" value={r.imaged} tone="good" />
+            )}
             {r.subcategorised > 0 && (
               <Stat label="Products whose sub-categories were set" value={r.subcategorised} tone="good" />
             )}

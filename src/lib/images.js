@@ -20,7 +20,11 @@ export function variantPath(storageKey, width) {
  */
 export function srcSet(storageKey, originalWidth) {
   if (!isLocal(storageKey) || storageKey.endsWith('.svg')) return null
-  const available = WIDTHS.filter((w) => !originalWidth || w <= originalWidth)
+  // No recorded width means we do not know which variants were generated.
+  // Offering all of them requests files that may not exist, so offer none and
+  // let the plain src serve the image.
+  if (!originalWidth) return null
+  const available = WIDTHS.filter((w) => w <= originalWidth)
   if (!available.length) return null
   return available.map((w) => `${variantPath(storageKey, w)} ${w}w`).join(', ')
 }
