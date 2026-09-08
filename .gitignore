@@ -41,3 +41,7 @@ build
 *-service-account*.json
 gcp-*.json
 .env.backup
+
+# Superseded by RoyalWoodShop_Master_Product_List_v1.xlsx, which is tracked.
+# Kept on disk as history; not inputs to anything any more.
+RoyalWoodShop_Phase0_Data_Audit_*.xlsx
