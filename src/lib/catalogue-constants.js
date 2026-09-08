@@ -20,10 +20,15 @@ export const AVAILABILITY_LABEL = Object.fromEntries(AVAILABILITY)
 /** What Royal Wood Shop type into a species column on the audit sheet. The
  *  tick says both "milled in this wood" and "and this is how it ships". */
 export const TICK_CODES = [
-  ['X', 'in_stock'],
+  ['S', 'in_stock'],
   ['QS', 'quick_ship'],
-  ['MTO', 'made_to_order'],
+  ['MO', 'made_to_order'],
 ]
+
+/** The species sheets used X and MTO before the Master Product List settled on
+ *  S and MO. Both spellings are accepted on import — v9 and v10 are still in
+ *  circulation and would otherwise fail silently. */
+export const TICK_ALIASES = { X: 'in_stock', MTO: 'made_to_order' }
 
 /** Best first. A product's own availability is the best of its species: if a
  *  profile is in stock in any wood, the catalogue should find it under

@@ -33,7 +33,7 @@ export async function action({ request }) {
     try { parsedSheet = await parseUpload(buffer, file.name) }
     catch (e) { return { error: e.message } }
 
-    const { summary } = await analyse(parsedSheet.rows)
+    const { summary } = await analyse(parsedSheet.rows, { layout: parsedSheet.layout })
     // The code list is only needed server-side, when the import is applied.
     // Sending 473 of them down to the browser buys nothing.
     delete summary.sheetCodes
@@ -50,6 +50,7 @@ export async function action({ request }) {
       skipped: parsedSheet.skipped,
       missingColumns: parsedSheet.missingColumns,
       sheetName: parsedSheet.sheetName,
+      layout: parsedSheet.layout,
       summary,
     }
   }
@@ -62,12 +63,14 @@ export async function action({ request }) {
     try { buffer = await readFile(`${STAGING}/${token}`) }
     catch { return { error: 'That upload has expired. Please choose the file again.' } }
 
-    const { rows } = await parseUpload(buffer, String(form.get('fileName') ?? ''))
+    const { rows, layout } = await parseUpload(buffer, String(form.get('fileName') ?? ''))
 
     let overrides = {}
     try { const raw = form.get('overrides'); if (raw) overrides = JSON.parse(raw) } catch { /* ignore malformed */ }
 
     const result = await apply(rows, overrides, {
+      layout,
+      moveCategories: form.get('moveCategories') === 'yes',
       archiveMissing: form.get('archiveMissing') === 'yes',
       fileName: String(form.get('fileName') ?? ''),
       userEmail: user?.email ?? null,
@@ -254,6 +257,7 @@ export default function Import() {
   const [edits, setEdits] = useState({})
   const [editingCode, setEditingCode] = useState(null)
   const [archiveMissing, setArchiveMissing] = useState(false)
+  const [moveCategories, setMoveCategories] = useState(false)
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -396,6 +400,73 @@ export default function Import() {
             </div>
           )}
 
+          <p className="rounded-lg bg-gray-50 px-4 py-2 text-xs text-gray-600">
+            Read as {data.layout === 'master'
+              ? 'the Master Product List — species, availability, name, description, size, price and unit of measure'
+              : 'a species sheet — species and availability only'}
+            {data.sheetName ? ` (sheet "${data.sheetName}")` : ''}.
+          </p>
+
+          {s.fieldChanges.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+              <p className="border-b border-gray-100 bg-gray-50 px-4 py-2 text-xs tracking-wide text-gray-600 uppercase">
+                {s.willSetFields} product{s.willSetFields === 1 ? '' : 's'} change on fields other than species
+                <span className="ml-2 normal-case font-normal text-gray-400">
+                  — a blank cell in the sheet never clears what is already there
+                </span>
+              </p>
+              <ul className="max-h-72 overflow-y-auto">
+                {s.fieldChanges.map((c) => (
+                  <li key={c.code} className="border-b border-gray-100 px-4 py-2 text-sm last:border-0">
+                    <span className="font-mono text-xs text-gray-500">{c.code}</span>
+                    <span className="ml-2 text-gray-800">{c.name}</span>
+                    <ul className="mt-1 ml-4 text-xs text-gray-600">
+                      {Object.entries(c.fields).map(([field, v]) => (
+                        <li key={field}>
+                          <span className="font-medium">{field}</span>:{' '}
+                          <span className="text-gray-400 line-through">{String(v.from ?? '—').slice(0, 60)}</span>{' '}
+                          → <span className="text-royal-blue">{String(v.to).slice(0, 60)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {s.unknownCategories.length > 0 && (
+            <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">Category names that do not match a catalogue category — ignored:</p>
+              <p className="mt-1 font-mono text-xs">{s.unknownCategories.slice(0, 10).join(' · ')}</p>
+            </div>
+          )}
+
+          {s.categoryMoves.length > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">
+                {s.categoryMoves.length} product{s.categoryMoves.length === 1 ? '' : 's'} would move to a
+                different top-level category.
+              </p>
+              <p className="mt-1 text-xs">
+                A product's address is /products/&lt;category&gt;/&lt;slug&gt;, so moving it changes its URL and
+                the old address stops working unless a redirect is added. Sub-categories are facets and
+                are updated either way — only the top-level move is held back.
+              </p>
+              <ul className="mt-2 max-h-40 overflow-y-auto font-mono text-xs">
+                {s.categoryMoves.map((m) => (
+                  <li key={m.code} className="py-0.5">{m.code}: {m.from} → {m.to}</li>
+                ))}
+              </ul>
+              <label className="mt-3 flex cursor-pointer items-start gap-2">
+                <input type="checkbox" checked={moveCategories}
+                  onChange={(e) => setMoveCategories(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5 rounded accent-royal-blue" />
+                <span className="text-xs">Move them, and add the redirects afterwards. Leave unticked to keep every product where it is.</span>
+              </label>
+            </div>
+          )}
+
           {s.removedOrphans.length > 0 && (
             <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
               <p className="font-medium">
@@ -506,6 +577,7 @@ export default function Import() {
                 <input type="hidden" name="overrides" value={JSON.stringify(edits)} />
               )}
               {archiveMissing && <input type="hidden" name="archiveMissing" value="yes" />}
+              {moveCategories && <input type="hidden" name="moveCategories" value="yes" />}
               {(() => {
                 const total = s.willChange + s.willCreate.length
                 return (
@@ -538,7 +610,24 @@ export default function Import() {
             <Stat label="Products with species, in total" value={r.totals.withSpecies} tone="good" />
             <Stat label="Products with availability, in total" value={r.totals.withAvail} tone="good" />
             <Stat label="Species ticks carrying an availability" value={r.totals.ticksWithAvail} tone="good" />
+            {r.subcategorised > 0 && (
+              <Stat label="Products whose sub-categories were set" value={r.subcategorised} tone="good" />
+            )}
+            {r.moved.length > 0 && (
+              <Stat label="Products moved to a new category (URL changed)" value={r.moved.length} tone="warn" />
+            )}
           </div>
+
+          {r.moved.length > 0 && (
+            <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">These products have a new address — add redirects from the old ones:</p>
+              <ul className="mt-1 max-h-40 overflow-y-auto font-mono text-xs">
+                {r.moved.map((m) => (
+                  <li key={m.code} className="py-0.5">{m.code}: /products/{m.from}/… → /products/{m.to}/…</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {r.archived.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">

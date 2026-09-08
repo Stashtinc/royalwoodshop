@@ -81,6 +81,10 @@ export const products = pgTable('products', {
   availability: availabilityEnum('availability'),
   leadTime: varchar('lead_time', { length: 120 }),
 
+  /** How the product is sold — Lft, Ea, SqFt, Kit, Pc. Comes from the Master
+   *  Product List; nothing in the legacy data carried it. */
+  uom: varchar('uom', { length: 20 }),
+
   /** Profile is also available as a flexible moulding.
    *  Recorded as a tick alongside species on the audit sheet, but it is a
    *  variant of the profile rather than a species, so it lives here. */
