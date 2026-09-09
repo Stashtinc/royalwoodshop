@@ -243,7 +243,7 @@ export default function PostEdit() {
 
         <div className="ml-auto flex items-center gap-4">
           <button type="button" onClick={() => setAssistOpen(true)} disabled={!aiEnabled}
-            title={aiEnabled ? 'Draft, summarise or illustrate with AI' : 'Set OPENAI_API_KEY to enable — see docs/ai-assist-setup.md'}
+            title={aiEnabled ? 'Draft, summarise or illustrate with AI' : 'Set ANTHROPIC_API_KEY in Railway Variables to enable'}
             className="flex items-center gap-2 rounded-lg border border-royal-blue px-3.5 py-2 text-sm font-medium text-royal-blue transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-transparent">
             <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5"
               strokeLinecap="round" strokeLinejoin="round">

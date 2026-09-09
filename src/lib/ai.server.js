@@ -15,14 +15,14 @@ import { getDb } from './db.server'
 import { products, categories as categoriesTable } from '../db/schema'
 import { eq, sql } from 'drizzle-orm'
 
-const API_URL = 'https://api.openai.com/v1/chat/completions'
+const API_URL = 'https://api.anthropic.com/v1/messages'
 
 /** Small and inexpensive; drafting does not need a frontier model. Model names
  *  move faster than this codebase, so it is overridable. */
-const DEFAULT_MODEL = 'gpt-4o-mini'
+const DEFAULT_MODEL = 'claude-haiku-4-5-20251001'
 
 export function isConfigured() {
-  return Boolean(process.env.OPENAI_API_KEY?.trim())
+  return Boolean(process.env.ANTHROPIC_API_KEY?.trim())
 }
 
 /* ------------------------------------------------------------- house style */
@@ -81,55 +81,43 @@ async function catalogueContext() {
 /* --------------------------------------------------------------- api call */
 
 export async function callText({ system, messages, maxTokens = 4000 }) {
-  const key = process.env.OPENAI_API_KEY?.trim()
+  const key = process.env.ANTHROPIC_API_KEY?.trim()
   if (!key) {
-    throw new Error(
-      'No OpenAI API key. Set OPENAI_API_KEY in .env — see docs/ai-assist-setup.md.',
-    )
+    throw new Error('No Anthropic API key. Set ANTHROPIC_API_KEY in Railway Variables.')
   }
-
-  const send = (extra) => fetch(API_URL, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: process.env.OPENAI_TEXT_MODEL?.trim() || DEFAULT_MODEL,
-      max_completion_tokens: maxTokens,
-      messages: [{ role: 'system', content: system }, ...messages],
-      ...extra,
-    }),
-    signal: AbortSignal.timeout(120000),
-  })
 
   let res
   try {
-    // JSON mode, since every caller here parses the reply as JSON. It requires
-    // the word "json" in the prompt, which each of our system prompts has.
-    res = await send({ response_format: { type: 'json_object' } })
+    res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_TEXT_MODEL?.trim() || DEFAULT_MODEL,
+        max_tokens: maxTokens,
+        system,
+        messages,
+      }),
+      signal: AbortSignal.timeout(120000),
+    })
   } catch (e) {
-    if (e.name === 'TimeoutError') throw new Error('OpenAI took too long to respond. Try again.')
-    throw new Error(`Could not reach OpenAI: ${e.message}`)
+    if (e.name === 'TimeoutError') throw new Error('Anthropic took too long to respond. Try again.')
+    throw new Error(`Could not reach Anthropic: ${e.message}`)
   }
 
-  let body = await res.json().catch(() => ({}))
-
-  // Not every model supports JSON mode, or the token parameter name. Retry
-  // plainly rather than encoding a compatibility matrix that will go stale.
-  if (!res.ok && res.status === 400 && /response_format|max_completion_tokens|json/i.test(body.error?.message ?? '')) {
-    res = await send({})
-    body = await res.json().catch(() => ({}))
-  }
+  const body = await res.json().catch(() => ({}))
 
   if (!res.ok) {
     const detail = body.error?.message || `HTTP ${res.status}`
-    if (res.status === 401) throw new Error('OpenAI rejected the API key. Check OPENAI_API_KEY.')
-    if (res.status === 429) throw new Error('Rate limited by OpenAI, or the account is out of credit.')
-    if (res.status === 400 && /model/i.test(detail)) {
-      throw new Error(`${detail} — set OPENAI_TEXT_MODEL in .env to a model your account can use.`)
-    }
+    if (res.status === 401) throw new Error('Anthropic rejected the API key. Check ANTHROPIC_API_KEY.')
+    if (res.status === 429) throw new Error('Rate limited by Anthropic, or the account is out of credit.')
     throw new Error(detail)
   }
 
-  return body.choices?.[0]?.message?.content?.trim() ?? ''
+  return body.content?.[0]?.text?.trim() ?? ''
 }
 
 /* --------------------------------------------------------------- sanitise */
