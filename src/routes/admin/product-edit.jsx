@@ -8,9 +8,9 @@ import {
 } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
 import { saveUpload, deleteUpload, describeLimits } from '../../lib/uploads.server'
-import { SPECIES, AVAILABILITY } from '../../lib/catalogue-constants'
 import ImageDropZone from '../../components/admin/ImageDropZone'
 import CategoryPicker from '../../components/admin/CategoryPicker'
+import SpeciesPicker, { readSpeciesAvail } from '../../components/admin/SpeciesPicker'
 import { thumbSrc } from '../../lib/images'
 
 export async function loader({ request, params }) {
@@ -113,11 +113,12 @@ export async function action({ request, params }) {
   const name = String(f.get('name') ?? '').trim()
   if (!name) return { error: 'A product needs a name.' }
 
-  const avail = String(f.get('availability') ?? '')
   const num = (v) => {
     const t = String(v ?? '').trim()
     return t === '' || Number.isNaN(Number(t)) ? null : t
   }
+
+  const { species, speciesAvail } = readSpeciesAvail(f)
 
   const before = await getProduct(params.id)
   const payload = {
@@ -127,7 +128,7 @@ export async function action({ request, params }) {
     sizeDisplay: String(f.get('sizeDisplay') ?? '').trim(),
     thicknessIn: num(f.get('thicknessIn')),
     widthIn: num(f.get('widthIn')),
-    availability: AVAILABILITY.some(([k]) => k === avail) ? avail : null,
+    availability: before.availability,  // preserved; overwritten by saveProduct if species set
     leadTime: String(f.get('leadTime') ?? '').trim(),
     flexAvailable: f.get('flexAvailable') === 'on',
     price: num(f.get('price')),
@@ -135,7 +136,8 @@ export async function action({ request, params }) {
     status: ['draft', 'published', 'archived'].includes(String(f.get('status'))) ? String(f.get('status')) : 'draft',
     seoTitle: String(f.get('seoTitle') ?? '').trim(),
     seoDescription: String(f.get('seoDescription') ?? '').trim(),
-    species: f.getAll('species').map(String),
+    species,
+    speciesAvail,
   }
 
   const changed = diffProduct(before, payload)
@@ -386,29 +388,18 @@ export default function ProductEdit() {
         </section>
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
-          <h2 className="font-serif font-bold text-tundora">Species</h2>
-          <p className="-mt-2 text-xs text-gray-500">Tick every wood this profile is milled in.</p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {SPECIES.map((s) => (
-              <label key={s} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="species" value={s} defaultChecked={product.species.includes(s)}
-                  className="h-4 w-4 rounded border-gray-300" />
-                {s}
-              </label>
-            ))}
-            {product.species.filter((s) => !SPECIES.includes(s)).map((s) => (
-              <label key={s} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="species" value={s} defaultChecked
-                  className="h-4 w-4 rounded border-gray-300" />
-                {s} <span className="text-xs text-gray-400">(other)</span>
-              </label>
-            ))}
-          </div>
-          <label className="mt-2 flex items-center gap-2 text-sm">
+          <h2 className="font-serif font-bold text-tundora">Species &amp; Availability</h2>
+          <p className="-mt-2 text-xs text-gray-500">
+            Set how each wood ships. The product's overall availability is derived automatically from these.
+          </p>
+          <SpeciesPicker initialAvail={product.speciesAvail} />
+          <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="flexAvailable" defaultChecked={product.flexAvailable}
               className="h-4 w-4 rounded border-gray-300" />
             Also available as a flexible moulding
           </label>
+          <label className="flex flex-col gap-1.5"><Label>Lead time</Label>
+            <input name="leadTime" defaultValue={product.leadTime ?? ''} placeholder="e.g. approximately 1 week" className={field} /></label>
         </section>
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
@@ -434,21 +425,6 @@ export default function ProductEdit() {
               )}
             </label>
           </div>
-        </section>
-
-        <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
-          <h2 className="font-serif font-bold text-tundora">Availability</h2>
-          <div className="flex flex-wrap gap-4">
-            {[['', 'Not set'], ...AVAILABILITY].map(([k, label]) => (
-              <label key={k || 'none'} className="flex items-center gap-2 text-sm">
-                <input type="radio" name="availability" value={k}
-                  defaultChecked={(product.availability ?? '') === k} className="h-4 w-4" />
-                {label}
-              </label>
-            ))}
-          </div>
-          <label className="flex flex-col gap-1.5"><Label>Lead time</Label>
-            <input name="leadTime" defaultValue={product.leadTime ?? ''} placeholder="e.g. approximately 1 week" className={field} /></label>
         </section>
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">

@@ -142,7 +142,17 @@ export async function getProduct(id) {
     .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
     .where(eq(products.id, Number(id))).limit(1)
   if (!row) return null
-  return { ...row, species: Array.isArray(row.species) ? row.species : [] }
+
+  // Per-species availability: { 'Poplar': 'in_stock', 'White Oak': 'quick_ship', ... }
+  const speciesAvailRows = await db
+    .select({ name: attributeValues.value, availability: productAttributes.availability })
+    .from(productAttributes)
+    .innerJoin(attributeValues, eq(attributeValues.id, productAttributes.attributeValueId))
+    .innerJoin(attributes, eq(attributes.id, attributeValues.attributeId))
+    .where(and(eq(productAttributes.productId, Number(id)), eq(attributes.key, 'species')))
+  const speciesAvail = Object.fromEntries(speciesAvailRows.map((r) => [r.name, r.availability]))
+
+  return { ...row, species: Array.isArray(row.species) ? row.species : [], speciesAvail }
 }
 
 const LABELS = {
@@ -209,6 +219,31 @@ export async function createProduct(data) {
       .onConflictDoNothing()
   }
 
+  // Species with per-species availability
+  const chosen = (data.species ?? []).filter(Boolean)
+  if (chosen.length) {
+    const speciesAvail = data.speciesAvail ?? {}
+    const [attr] = await db.insert(attributes)
+      .values({ key: 'species', name: 'Wood species', sortOrder: 1 })
+      .onConflictDoUpdate({ target: attributes.key, set: { name: 'Wood species' } })
+      .returning({ id: attributes.id })
+    const vals = await db.select({ id: attributeValues.id, value: attributeValues.value })
+      .from(attributeValues)
+      .where(and(eq(attributeValues.attributeId, attr.id), inArray(attributeValues.value, chosen)))
+    for (const v of vals) {
+      await db.insert(productAttributes)
+        .values({ productId: row.id, attributeValueId: v.id, availability: speciesAvail[v.value] ?? null })
+        .onConflictDoNothing()
+    }
+    const speciesAvailValues = chosen.map((s) => speciesAvail[s]).filter(Boolean)
+    if (speciesAvailValues.length) {
+      const { bestAvailability } = await import('./catalogue-constants.js')
+      await db.update(products)
+        .set({ availability: bestAvailability(speciesAvailValues) })
+        .where(eq(products.id, row.id))
+    }
+  }
+
   return row.id
 }
 
@@ -233,12 +268,14 @@ export async function saveProduct(id, data) {
     updatedAt: new Date(),
   }).where(eq(products.id, Number(id)))
 
-  // species: replace the set
+  // species: replace the set, preserving per-species availability
   const [attr] = await db.insert(attributes)
     .values({ key: 'species', name: 'Wood species', sortOrder: 1 })
     .onConflictDoUpdate({ target: attributes.key, set: { name: 'Wood species' } })
     .returning({ id: attributes.id })
 
+  // speciesAvail: { 'Poplar': 'in_stock', ... } — only entries where availability is set
+  const speciesAvail = data.speciesAvail ?? {}
   const chosen = data.species ?? []
   await db.delete(productAttributes).where(eq(productAttributes.productId, Number(id)))
   if (chosen.length) {
@@ -247,8 +284,18 @@ export async function saveProduct(id, data) {
       .where(and(eq(attributeValues.attributeId, attr.id), inArray(attributeValues.value, chosen)))
     for (const v of vals) {
       await db.insert(productAttributes)
-        .values({ productId: Number(id), attributeValueId: v.id }).onConflictDoNothing()
+        .values({ productId: Number(id), attributeValueId: v.id, availability: speciesAvail[v.value] ?? null })
+        .onConflictDoNothing()
     }
+  }
+
+  // Derive the product-level availability from species if any are set, otherwise keep manual value
+  const speciesAvailValues = chosen.map((s) => speciesAvail[s]).filter(Boolean)
+  if (speciesAvailValues.length) {
+    const { bestAvailability } = await import('./catalogue-constants.js')
+    await db.update(products)
+      .set({ availability: bestAvailability(speciesAvailValues) })
+      .where(eq(products.id, Number(id)))
   }
 }
 
