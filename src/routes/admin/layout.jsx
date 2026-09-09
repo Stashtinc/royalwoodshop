@@ -40,6 +40,12 @@ const BlogIcon = () => (
   </svg>
 )
 
+const CategoriesIcon = () => (
+  <svg viewBox="0 0 20 20" className={icon} aria-hidden="true" {...stroke}>
+    <path d="M2.5 5.5h6v6h-6zM11.5 5.5h6v6h-6zM2.5 14h6M11.5 14h6" />
+  </svg>
+)
+
 const ImportIcon = () => (
   <svg viewBox="0 0 20 20" className={icon} aria-hidden="true" {...stroke}>
     <path d="M10 12.5V3m0 9.5L6.5 9M10 12.5 13.5 9" />
@@ -78,6 +84,7 @@ const CloseIcon = () => (
 const NAV = [
   { to: '/admin', end: true, label: 'Dashboard', Icon: DashboardIcon },
   { to: '/admin/products', label: 'Products', Icon: ProductsIcon },
+  { to: '/admin/categories', label: 'Categories', Icon: CategoriesIcon },
   { to: '/admin/posts', label: 'Blog', Icon: BlogIcon },
   { to: '/admin/import', label: 'Import', Icon: ImportIcon },
   { to: '/admin/logs', label: 'Logs', Icon: LogsIcon },

@@ -41,6 +41,7 @@ export const categories = pgTable('categories', {
   seoDescription: text('seo_description'),
   ogImageId: integer('og_image_id'),
   sortOrder: integer('sort_order').notNull().default(9999),
+  inNav: boolean('in_nav').notNull().default(false),
   /** A curated, indexable facet page rather than a real category —
    *  e.g. /products/trim-mouldings/white-oak/. See spec §2.4. */
   isPromotedFacet: boolean('is_promoted_facet').notNull().default(false),

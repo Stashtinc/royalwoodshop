@@ -319,6 +319,86 @@ export async function ensureSpecies() {
   }
 }
 
+/* ---------------------------------------------------------- category admin */
+
+export async function listCategoriesAdmin() {
+  const db = await getDb()
+  const all = await db.select({
+    id: categories.id,
+    slug: categories.slug,
+    name: categories.name,
+    parentId: categories.parentId,
+    sortOrder: categories.sortOrder,
+    inNav: categories.inNav,
+    productCount: sql`(select count(*)::int from products where primary_category_id = ${categories.id})`.as('product_count'),
+  }).from(categories).orderBy(asc(categories.sortOrder), asc(categories.name))
+
+  const subsByParent = new Map()
+  for (const c of all.filter((c) => c.parentId)) {
+    if (!subsByParent.has(c.parentId)) subsByParent.set(c.parentId, [])
+    subsByParent.get(c.parentId).push(c)
+  }
+  return all
+    .filter((c) => !c.parentId)
+    .map((c) => ({ ...c, subcategories: subsByParent.get(c.id) ?? [] }))
+}
+
+export async function createCategory({ name, parentId, inNav }) {
+  const db = await getDb()
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/, '')
+  const [existing] = await db.select({ id: categories.id }).from(categories).where(eq(categories.slug, slug)).limit(1)
+  const finalSlug = existing ? `${slug}-${Date.now()}` : slug
+
+  const [maxRow] = await db.select({ m: sql`coalesce(max(sort_order),0)::int` })
+    .from(categories).where(sql`parent_id is null`)
+  const sortOrder = parentId ? 9999 : ((maxRow?.m ?? 0) + 10)
+
+  const [row] = await db.insert(categories)
+    .values({ name, slug: finalSlug, parentId: parentId || null, inNav: !!inNav, sortOrder })
+    .returning({ id: categories.id })
+  return row.id
+}
+
+export async function updateCategory(id, { name, inNav }) {
+  const db = await getDb()
+  const set = {}
+  if (name !== undefined) set.name = name
+  if (inNav !== undefined) set.inNav = inNav
+  if (!Object.keys(set).length) return
+  await db.update(categories).set({ ...set, updatedAt: new Date() }).where(eq(categories.id, Number(id)))
+}
+
+export async function deleteCategoryAdmin(id) {
+  const db = await getDb()
+  // Re-parent any children to null (make them top-level orphans) before deleting
+  await db.update(categories).set({ parentId: null }).where(eq(categories.parentId, Number(id)))
+  // Unlink any products that use this as primary category
+  await db.update(products).set({ primaryCategoryId: null }).where(eq(products.primaryCategoryId, Number(id)))
+  // Remove from product_categories join table
+  await db.delete(productCategories).where(eq(productCategories.categoryId, Number(id)))
+  await db.delete(categories).where(eq(categories.id, Number(id)))
+}
+
+export async function moveCategoryOrder(id, direction) {
+  const db = await getDb()
+  const [cat] = await db.select({ id: categories.id, sortOrder: categories.sortOrder, parentId: categories.parentId })
+    .from(categories).where(eq(categories.id, Number(id))).limit(1)
+  if (!cat) return
+
+  const siblings = await db.select({ id: categories.id, sortOrder: categories.sortOrder })
+    .from(categories)
+    .where(cat.parentId ? eq(categories.parentId, cat.parentId) : sql`parent_id is null`)
+    .orderBy(asc(categories.sortOrder), asc(categories.name))
+
+  const idx = siblings.findIndex((s) => s.id === cat.id)
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+  if (swapIdx < 0 || swapIdx >= siblings.length) return
+
+  const other = siblings[swapIdx]
+  await db.update(categories).set({ sortOrder: other.sortOrder }).where(eq(categories.id, cat.id))
+  await db.update(categories).set({ sortOrder: cat.sortOrder }).where(eq(categories.id, other.id))
+}
+
 export async function dashboardStats() {
   const db = await getDb()
   const [r] = await db.select({

@@ -39,6 +39,7 @@ export default [
     route('logs', 'routes/admin/logs.jsx'),
     route('posts', 'routes/admin/posts.jsx'),
     route('posts/:id', 'routes/admin/post-edit.jsx'),
+    route('categories', 'routes/admin/categories.jsx'),
     route('import', 'routes/admin/import.jsx'),
     route('export-master', 'routes/admin/export-master.js'),
   ]),
