@@ -7,18 +7,20 @@ import snapshot from './products.json'
 const products = snapshot
 export const catalogueProducts = snapshot
 
-export const TRIM_CATEGORY = 'Trim and Mouldings'
+export const TRIM_CATEGORY = 'Trim & Moulding'
 export const DOORS_CATEGORY = 'Interior Doors'
 
 export const CATEGORY_SLUGS = {
-  'Trim and Mouldings':     'trim-mouldings',
-  'Interior Doors':         'interior-doors',
-  'Stairs & Railings':      'stair-railing',
-  'Stair Components':       'stair-components',
-  'Door Hardware':          'door-hardware',
-  'Sheet Stock':            'sheet-stock',
+  'Trim & Moulding':          'trim-mouldings',
+  'Flat Stock Lumber':        'flat-stock-lumber',
+  'Interior Doors':           'interior-doors',
+  'Door Hardware':            'door-hardware',
   'Wall & Ceiling Panelling': 'wall-ceiling-panelling',
-  'Siding':                 'siding',
+  'Stair & Railing':          'stair-railing',
+  'Stair Components':         'stair-components',
+  'Sheet Stock':              'sheet-stock',
+  'Exterior Siding':          'siding',
+  'Aria Fittes Floor Vents':  'aria-fittes-floor-vents',
 }
 
 /** The reverse of CATEGORY_SLUGS. The Products menu links to
@@ -67,8 +69,9 @@ export const relatedTo = (p, limit = 6) => {
 /* ---------------------------------------------------------------- facets */
 
 const order = [
-  'Trim and Mouldings', 'Interior Doors', 'Stairs & Railings', 'Stair Components',
-  'Door Hardware', 'Sheet Stock', 'Wall & Ceiling Panelling', 'Siding',
+  'Trim & Moulding', 'Flat Stock Lumber', 'Interior Doors', 'Door Hardware',
+  'Wall & Ceiling Panelling', 'Stair & Railing', 'Stair Components',
+  'Sheet Stock', 'Exterior Siding', 'Aria Fittes Floor Vents',
 ]
 
 export function categoryTree(rows = products) {

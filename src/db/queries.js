@@ -4,14 +4,16 @@ import {
 } from './schema.js'
 
 const CATEGORY_NAMES = {
-  'trim-mouldings':        'Trim and Mouldings',
-  'interior-doors':        'Interior Doors',
-  'stair-railing':         'Stairs & Railings',
-  'stair-components':      'Stair Components',
-  'door-hardware':         'Door Hardware',
-  'sheet-stock':           'Sheet Stock',
-  'wall-ceiling-panelling':'Wall & Ceiling Panelling',
-  'siding':                'Siding',
+  'trim-mouldings':          'Trim & Moulding',
+  'flat-stock-lumber':       'Flat Stock Lumber',
+  'interior-doors':          'Interior Doors',
+  'door-hardware':           'Door Hardware',
+  'wall-ceiling-panelling':  'Wall & Ceiling Panelling',
+  'stair-railing':           'Stair & Railing',
+  'stair-components':        'Stair Components',
+  'sheet-stock':             'Sheet Stock',
+  'siding':                  'Exterior Siding',
+  'aria-fittes-floor-vents': 'Aria Fittes Floor Vents',
 }
 
 const SIZE_BAND = (w) => {

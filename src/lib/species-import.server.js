@@ -297,16 +297,16 @@ const imageRole = (name) =>
  * not have yet; products land there correctly but the mismatch is reported.
  */
 const CATEGORY_DEFS = [
-  ['trim-mouldings', 'Trim and Mouldings', ['TRIM & MOULDINGS', 'TRIM AND MOULDINGS'], true],
-  ['interior-doors', 'Interior Doors', [], true],
-  ['door-hardware', 'Door Hardware', [], true],
-  ['stair-railing', 'Stairs & Railings', ['STAIR RAILING', 'STAIRS AND RAILINGS'], true],
-  ['stair-components', 'Stair Components', [], true],
-  ['sheet-stock', 'Sheet Stock', [], true],
-  ['wall-ceiling-panelling', 'Wall & Ceiling Panelling', ['PANELLING'], true],
-  ['siding', 'Siding', [], true],
-  ['s4s-flat-stock', 'S4S Flat Stock', ['FLAT STOCK'], false],
-  ['sheet-goods', 'Sheet Goods', [], false],
+  ['trim-mouldings',          'Trim & Moulding',         ['TRIM AND MOULDINGS', 'TRIM & MOULDINGS', 'TRIM AND MOULDING'], true],
+  ['flat-stock-lumber',       'Flat Stock Lumber',        ['FLAT STOCK LUMBER', 'FLAT STOCK', 'S4S FLAT STOCK'],          true],
+  ['interior-doors',          'Interior Doors',           [],                                                              true],
+  ['door-hardware',           'Door Hardware',            [],                                                              true],
+  ['wall-ceiling-panelling',  'Wall & Ceiling Panelling', ['PANELLING'],                                                   true],
+  ['stair-railing',           'Stair & Railing',          ['STAIRS & RAILINGS', 'STAIR RAILING', 'STAIRS AND RAILINGS'],  true],
+  ['stair-components',        'Stair Components',         [],                                                              true],
+  ['sheet-stock',             'Sheet Stock',              ['SHEET GOODS'],                                                 true],
+  ['siding',                  'Exterior Siding',          ['SIDING', 'EXTERIOR SIDING'],                                  true],
+  ['aria-fittes-floor-vents', 'Aria Fittes Floor Vents',  ['ARIA FITTES', 'ARIA FITTES FLOOR VENTS'],                     true],
 ]
 const CATEGORY_SLUG = {}
 const CATEGORY_TITLE = {}

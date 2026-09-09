@@ -18,13 +18,15 @@
 
 export const productsMenu = {
   categories: [
-    { label: 'Trim & Moulding',         path: '/products?category=trim-mouldings' },
-    { label: 'Interior Doors',           path: '/products?category=interior-doors' },
-    { label: 'Stair Components',         path: '/products?category=stair-components' },
-    { label: 'Door Hardware',            path: '/products?category=door-hardware' },
-    { label: 'Sheet Stock',              path: '/products?category=sheet-stock' },
-    { label: 'Wall & Ceiling Panelling', path: '/products?category=wall-ceiling-panelling' },
-    { label: 'Siding',                   path: '/products?category=siding' },
+    { label: 'Trim & Moulding',           path: '/products/trim-mouldings' },
+    { label: 'Flat Stock Lumber',          path: '/products/flat-stock-lumber' },
+    { label: 'Interior Doors',             path: '/products/interior-doors' },
+    { label: 'Door Hardware',              path: '/products/door-hardware' },
+    { label: 'Wall & Ceiling Panelling',   path: '/products/wall-ceiling-panelling' },
+    { label: 'Stair & Railing',            path: '/products/stair-railing' },
+    { label: 'Sheet Stock',                path: '/products/sheet-stock' },
+    { label: 'Exterior Siding',            path: '/products/siding' },
+    { label: 'Aria Fittes Floor Vents',    path: '/products/aria-fittes-floor-vents' },
   ],
 }
 
