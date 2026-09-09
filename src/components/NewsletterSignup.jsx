@@ -1,17 +1,34 @@
-import { useEffect, useRef } from 'react'
-import { useFetcher } from 'react-router'
+import { useRef, useState } from 'react'
 
 export default function NewsletterSignup() {
-  const fetcher = useFetcher()
+  const [status, setStatus] = useState('idle') // idle | loading | success | error
+  const [error, setError] = useState(null)
   const inputRef = useRef(null)
-  const busy = fetcher.state !== 'idle'
-  const ok = fetcher.data?.ok
-  const error = fetcher.data?.error
 
-  // Clear input on success
-  useEffect(() => {
-    if (ok && inputRef.current) inputRef.current.value = ''
-  }, [ok])
+  async function handleSubmit(e) {
+    e.preventDefault()
+    const email = inputRef.current?.value?.trim()
+    if (!email) return
+    setStatus('loading')
+    setError(null)
+    try {
+      const res = await fetch('/.netlify/functions/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ email }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (data.ok) {
+        setStatus('success')
+      } else {
+        setError(data.error || 'Could not subscribe. Please try again.')
+        setStatus('idle')
+      }
+    } catch {
+      setError('Newsletter signup is unavailable right now.')
+      setStatus('idle')
+    }
+  }
 
   return (
     <section className="relative w-full overflow-hidden bg-[#0f1f2e] py-20 lg:py-28">
@@ -59,7 +76,7 @@ export default function NewsletterSignup() {
 
           {/* Right — form */}
           <div className="flex flex-col gap-5">
-            {ok ? (
+            {status === 'success' ? (
               <div className="flex flex-col items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-8 py-10 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20">
                   <svg className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -70,23 +87,23 @@ export default function NewsletterSignup() {
                 <p className="font-sans text-sm text-white/60">Watch for the next issue of Around the Mill.</p>
               </div>
             ) : (
-              <fetcher.Form action="/.netlify/functions/newsletter" method="post" className="flex flex-col gap-3">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <div className="flex overflow-hidden rounded-xl border border-white/10" style={{ background: 'rgba(255,255,255,0.06)' }}>
                   <input
                     ref={inputRef}
                     type="email"
                     name="email"
                     required
-                    disabled={busy}
+                    disabled={status === 'loading'}
                     placeholder="Your email address"
                     className="min-w-0 flex-1 bg-transparent px-5 py-4 font-sans text-sm text-white placeholder-white/30 outline-none disabled:opacity-50"
                   />
                   <button
                     type="submit"
-                    disabled={busy}
+                    disabled={status === 'loading'}
                     className="shrink-0 bg-royal-blue px-6 py-4 font-sans text-sm font-bold text-white transition-colors hover:bg-royal-blue-dark disabled:opacity-60"
                   >
-                    {busy ? 'Subscribing…' : 'Subscribe'}
+                    {status === 'loading' ? 'Subscribing…' : 'Subscribe'}
                   </button>
                 </div>
                 {error && (
@@ -95,7 +112,7 @@ export default function NewsletterSignup() {
                 <p className="font-sans text-xs text-white/30">
                   No spam. Unsubscribe any time.
                 </p>
-              </fetcher.Form>
+              </form>
             )}
           </div>
 
