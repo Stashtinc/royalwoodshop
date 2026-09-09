@@ -152,10 +152,11 @@ export async function getProduct(id) {
     .where(and(eq(productAttributes.productId, Number(id)), eq(attributes.key, 'species')))
   const speciesAvail = Object.fromEntries(speciesAvailRows.map((r) => [r.name, r.availability]))
 
-  // If any species isn't in the standard list, surface it as the "Other" value
+  // Surface any non-standard species as the "Other" rows array
   const knownSet = new Set(SPECIES)
-  const otherEntry = speciesAvailRows.find((r) => !knownSet.has(r.name))
-  const otherSpecies = otherEntry ? { name: otherEntry.name, avail: otherEntry.availability } : null
+  const otherSpecies = speciesAvailRows
+    .filter((r) => !knownSet.has(r.name))
+    .map((r) => ({ name: r.name, avail: r.availability }))
 
   return { ...row, species: Array.isArray(row.species) ? row.species : [], speciesAvail, otherSpecies }
 }
