@@ -263,13 +263,24 @@ export default function Import() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <div>
-        <h1 className="font-serif text-2xl font-bold text-tundora">Import species sheet</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Upload the workbook, or a CSV export of the{' '}
-          <span className="font-medium">TO DO — Species</span> tab. You will see what it changes
-          before anything is saved.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-2xl font-bold text-tundora">Import species sheet</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Upload the workbook, or a CSV export of the{' '}
+            <span className="font-medium">TO DO — Species</span> tab. You will see what it changes
+            before anything is saved.
+          </p>
+        </div>
+        <a
+          href="/admin/export-master"
+          className="flex shrink-0 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 hover:text-gray-900"
+        >
+          <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M10 3v10M6 9l4 4 4-4M3 17h14" />
+          </svg>
+          Download Master
+        </a>
       </div>
 
       {data?.error && (

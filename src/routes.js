@@ -40,6 +40,7 @@ export default [
     route('posts', 'routes/admin/posts.jsx'),
     route('posts/:id', 'routes/admin/post-edit.jsx'),
     route('import', 'routes/admin/import.jsx'),
+    route('export-master', 'routes/admin/export-master.js'),
   ]),
 
   route('blog', 'routes/journal.jsx'),
