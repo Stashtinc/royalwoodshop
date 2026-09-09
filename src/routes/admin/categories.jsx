@@ -106,7 +106,7 @@ function SubRow({ sub }) {
   return (
     <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs">
       {editing ? (
-        <Form method="post" className="flex items-center gap-2">
+        <Form method="post" className="flex items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="intent" value="rename" />
           <input type="hidden" name="id" value={sub.id} />
           <input
@@ -116,7 +116,7 @@ function SubRow({ sub }) {
             className="rounded border border-royal-blue px-1.5 py-0.5 text-xs outline-none w-32"
             onKeyDown={(e) => e.key === 'Escape' && setEditing(false)}
           />
-          <button className="text-royal-blue hover:underline">Save</button>
+          <button type="submit" className="text-royal-blue hover:underline">Save</button>
           <button type="button" onClick={() => setEditing(false)} className="text-gray-400 hover:text-gray-600">✕</button>
         </Form>
       ) : (
@@ -187,7 +187,7 @@ function CategoryRow({ cat, isFirst, isLast }) {
         {/* Name */}
         <div className="flex-1 min-w-0">
           {editing ? (
-            <Form method="post" className="flex items-center gap-2">
+            <Form method="post" className="flex items-center gap-2" onSubmit={() => setEditing(false)}>
               <input type="hidden" name="intent" value="rename" />
               <input type="hidden" name="id" value={cat.id} />
               <input
@@ -197,7 +197,7 @@ function CategoryRow({ cat, isFirst, isLast }) {
                 className="rounded-lg border border-royal-blue px-2 py-1 text-sm outline-none w-52"
                 onKeyDown={(e) => e.key === 'Escape' && setEditing(false)}
               />
-              <button className="rounded-lg bg-royal-blue px-3 py-1 text-xs font-medium text-white hover:bg-royal-blue-dark">Save</button>
+              <button type="submit" className="rounded-lg bg-royal-blue px-3 py-1 text-xs font-medium text-white hover:bg-royal-blue-dark">Save</button>
               <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-500">Cancel</button>
             </Form>
           ) : (

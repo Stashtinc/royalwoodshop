@@ -330,7 +330,7 @@ export async function listCategoriesAdmin() {
     parentId: categories.parentId,
     sortOrder: categories.sortOrder,
     inNav: categories.inNav,
-    productCount: sql`(select count(*)::int from products where primary_category_id = ${categories.id})`.as('product_count'),
+    productCount: sql`(select count(distinct pc.product_id)::int from product_categories pc where pc.category_id = categories.id)`.as('product_count'),
   }).from(categories).orderBy(asc(categories.sortOrder), asc(categories.name))
 
   const subsByParent = new Map()
