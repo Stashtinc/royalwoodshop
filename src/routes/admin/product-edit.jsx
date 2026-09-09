@@ -392,7 +392,7 @@ export default function ProductEdit() {
           <p className="-mt-2 text-xs text-gray-500">
             Set how each wood ships. The product's overall availability is derived automatically from these.
           </p>
-          <SpeciesPicker initialAvail={product.speciesAvail} />
+          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="flexAvailable" defaultChecked={product.flexAvailable}
               className="h-4 w-4 rounded border-gray-300" />
