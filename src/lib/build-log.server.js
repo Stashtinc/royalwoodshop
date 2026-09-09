@@ -6,6 +6,10 @@
  * web server's own process, which matters more than it sounds: the embedded
  * database allows a single writer, so a separate script opening it while the
  * server is running is what crashes the server. A button cannot do that.
+ *
+ * On Railway the built server has no git binary, so the function falls back
+ * to the GitHub API automatically. Set GITHUB_TOKEN in Railway Variables if
+ * the repo is private.
  */
 import { execFileSync } from 'node:child_process'
 import { sql } from 'drizzle-orm'
@@ -17,10 +21,12 @@ export const BUILD_ACTION = 'build.shipped'
 /** Housekeeping commits are noise in a log meant to show progress. */
 const SKIP = /^(chore|wip|typo|merge branch|revert)\b/i
 
-const RECORD = ''
-const FIELD = ''
+const RECORD = ''
+const FIELD = ''
 
-function readCommits(since) {
+const GITHUB_REPO = 'Stashtinc/royalwoodshop'
+
+function readCommitsFromGit(since) {
   const args = ['log', '--reverse', `--pretty=format:%H${FIELD}%aI${FIELD}%an${FIELD}%s${RECORD}`]
   if (since) args.splice(2, 0, `--since=${since}`)
 
@@ -28,6 +34,7 @@ function readCommits(since) {
   try {
     raw = execFileSync('git', args, { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 })
   } catch (e) {
+    if (e.code === 'ENOENT') return null  // git not installed — caller falls back to API
     throw new Error(
       `Could not read the project history: ${e.message.split('\n')[0]}. ` +
       'This needs to run where the git repository is — on a server that only has ' +
@@ -41,13 +48,57 @@ function readCommits(since) {
   })
 }
 
+async function readCommitsFromGitHub(since) {
+  const token = process.env.GITHUB_TOKEN
+  const headers = {
+    Accept: 'application/vnd.github.v3+json',
+    'User-Agent': 'royalwoodshop-admin',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
+
+  const params = new URLSearchParams({ per_page: '100' })
+  if (since) params.set('since', new Date(since).toISOString())
+
+  const commits = []
+  let url = `https://api.github.com/repos/${GITHUB_REPO}/commits?${params}`
+
+  while (url) {
+    const res = await fetch(url, { headers })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      if (res.status === 404) {
+        throw new Error(
+          `GitHub repo ${GITHUB_REPO} not found or is private. ` +
+          'Add a GITHUB_TOKEN to Railway Variables to enable access.',
+        )
+      }
+      throw new Error(`GitHub API returned ${res.status}: ${body.slice(0, 200)}`)
+    }
+    const data = await res.json()
+    for (const c of data) {
+      commits.push({
+        hash: c.sha,
+        date: c.commit.author.date,
+        author: c.commit.author.name,
+        subject: c.commit.message.split('\n')[0],
+      })
+    }
+    const link = res.headers.get('Link') ?? ''
+    const next = link.match(/<([^>]+)>;\s*rel="next"/)
+    url = next ? next[1] : null
+  }
+
+  return commits.reverse()  // oldest first, matching git log --reverse
+}
+
 /**
  * Copies any commit not already recorded. Idempotent: the hash is stored and
  * checked, in both the full and short forms, since rows written before the
  * length was fixed hold ten characters.
  */
 export async function recordBuilds({ since = null } = {}) {
-  const commits = readCommits(since)
+  let commits = readCommitsFromGit(since)
+  if (commits === null) commits = await readCommitsFromGitHub(since)
   if (!commits.length) return { added: 0, skipped: 0, total: 0 }
 
   const db = await getDb()
