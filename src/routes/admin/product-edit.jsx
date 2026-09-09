@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router'
+import { Form, Link, redirect, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import {
   getProduct, saveProduct, diffProduct, listImages, addImage, updateImage,
@@ -160,7 +160,7 @@ export async function action({ request, params }) {
     }
   }
 
-  return { saved: changed.length ? `Saved — ${changed.map((c) => c.field).join(', ')} updated.` : 'No changes to save.' }
+  throw redirect('/admin/products')
 }
 
 const field = 'rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue'
