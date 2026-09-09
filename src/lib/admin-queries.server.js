@@ -115,6 +115,7 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
         name: [d(products.name)],
         category: [d(categories.name), asc(products.productCode)],
         availability: [d(products.availability), asc(products.productCode)],
+        id: [d(products.id)],
       }
       return cols[sortBy] ?? [asc(products.productCode), asc(products.name)]
     })())

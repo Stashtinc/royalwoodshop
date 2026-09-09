@@ -47,7 +47,7 @@ export async function action({ request }) {
     details: { changed: [{ field: 'status', from: '—', to: 'created' }] },
   })
 
-  throw redirect(`/admin/products/${id}`)
+  throw redirect(`/admin/products?saved=${id}&sortBy=id&sortDir=desc`)
 }
 
 const field = 'rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue w-full'

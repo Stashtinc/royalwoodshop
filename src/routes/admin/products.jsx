@@ -9,6 +9,7 @@ import Pagination from '../../components/admin/Pagination'
 export async function loader({ request }) {
   await requireUser(request)
   const url = new URL(request.url)
+  const savedId = url.searchParams.get('saved') ? Number(url.searchParams.get('saved')) : null
   const allowed = [25, 50, 100]
   const requested = Number(url.searchParams.get('perPage') ?? 25)
   const [data, categoryOptions] = await Promise.all([
@@ -25,7 +26,7 @@ export async function loader({ request }) {
     }),
     listCategories(),
   ])
-  return { ...data, categoryOptions }
+  return { ...data, categoryOptions, savedId }
 }
 
 const MISSING_LABEL = {
@@ -35,10 +36,17 @@ const MISSING_LABEL = {
 }
 
 export default function Products() {
-  const { rows, total, page, pages, perPage, categoryOptions, sortBy, sortDir } = useLoaderData()
+  const { rows, total, page, pages, perPage, categoryOptions, sortBy, sortDir, savedId } = useLoaderData()
   const [params] = useSearchParams()
   const missing = params.get('missing') ?? ''
   const q = params.get('q') ?? ''
+  const savedRowRef = useRef(null)
+
+  useEffect(() => {
+    if (!savedRowRef.current) return
+    savedRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    savedRowRef.current.classList.add('animate-row-flash')
+  }, [savedId])
   function sortLink(col) {
     const next = new URLSearchParams(params)
     next.set('sortBy', col)
@@ -168,7 +176,7 @@ export default function Products() {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="border-b border-gray-100 last:border-0">
+              <tr key={r.id} ref={r.id === savedId ? savedRowRef : null} className="border-b border-gray-100 last:border-0">
                 <td className="py-2 pl-4">
                   <Link to={`/admin/products/${r.id}`} className="block">
                     {r.image ? (
