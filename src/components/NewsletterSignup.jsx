@@ -1,16 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { useFetcher } from 'react-router'
 
 export default function NewsletterSignup() {
-  const [email, setEmail] = useState('')
-  const [status, setStatus] = useState('idle')
+  const fetcher = useFetcher()
+  const inputRef = useRef(null)
+  const busy = fetcher.state !== 'idle'
+  const ok = fetcher.data?.ok
+  const error = fetcher.data?.error
 
-  function handleSubmit(e) {
-    e.preventDefault()
-    if (!email.trim()) return
-    // TODO: wire to Mailchimp / email service
-    setStatus('success')
-    setEmail('')
-  }
+  // Clear input on success
+  useEffect(() => {
+    if (ok && inputRef.current) inputRef.current.value = ''
+  }, [ok])
 
   return (
     <section className="relative w-full overflow-hidden bg-[#0f1f2e] py-20 lg:py-28">
@@ -58,7 +59,7 @@ export default function NewsletterSignup() {
 
           {/* Right — form */}
           <div className="flex flex-col gap-5">
-            {status === 'success' ? (
+            {ok ? (
               <div className="flex flex-col items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-8 py-10 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20">
                   <svg className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -69,29 +70,33 @@ export default function NewsletterSignup() {
                 <p className="font-sans text-sm text-white/60">Watch for the next issue of Around the Mill.</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              <fetcher.Form action="/.netlify/functions/newsletter" method="post" className="flex flex-col gap-3">
                 <div className="flex overflow-hidden rounded-xl border border-white/10" style={{ background: 'rgba(255,255,255,0.06)' }}>
                   <input
+                    ref={inputRef}
                     type="email"
+                    name="email"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={busy}
                     placeholder="Your email address"
-                    className="min-w-0 flex-1 bg-transparent px-5 py-4 font-sans text-sm text-white placeholder-white/30 outline-none"
+                    className="min-w-0 flex-1 bg-transparent px-5 py-4 font-sans text-sm text-white placeholder-white/30 outline-none disabled:opacity-50"
                   />
                   <button
                     type="submit"
-                    className="shrink-0 bg-royal-blue px-6 py-4 font-sans text-sm font-bold text-white transition-colors hover:bg-royal-blue-dark"
+                    disabled={busy}
+                    className="shrink-0 bg-royal-blue px-6 py-4 font-sans text-sm font-bold text-white transition-colors hover:bg-royal-blue-dark disabled:opacity-60"
                   >
-                    Subscribe
+                    {busy ? 'Subscribing…' : 'Subscribe'}
                   </button>
                 </div>
+                {error && (
+                  <p className="font-sans text-xs text-red-400">{error}</p>
+                )}
                 <p className="font-sans text-xs text-white/30">
                   No spam. Unsubscribe any time.
                 </p>
-              </form>
+              </fetcher.Form>
             )}
-
           </div>
 
         </div>

@@ -8,6 +8,7 @@
 [build]
   command = "npm run build"
   publish = "build/client"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "22"
