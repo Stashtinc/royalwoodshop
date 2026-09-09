@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, ilike, or, sql, inArray } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import {
-  products, categories, attributes, attributeValues, productAttributes, productImages,
+  products, categories, productCategories, attributes, attributeValues, productAttributes, productImages,
 } from '../db/schema.js'
 
 import { SPECIES, AVAILABILITY } from './catalogue-constants.js'
@@ -19,7 +19,50 @@ export async function listCategories() {
   return db.select({ id: categories.id, name: categories.name })
     .from(categories)
     .where(sql`${categories.parentId} is null`)
-    .orderBy(asc(categories.name))
+    .orderBy(asc(categories.sortOrder), asc(categories.name))
+}
+
+/** Full category tree for the picker UI — top-level categories with their subs. */
+export async function listCategoriesWithSubs() {
+  const db = await getDb()
+  const all = await db.select({
+    id: categories.id, name: categories.name, slug: categories.slug,
+    parentId: categories.parentId, sortOrder: categories.sortOrder,
+  }).from(categories).orderBy(asc(categories.sortOrder), asc(categories.name))
+
+  const subsByParent = new Map()
+  for (const c of all.filter((c) => c.parentId)) {
+    if (!subsByParent.has(c.parentId)) subsByParent.set(c.parentId, [])
+    subsByParent.get(c.parentId).push(c)
+  }
+  return all
+    .filter((c) => !c.parentId)
+    .map((t) => ({ ...t, subcategories: subsByParent.get(t.id) ?? [] }))
+}
+
+/** Category IDs currently linked to a product (both top-level and sub). */
+export async function listProductCategories(productId) {
+  const db = await getDb()
+  const rows = await db
+    .select({ categoryId: productCategories.categoryId })
+    .from(productCategories)
+    .where(eq(productCategories.productId, Number(productId)))
+  return rows.map((r) => r.categoryId)
+}
+
+/** Replaces the product's category links and primary category. */
+export async function saveProductCategories(productId, { primaryCategoryId, categoryIds }) {
+  const db = await getDb()
+  await db.update(products)
+    .set({ primaryCategoryId: primaryCategoryId ? Number(primaryCategoryId) : null, updatedAt: new Date() })
+    .where(eq(products.id, Number(productId)))
+
+  await db.delete(productCategories).where(eq(productCategories.productId, Number(productId)))
+  for (const catId of categoryIds) {
+    await db.insert(productCategories)
+      .values({ productId: Number(productId), categoryId: Number(catId) })
+      .onConflictDoNothing()
+  }
 }
 
 export async function listProducts({ q = '', page = 1, perPage = 25, missing = '', category = '', species = '', availability = '', sortBy = 'code', sortDir = 'asc' } = {}) {
@@ -137,6 +180,8 @@ export async function createProduct(data) {
     ? data.productCode.toLowerCase().replace(/[^a-z0-9]+/g, '-')
     : data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 80)
 
+  const primaryCategoryId = data.primaryCategoryId ? Number(data.primaryCategoryId) : null
+
   const [row] = await db.insert(products).values({
     name: data.name,
     slug,
@@ -153,8 +198,16 @@ export async function createProduct(data) {
     status: data.status ?? 'draft',
     seoTitle: data.seoTitle || null,
     seoDescription: data.seoDescription || null,
-    primaryCategoryId: data.categoryId ? Number(data.categoryId) : null,
+    primaryCategoryId,
   }).returning({ id: products.id })
+
+  const categoryIds = (data.categoryIds ?? []).filter(Boolean)
+  for (const catId of categoryIds) {
+    await db.insert(productCategories)
+      .values({ productId: row.id, categoryId: Number(catId) })
+      .onConflictDoNothing()
+  }
+
   return row.id
 }
 

@@ -2,19 +2,26 @@ import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-r
 import { requireUser } from '../../lib/auth.server'
 import {
   getProduct, saveProduct, diffProduct, listImages, addImage, updateImage,
-  removeImage, moveImage,
+  removeImage, moveImage, listCategoriesWithSubs, listProductCategories,
+  saveProductCategories,
 } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
 import { saveUpload, deleteUpload, describeLimits } from '../../lib/uploads.server'
 import { SPECIES, AVAILABILITY } from '../../lib/catalogue-constants'
 import ImageDropZone from '../../components/admin/ImageDropZone'
+import CategoryPicker from '../../components/admin/CategoryPicker'
 import { thumbSrc } from '../../lib/images'
 
 export async function loader({ request, params }) {
   await requireUser(request)
   const product = await getProduct(params.id)
   if (!product) throw new Response('Not found', { status: 404 })
-  return { product, images: await listImages(params.id), limits: describeLimits() }
+  const [images, categoryTree, linkedCategoryIds] = await Promise.all([
+    listImages(params.id),
+    listCategoriesWithSubs(),
+    listProductCategories(params.id),
+  ])
+  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds }
 }
 
 export async function action({ request, params }) {
@@ -88,6 +95,18 @@ export async function action({ request, params }) {
       details: { file: key ?? 'external' },
     })
     return { saved: 'Image removed.' }
+  }
+
+  if (intent === 'categories') {
+    const primaryCategoryId = f.get('primaryCategoryId') || null
+    const categoryIds = f.getAll('categoryId').map(Number).filter(Boolean)
+    await saveProductCategories(params.id, { primaryCategoryId, categoryIds })
+    await log(user, 'product.updated', {
+      entityType: 'product', entityId: params.id,
+      entityLabel: (await getProduct(params.id))?.name,
+      details: { changed: [{ field: 'categories', from: '—', to: categoryIds.length + ' linked' }] },
+    })
+    return { saved: 'Categories saved.' }
   }
 
   const name = String(f.get('name') ?? '').trim()
@@ -242,6 +261,35 @@ function ImagesSection() {
   )
 }
 
+function CategoriesSection() {
+  const { product, categoryTree, linkedCategoryIds } = useLoaderData()
+  const nav = useNavigation()
+  const busy = nav.state === 'submitting' && nav.formData?.get('intent') === 'categories'
+
+  return (
+    <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="flex items-baseline justify-between">
+        <h2 className="font-serif font-bold text-tundora">Categories</h2>
+        <p className="text-xs text-gray-500">Primary sets the URL · others are browse paths</p>
+      </div>
+      <Form method="post" className="flex flex-col gap-4">
+        <input type="hidden" name="intent" value="categories" />
+        <CategoryPicker
+          tree={categoryTree}
+          initialLinkedIds={linkedCategoryIds}
+          initialPrimaryId={product.primaryCategoryId}
+        />
+        <div>
+          <button disabled={busy}
+            className="rounded-lg bg-royal-blue px-5 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
+            {busy ? 'Saving…' : 'Save categories'}
+          </button>
+        </div>
+      </Form>
+    </section>
+  )
+}
+
 export default function ProductEdit() {
   const { product } = useLoaderData()
   const data = useActionData()
@@ -275,6 +323,7 @@ export default function ProductEdit() {
       {data?.error && <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-800">{data.error}</p>}
 
       <ImagesSection />
+      <CategoriesSection />
 
       <Form method="post" className="flex flex-col gap-6">
         <input type="hidden" name="intent" value="details" />

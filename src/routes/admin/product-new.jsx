@@ -1,12 +1,13 @@
 import { Form, Link, redirect, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { createProduct, listCategories } from '../../lib/admin-queries.server'
+import { createProduct, listCategoriesWithSubs } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
 import { SPECIES, AVAILABILITY } from '../../lib/catalogue-constants'
+import CategoryPicker from '../../components/admin/CategoryPicker'
 
 export async function loader({ request }) {
   await requireUser(request)
-  return { categories: await listCategories() }
+  return { categoryTree: await listCategoriesWithSubs() }
 }
 
 export async function action({ request }) {
@@ -37,7 +38,8 @@ export async function action({ request }) {
     status: ['draft', 'published', 'archived'].includes(String(f.get('status'))) ? String(f.get('status')) : 'draft',
     seoTitle: String(f.get('seoTitle') ?? '').trim(),
     seoDescription: String(f.get('seoDescription') ?? '').trim(),
-    categoryId: f.get('categoryId') || null,
+    primaryCategoryId: f.get('primaryCategoryId') || null,
+    categoryIds: f.getAll('categoryId').map(Number).filter(Boolean),
   })
 
   await log(user, 'product.updated', {
@@ -56,7 +58,7 @@ const Label = ({ children, hint }) => (
 )
 
 export default function ProductNew() {
-  const { categories } = useLoaderData()
+  const { categoryTree } = useLoaderData()
   const data = useActionData()
   const nav = useNavigation()
   const saving = nav.state === 'submitting'
@@ -88,13 +90,10 @@ export default function ProductNew() {
                 <option value="archived">Archived</option>
               </select></label>
           </div>
-          <label className="flex flex-col gap-1.5"><Label>Category</Label>
-            <select name="categoryId" className={field}>
-              <option value="">— Select a category —</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select></label>
+          <div className="flex flex-col gap-1.5">
+            <Label>Categories</Label>
+            <CategoryPicker tree={categoryTree} />
+          </div>
           <label className="flex flex-col gap-1.5"><Label>Description</Label>
             <textarea name="description" rows={5} className={field} /></label>
         </section>
