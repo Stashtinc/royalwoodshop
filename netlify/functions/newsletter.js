@@ -1,22 +1,17 @@
-export default async function handler(req) {
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+export const handler = async (event) => {
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method not allowed' }
   }
 
-  let email
-  try {
-    const form = await req.formData()
-    email = String(form.get('email') ?? '').trim()
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid request.' }), {
-      status: 400, headers: { 'Content-Type': 'application/json' },
-    })
-  }
+  const params = new URLSearchParams(event.body || '')
+  const email = params.get('email')?.trim() ?? ''
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return new Response(JSON.stringify({ error: 'Please enter a valid email address.' }), {
-      status: 400, headers: { 'Content-Type': 'application/json' },
-    })
+    return {
+      statusCode: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Please enter a valid email address.' }),
+    }
   }
 
   const apiKey = process.env.MAILCHIMP_API_KEY?.trim()
@@ -24,9 +19,11 @@ export default async function handler(req) {
   const serverPrefix = apiKey?.split('-').pop()
 
   if (!apiKey || !audienceId) {
-    return new Response(JSON.stringify({ error: 'Newsletter signup is unavailable right now.' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    })
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Newsletter signup is unavailable right now.' }),
+    }
   }
 
   const url = `https://${serverPrefix}.api.mailchimp.com/3.0/lists/${audienceId}/members`
@@ -44,26 +41,33 @@ export default async function handler(req) {
       signal: AbortSignal.timeout(10000),
     })
   } catch {
-    return new Response(JSON.stringify({ error: 'Newsletter signup is unavailable right now.' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    })
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Newsletter signup is unavailable right now.' }),
+    }
   }
 
   const body = await res.json().catch(() => ({}))
 
   if (!res.ok) {
-    // Already subscribed — treat as success so we don't leak whether an address is on the list
     if (body.title === 'Member Exists') {
-      return new Response(JSON.stringify({ ok: true }), {
-        status: 200, headers: { 'Content-Type': 'application/json' },
-      })
+      return {
+        statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ok: true }),
+      }
     }
-    return new Response(JSON.stringify({ error: body.detail || 'Could not subscribe. Please try again.' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    })
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: body.detail || 'Could not subscribe. Please try again.' }),
+    }
   }
 
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200, headers: { 'Content-Type': 'application/json' },
-  })
+  return {
+    statusCode: 200,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ok: true }),
+  }
 }
