@@ -30,7 +30,7 @@ export default function Contact() {
             </div>
             <div>
               <p className="font-medium text-royal-blue">Phone</p>
-              <p>(905) 000-0000</p>
+              <p><a href="tel:9057271387" className="hover:underline">905-727-1387</a></p>
             </div>
             <div>
               <p className="font-medium text-royal-blue">Email</p>

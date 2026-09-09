@@ -91,8 +91,8 @@ export default function Footer() {
             <h3 className="font-serif text-lg font-bold text-white">Contact</h3>
             <div className="flex flex-col gap-3 font-sans text-sm text-white/70">
               <p>18237 Woodbine Ave, Sharon, ON L0G 1V0</p>
-              <a href="tel:19050000000" className="transition-colors hover:text-white">
-                (905) 000-0000
+              <a href="tel:9057271387" className="transition-colors hover:text-white">
+                905-727-1387
               </a>
               <a href="mailto:info@royalwoodshop.com" className="transition-colors hover:text-white">
                 info@royalwoodshop.com
