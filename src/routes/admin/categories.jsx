@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router'
+import Toast from '../../components/admin/Toast'
 import { requireUser } from '../../lib/auth.server'
 import {
   listCategoriesAdmin, createCategory, updateCategory,
@@ -63,17 +64,6 @@ export async function action({ request }) {
 
 /* ------------------------------------------------------------------- atoms */
 
-function Toast({ message }) {
-  if (!message) return null
-  return (
-    <div className="fixed right-5 bottom-5 z-50 rounded-xl bg-gray-900 px-4 py-3 text-sm text-white shadow-xl flex items-center gap-2">
-      <svg className="h-4 w-4 text-green-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-      {message}
-    </div>
-  )
-}
 
 function InlineInput({ defaultValue, onSave, onCancel, placeholder = 'Category name' }) {
   const [val, setVal] = useState(defaultValue ?? '')

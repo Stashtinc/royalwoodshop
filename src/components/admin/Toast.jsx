@@ -1,55 +1,47 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
- * A confirmation that stays put.
+ * Shared admin toast — top-right, dark, 10 s auto-dismiss.
  *
- * Fixed to the bottom of the viewport rather than placed in the flow, because
- * the message a save produces is most needed at the moment the page has just
- * navigated and the eye is somewhere unpredictable. An inline banner at the top
- * of a long list is invisible to anyone who was scrolled down.
- *
- * Dismissed by hand or after `duration`. Set duration to 0 for messages that
- * should not disappear on their own.
+ * Self-dismissing: tracks its own visibility so it works even when the parent
+ * can't clear the message (e.g. when driven directly from useActionData).
+ * Pass onDismiss to also clear the message in the parent on close.
  */
-export default function Toast({ message, tone = 'success', duration = 6000, onDismiss }) {
-  const [visible, setVisible] = useState(Boolean(message))
+export default function Toast({ message, onDismiss, duration = 10000 }) {
+  const [visible, setVisible] = useState(false)
+  const timer = useRef(null)
 
   useEffect(() => {
-    setVisible(Boolean(message))
-    if (!message || !duration) return
-    const t = setTimeout(() => {
+    if (!message) { setVisible(false); return }
+    setVisible(true)
+    clearTimeout(timer.current)
+    if (!duration) return
+    timer.current = setTimeout(() => {
       setVisible(false)
       onDismiss?.()
     }, duration)
-    return () => clearTimeout(t)
+    return () => clearTimeout(timer.current)
   }, [message, duration, onDismiss])
 
-  if (!message || !visible) return null
+  if (!visible || !message) return null
 
-  const tones = {
-    success: 'border-green-300 bg-green-50 text-green-900',
-    info: 'border-blue-300 bg-blue-50 text-blue-900',
-    warn: 'border-amber-300 bg-amber-50 text-amber-900',
-  }
-
-  const close = () => { setVisible(false); onDismiss?.() }
+  const dismiss = () => { setVisible(false); onDismiss?.() }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-6">
-      <div role="status" aria-live="polite"
-        className={`pointer-events-auto flex max-w-lg items-center gap-3 rounded-xl border px-4 py-3 shadow-lg ${tones[tone] ?? tones.success}`}>
-        {tone === 'success' && (
-          <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor"
-            strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        )}
-        <p className="text-sm font-medium">{message}</p>
-        <button type="button" onClick={close} aria-label="Dismiss"
-          className="-mr-1 ml-2 rounded px-1.5 text-lg leading-none opacity-50 transition-opacity hover:opacity-100">
-          ×
-        </button>
-      </div>
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed top-5 right-5 z-50 flex items-center gap-3 rounded-xl bg-gray-900 px-4 py-3 text-sm text-white shadow-xl"
+    >
+      <svg className="h-4 w-4 shrink-0 text-green-400" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+      {message}
+      <button type="button" onClick={dismiss} aria-label="Dismiss"
+        className="ml-1 shrink-0 text-gray-400 hover:text-white">
+        ✕
+      </button>
     </div>
   )
 }

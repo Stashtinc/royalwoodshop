@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Toast from '../../components/admin/Toast'
 import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import {
@@ -293,24 +294,6 @@ function CategoriesSection() {
   )
 }
 
-function Toast({ message, onDismiss }) {
-  useEffect(() => {
-    if (!message) return
-    const t = setTimeout(onDismiss, 4000)
-    return () => clearTimeout(t)
-  }, [message, onDismiss])
-
-  if (!message) return null
-  return (
-    <div className="fixed right-5 bottom-5 z-50 flex items-center gap-3 rounded-xl bg-gray-900 px-4 py-3 text-sm text-white shadow-xl">
-      <svg className="h-4 w-4 shrink-0 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-      {message}
-      <button type="button" onClick={onDismiss} className="ml-1 shrink-0 text-gray-400 hover:text-white">✕</button>
-    </div>
-  )
-}
 
 export default function ProductEdit() {
   const { product } = useLoaderData()
