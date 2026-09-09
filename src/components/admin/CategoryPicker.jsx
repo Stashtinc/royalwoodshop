@@ -1,21 +1,21 @@
 import { useState } from 'react'
 
-/**
- * Hierarchical category picker for the admin product forms.
- *
- * Shows top-level categories with their sub-categories underneath. Checking a
- * sub auto-checks its parent. Unchecking a parent also unchecks all its subs.
- * One checked top-level category is marked Primary — that is the canonical
- * address (/products/<primary>/<slug>/). Additional checked categories are
- * browse paths only.
- *
- * Renders hidden inputs so the enclosing form can submit the selection:
- *   primaryCategoryId  — the primary top-level category ID
- *   categoryId[]       — every checked category ID (top-level and sub)
- */
 export default function CategoryPicker({ tree, initialLinkedIds = [], initialPrimaryId = null }) {
-  const [checked, setChecked] = useState(() => new Set(initialLinkedIds.map(String)))
+  const initIds = initialLinkedIds.map(String)
+
+  const [checked, setChecked] = useState(() => new Set(initIds))
   const [primaryId, setPrimaryId] = useState(() => String(initialPrimaryId ?? ''))
+  const [expanded, setExpanded] = useState(() => {
+    // Auto-expand any top-level that has a checked item (top or sub)
+    const exp = new Set()
+    for (const top of tree) {
+      if (initIds.includes(String(top.id))) exp.add(String(top.id))
+      for (const sub of top.subcategories) {
+        if (initIds.includes(String(sub.id))) exp.add(String(top.id))
+      }
+    }
+    return exp
+  })
 
   function toggleTop(top) {
     const sid = String(top.id)
@@ -31,6 +31,7 @@ export default function CategoryPicker({ tree, initialLinkedIds = [], initialPri
       } else {
         next.add(sid)
         if (!primaryId) setPrimaryId(sid)
+        setExpanded((e) => new Set([...e, sid]))
       }
       return next
     })
@@ -54,11 +55,20 @@ export default function CategoryPicker({ tree, initialLinkedIds = [], initialPri
     })
   }
 
+  function toggleExpand(topId) {
+    const sid = String(topId)
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(sid)) next.delete(sid)
+      else next.add(sid)
+      return next
+    })
+  }
+
   const checkedTops = tree.filter((t) => checked.has(String(t.id)))
 
   return (
     <>
-      {/* Hidden inputs for form submission */}
       <input type="hidden" name="primaryCategoryId" value={primaryId} />
       {[...checked].map((id) => (
         <input key={id} type="hidden" name="categoryId" value={id} />
@@ -68,9 +78,12 @@ export default function CategoryPicker({ tree, initialLinkedIds = [], initialPri
         {tree.map((top) => {
           const topChecked = checked.has(String(top.id))
           const isPrimary = primaryId === String(top.id)
+          const isExpanded = expanded.has(String(top.id))
+          const hasSubs = top.subcategories.length > 0
+
           return (
-            <div key={top.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
-              <div className="flex items-center gap-3">
+            <div key={top.id} className="py-2.5 first:pt-0 last:pb-0">
+              <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id={`cat-top-${top.id}`}
@@ -80,10 +93,11 @@ export default function CategoryPicker({ tree, initialLinkedIds = [], initialPri
                 />
                 <label
                   htmlFor={`cat-top-${top.id}`}
-                  className="flex-1 cursor-pointer text-sm font-medium text-gray-800"
+                  className="flex-1 cursor-pointer select-none text-sm font-medium text-gray-800"
                 >
                   {top.name}
                 </label>
+
                 {topChecked && (
                   checkedTops.length > 1 ? (
                     <button
@@ -103,24 +117,43 @@ export default function CategoryPicker({ tree, initialLinkedIds = [], initialPri
                     </span>
                   )
                 )}
+
+                {hasSubs && (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpand(top.id)}
+                    className="shrink-0 text-gray-400 transition-colors hover:text-gray-600"
+                    aria-label={isExpanded ? 'Collapse sub-categories' : 'Expand sub-categories'}
+                  >
+                    <svg
+                      className={`h-4 w-4 transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                )}
               </div>
 
-              {top.subcategories.length > 0 && (
-                <div className="ml-7 grid gap-x-8 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                  {top.subcategories.map((sub) => (
-                    <label
-                      key={sub.id}
-                      className="flex cursor-pointer items-center gap-2 text-sm text-gray-700"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked.has(String(sub.id))}
-                        onChange={() => toggleSub(sub, top.id)}
-                        className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 accent-royal-blue"
-                      />
-                      {sub.name}
-                    </label>
-                  ))}
+              {hasSubs && isExpanded && (
+                <div className="ml-6 mt-2 flex flex-wrap gap-1.5">
+                  {top.subcategories.map((sub) => {
+                    const subChecked = checked.has(String(sub.id))
+                    return (
+                      <button
+                        key={sub.id}
+                        type="button"
+                        onClick={() => toggleSub(sub, top.id)}
+                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                          subChecked
+                            ? 'bg-royal-blue text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {sub.name}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -129,7 +162,9 @@ export default function CategoryPicker({ tree, initialLinkedIds = [], initialPri
       </div>
 
       {checked.size === 0 && (
-        <p className="text-xs text-amber-700">No category selected — the product won't appear in any browse listing.</p>
+        <p className="mt-1 text-xs text-amber-700">
+          No category selected — the product won't appear in any browse listing.
+        </p>
       )}
     </>
   )
