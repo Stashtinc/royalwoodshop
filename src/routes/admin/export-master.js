@@ -113,7 +113,8 @@ export async function loader({ request }) {
   XLSX.utils.book_append_sheet(wb, ws, 'Master Product List')
 
   const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' })
-  const date = new Date().toISOString().slice(0, 10)
+  const now = new Date()
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
   return new Response(buf, {
     headers: {

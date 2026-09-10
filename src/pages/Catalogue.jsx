@@ -217,16 +217,22 @@ function ProductCard({ product }) {
             alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
             loading="lazy"
             className={`h-full w-full ${imageFit(product.imageRole).className} transition-transform duration-300 group-hover:scale-105`}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+              e.currentTarget.nextElementSibling.style.display = 'flex'
+            }}
           />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gray-50">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" className="text-gray-300">
-              <rect x="6" y="10" width="36" height="28" rx="3" stroke="currentColor" strokeWidth="2"/>
-              <circle cx="17" cy="20" r="4" stroke="currentColor" strokeWidth="2"/>
-              <path d="M6 32l10-8 8 6 6-5 12 9" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
-            </svg>
-          </div>
-        )}
+        ) : null}
+        <div
+          className="h-full w-full items-center justify-center bg-gray-50"
+          style={{ display: product.image ? 'none' : 'flex' }}
+        >
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" className="text-gray-300">
+            <rect x="6" y="10" width="36" height="28" rx="3" stroke="currentColor" strokeWidth="2"/>
+            <circle cx="17" cy="20" r="4" stroke="currentColor" strokeWidth="2"/>
+            <path d="M6 32l10-8 8 6 6-5 12 9" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+          </svg>
+        </div>
       </div>
       {(availabilityKeys(product).length > 0 || product.salePrice) && (
         <div className="absolute top-3 left-3 flex flex-col gap-1">
@@ -277,16 +283,27 @@ function ProductRow({ product }) {
     >
       <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-white p-2">
         {product.image ? (
-          <img src={thumbSrc(product.image, product.imageWidth)} alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`} loading="lazy" className="h-full w-full object-contain" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gray-50 rounded-lg">
-            <svg width="32" height="32" viewBox="0 0 48 48" fill="none" className="text-gray-300">
-              <rect x="6" y="10" width="36" height="28" rx="3" stroke="currentColor" strokeWidth="2"/>
-              <circle cx="17" cy="20" r="4" stroke="currentColor" strokeWidth="2"/>
-              <path d="M6 32l10-8 8 6 6-5 12 9" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
-            </svg>
-          </div>
-        )}
+          <img
+            src={thumbSrc(product.image, product.imageWidth)}
+            alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
+            loading="lazy"
+            className="h-full w-full object-contain"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+              e.currentTarget.nextElementSibling.style.display = 'flex'
+            }}
+          />
+        ) : null}
+        <div
+          className="h-full w-full items-center justify-center bg-gray-50 rounded-lg"
+          style={{ display: product.image ? 'none' : 'flex' }}
+        >
+          <svg width="32" height="32" viewBox="0 0 48 48" fill="none" className="text-gray-300">
+            <rect x="6" y="10" width="36" height="28" rx="3" stroke="currentColor" strokeWidth="2"/>
+            <circle cx="17" cy="20" r="4" stroke="currentColor" strokeWidth="2"/>
+            <path d="M6 32l10-8 8 6 6-5 12 9" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+          </svg>
+        </div>
       </div>
       <div className="flex flex-1 flex-col justify-center gap-1.5">
         <p className="font-sans text-xs font-bold tracking-wide text-royal-blue uppercase">

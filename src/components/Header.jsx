@@ -9,9 +9,9 @@ import logoBlue from '../assets/images/logo-blue.svg'
 const navLinks = [
   { label: 'Products', to: '/products', menu: 'products' },
   { label: 'Services', to: '/services', menu: 'services' },
-  { label: 'About Royal', to: '/#about', menu: 'about' },
+  { label: 'About Royal', menu: 'about' },
   { label: 'Contact Us', to: '/contact' },
-  { label: 'Resources', to: '/resources', menu: 'resources' },
+  { label: 'Resources', menu: 'resources' },
 ]
 
 const mobileMenuItems = {
@@ -100,12 +100,18 @@ export default function Header() {
         <nav className="hidden h-full flex-1 items-center justify-end gap-8 xl:flex">
           {navLinks.map((link) => (
             <div key={link.label} className="group/item flex h-full items-center">
-              <Link
-                to={link.to}
-                className="flex h-full items-center border-b-4 border-transparent px-4 font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors hover:border-royal-blue hover:bg-parchment hover:text-royal-blue"
-              >
-                {link.label}
-              </Link>
+              {link.to ? (
+                <Link
+                  to={link.to}
+                  className="flex h-full items-center border-b-4 border-transparent px-4 font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors hover:border-royal-blue hover:bg-parchment hover:text-royal-blue"
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <span className="flex h-full cursor-default items-center border-b-4 border-transparent px-4 font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase">
+                  {link.label}
+                </span>
+              )}
               {link.menu && (
                 <div className="invisible absolute top-full left-1/2 z-30 -translate-x-1/2 opacity-0 transition-all duration-150 group-hover/item:visible group-hover/item:opacity-100">
                   <NavDropdownPanel menu={link.menu} />
@@ -275,13 +281,19 @@ export default function Header() {
           {navLinks.map((link) => (
             <div key={link.label} className="flex flex-col">
               <div className="flex items-center justify-between">
-                <Link
-                  to={link.to}
-                  onClick={() => setMenuOpen(false)}
-                  className="flex-1 py-2 font-body text-sm font-bold tracking-widest text-gray-500 uppercase hover:text-royal-blue"
-                >
-                  {link.label}
-                </Link>
+                {link.to ? (
+                  <Link
+                    to={link.to}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex-1 py-2 font-body text-sm font-bold tracking-widest text-gray-500 uppercase hover:text-royal-blue"
+                  >
+                    {link.label}
+                  </Link>
+                ) : (
+                  <span className="flex-1 py-2 font-body text-sm font-bold tracking-widest text-gray-500 uppercase">
+                    {link.label}
+                  </span>
+                )}
                 {link.menu && (
                   <button
                     type="button"
