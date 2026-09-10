@@ -385,21 +385,20 @@ export default function Catalogue({ initialCategory = null, products = null }) {
   function toggleCategory(category, subs) {
     setSelectedSubs((prev) => {
       const keys = subs.map((sub) => `${category}::${sub}`)
-      const allOfCatSelected = keys.every((key) => prev.has(key))
-
-      if (allOfCatSelected) {
-        // Deselect this category
-        const next = new Set(prev)
-        keys.forEach((k) => next.delete(k))
-        // If nothing left, restore all
-        return next.size === 0 ? allSubKeys(catalogueCategoryOrder) : next
+      // Exclusively selected = only this category's subs are in the set
+      const exclusivelySelected =
+        keys.length > 0 &&
+        keys.every((k) => prev.has(k)) &&
+        prev.size === keys.length
+      if (exclusivelySelected) {
+        // Toggle off — restore all categories
+        return allSubKeys(catalogueCategoryOrder)
       }
-      // Select all subs of this category (add to existing selection)
-      const next = new Set(prev)
-      keys.forEach((k) => next.add(k))
-      return next
+      // Exclusively select this category — deselect everything else
+      return new Set(keys)
     })
     setPage(1)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function toggleExpanded(catName) {
@@ -605,7 +604,7 @@ export default function Catalogue({ initialCategory = null, products = null }) {
                         />
                         <button
                           type="button"
-                          onClick={() => toggleExpanded(cat.name)}
+                          onClick={() => toggleCategory(cat.name, cat.subcategories)}
                           className="flex flex-1 items-center justify-between gap-1 text-left font-sans text-sm font-semibold text-tundora hover:text-royal-blue"
                         >
                           <span>

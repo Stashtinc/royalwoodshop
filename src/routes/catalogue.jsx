@@ -3,7 +3,23 @@ import Catalogue from '../pages/Catalogue'
 import { catalogueProducts } from '../data/catalogue'
 import { pageMeta } from '../seo'
 
-export function loader() {
+export async function loader() {
+  // 1. Live DB (Railway SSR and local dev with DATABASE_URL)
+  try {
+    const { getDb } = await import('../lib/db.server.js')
+    const { getAllProducts } = await import('../db/queries.js')
+    const db = await getDb()
+    const products = await getAllProducts(db)
+    if (products.length > 0) return { products }
+  } catch {}
+  // 2. Read products.json directly from disk — bypasses Vite's module cache
+  try {
+    const { readFileSync } = await import('node:fs')
+    const { resolve } = await import('node:path')
+    const products = JSON.parse(readFileSync(resolve('src/data/products.json'), 'utf8'))
+    if (products.length > 0) return { products }
+  } catch {}
+  // 3. Static module import (last resort)
   return { products: catalogueProducts }
 }
 

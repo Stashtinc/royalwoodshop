@@ -13,15 +13,50 @@ const BLURB = {
   'stair-railing': 'Treads, risers, newel posts, spindles, handrails and stair components.',
 }
 
-export function loader({ params }) {
-  const name = NAMES[params.category]
+export async function loader({ params }) {
+  // Static lookup first — covers all pre-existing categories
+  let name = NAMES[params.category]
+  let products = null
+
+  try {
+    const { getDb } = await import('../lib/db.server.js')
+    const { getAllProducts } = await import('../db/queries.js')
+    const { categories: catsTable } = await import('../db/schema.js')
+    const { eq } = await import('drizzle-orm')
+    const db = await getDb()
+
+    // Resolve category name from DB for categories not in the static map
+    if (!name) {
+      const rows = await db
+        .select({ name: catsTable.name })
+        .from(catsTable)
+        .where(eq(catsTable.slug, params.category))
+        .limit(1)
+      if (rows.length) name = rows[0].name
+    }
+
+    if (name) {
+      const all = await getAllProducts(db)
+      if (all.length > 0) products = all
+    }
+  } catch {
+    // DB not available — fall back to static snapshot
+  }
+
   if (!name) throw new Response('Not found', { status: 404 })
-  // Matched on every category the product browses under, not just the one its
-  // address uses — a product placed in two categories belongs on both pages.
-  const all = catalogueProducts
-  const products = all.filter((p) =>
-    p.categorySlug === params.category || catsOf(p).includes(name))
-  if (!products.length) throw new Response('Not found', { status: 404 })
+
+  // Snapshot fallback for Netlify prerender / build environments and local dev
+  if (products === null) {
+    // Read directly from disk to bypass any stale Vite module cache
+    try {
+      const { readFileSync } = await import('node:fs')
+      const { resolve } = await import('node:path')
+      products = JSON.parse(readFileSync(resolve('src/data/products.json'), 'utf8'))
+    } catch {
+      products = catalogueProducts
+    }
+  }
+
   return { category: params.category, name, products }
 }
 

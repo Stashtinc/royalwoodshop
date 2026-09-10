@@ -686,20 +686,35 @@ export async function apply(rows, overrides = {}, options = {}) {
       primaryCategoryId = top.id
     }
 
+    // Publish immediately when we know the category; draft only if the
+    // category is still unknown (product can't be found in the catalogue yet).
+    const newStatus = layout === 'master' && primaryCategoryId ? 'published' : 'draft'
     const [row] = await db.insert(products)
       .values({
-        slug, productCode: p.code, name: p.name || p.code, status: 'draft',
-        flexAvailable: false, ...(primaryCategoryId ? { primaryCategoryId } : {}),
+        slug, productCode: p.code, name: p.name || p.code, status: newStatus,
+        flexAvailable: false,
+        ...(primaryCategoryId ? { primaryCategoryId } : {}),
+        ...(newStatus === 'published' ? { publishedAt: new Date() } : {}),
       })
       .onConflictDoUpdate({
         target: products.slug,
-        set: { productCode: p.code, updatedAt: new Date(), ...(primaryCategoryId ? { primaryCategoryId } : {}) },
+        set: {
+          productCode: p.code, updatedAt: new Date(),
+          ...(primaryCategoryId ? { primaryCategoryId } : {}),
+          ...(newStatus === 'published' ? { status: newStatus, publishedAt: new Date() } : {}),
+        },
       })
       .returning({
         id: products.id, productCode: products.productCode, name: products.name,
         primaryCategoryId: products.primaryCategoryId,
         availability: products.availability, flexAvailable: products.flexAvailable,
       })
+    // Populate the join table so category counts and multi-category filtering work
+    if (primaryCategoryId) {
+      await db.insert(productCategories)
+        .values({ productId: row.id, categoryId: primaryCategoryId })
+        .onConflictDoNothing()
+    }
     byCode.set(p.code, row)
     created++
   }

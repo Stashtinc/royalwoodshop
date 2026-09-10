@@ -28,8 +28,11 @@ export default function CategoryPicker({ tree, initialLinkedIds = [], initialPri
           const firstOther = tree.find((t) => t.id !== top.id && next.has(String(t.id)))
           setPrimaryId(firstOther ? String(firstOther.id) : '')
         }
+        setExpanded((e) => { const n = new Set(e); n.delete(sid); return n })
       } else {
         next.add(sid)
+        // Also select all subcategories and expand
+        for (const sub of top.subcategories) next.add(String(sub.id))
         if (!primaryId) setPrimaryId(sid)
         setExpanded((e) => new Set([...e, sid]))
       }
