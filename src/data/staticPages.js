@@ -19,6 +19,4 @@ export const STATIC_PAGES = [
   '/core-values',
   '/environmental-commitment',
   '/services',
-  '/resources',
-  '/resources/downloads',
 ]
