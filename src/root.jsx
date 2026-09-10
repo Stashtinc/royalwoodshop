@@ -11,7 +11,11 @@ import servicesHero from './assets/images/services-hero.jpg'
 import { listNavCategories } from './lib/admin-queries.server'
 
 export async function loader() {
-  return { navCategories: await listNavCategories() }
+  try {
+    return { navCategories: await listNavCategories() }
+  } catch {
+    return { navCategories: [] }
+  }
 }
 
 export const links = () => [
@@ -62,7 +66,7 @@ export function Layout({ children }) {
 }
 
 export default function Root() {
-  const { navCategories } = useLoaderData()
+  const { navCategories = [] } = useLoaderData() ?? {}
   const { pathname } = useLocation()
   const isHome = pathname === '/'
 
