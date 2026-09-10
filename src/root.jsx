@@ -12,9 +12,7 @@ import { listNavCategories } from './lib/nav.server'
 
 export async function loader() {
   try {
-    const navCategories = await listNavCategories()
-    console.log('[root loader] navCategories:', JSON.stringify(navCategories))
-    return { navCategories }
+    return { navCategories: await listNavCategories() }
   } catch (e) {
     console.error('[root loader] nav categories failed:', e?.message ?? e)
     return { navCategories: [] }
