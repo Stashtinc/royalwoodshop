@@ -9,12 +9,9 @@ import NewsletterSignup from './components/NewsletterSignup'
 import royalEdgeHero from './assets/images/royal-edge-hero.jpg'
 import servicesHero from './assets/images/services-hero.jpg'
 export async function loader() {
-  if (!process.env.DATABASE_URL) return { navCategories: [] }
   try {
     const { listNavCategories } = await import('./lib/nav.server.js')
-    const timeout = new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 5000))
-    const navCategories = await Promise.race([listNavCategories(), timeout])
-    return { navCategories }
+    return { navCategories: await listNavCategories() }
   } catch {
     return { navCategories: [] }
   }

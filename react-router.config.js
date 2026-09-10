@@ -14,9 +14,11 @@ export default {
   // initial HTML rather than lazily fetching /__manifest from a server that
   // doesn't exist on a static Netlify deploy.
   routeDiscovery: { mode: 'initial' },
-  // Every page is rendered to static HTML at build time. Search engines and
-  // social scrapers get complete markup without executing any JavaScript.
+  // Every page is rendered to static HTML at build time for Netlify.
+  // Railway uses react-router-serve (SSR) and never reads these files,
+  // so skip the expensive step there to keep Railway builds fast.
   async prerender() {
+    if (process.env.RAILWAY_ENVIRONMENT) return []
     return [
       ...STATIC_PAGES,
       ...[...new Set(products.map((p) => p.categorySlug))].map((c) => `/products/${c}`),
