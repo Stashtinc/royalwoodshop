@@ -1,8 +1,13 @@
+import { writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
 import { and, asc, desc, eq, ilike, or, sql, inArray } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import {
   products, categories, productCategories, attributes, attributeValues, productAttributes, productImages,
 } from '../db/schema.js'
+
+const NAV_CATS_PATH = resolve(dirname(fileURLToPath(import.meta.url)), '../data/navCategories.json')
 
 import { SPECIES, AVAILABILITY } from './catalogue-constants.js'
 export { SPECIES, AVAILABILITY }
@@ -320,6 +325,20 @@ export async function ensureSpecies() {
 }
 
 /* ---------------------------------------------------------- category admin */
+
+export async function writeNavCategoriesJson() {
+  const db = await getDb()
+  const navCats = await db
+    .select({ name: categories.name, slug: categories.slug })
+    .from(categories)
+    .where(and(eq(categories.inNav, true), sql`${categories.parentId} is null`))
+    .orderBy(asc(categories.sortOrder), asc(categories.name))
+  try {
+    writeFileSync(NAV_CATS_PATH, JSON.stringify(navCats, null, 0))
+  } catch {
+    // Production filesystem is read-only — sync:data handles this at build time
+  }
+}
 
 export async function listCategoriesAdmin() {
   const db = await getDb()

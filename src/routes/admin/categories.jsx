@@ -4,7 +4,7 @@ import Toast from '../../components/admin/Toast'
 import { requireUser } from '../../lib/auth.server'
 import {
   listCategoriesAdmin, createCategory, updateCategory,
-  deleteCategoryAdmin, moveCategoryOrder,
+  deleteCategoryAdmin, moveCategoryOrder, writeNavCategoriesJson,
 } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
 
@@ -43,6 +43,7 @@ export async function action({ request }) {
     const id = Number(f.get('id'))
     const inNav = f.get('inNav') === 'true'
     await updateCategory(id, { inNav })
+    await writeNavCategoriesJson()
     return { saved: inNav ? 'Added to nav.' : 'Removed from nav.' }
   }
 
