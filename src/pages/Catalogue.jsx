@@ -209,14 +209,24 @@ function ProductCard({ product }) {
       {/* Profile drawings are wide technical illustrations — contain, never
           crop, or the detail a customer is reading gets cut off. */}
       <div className={`aspect-[4/3] w-full overflow-hidden bg-white ${imageFit(product.imageRole).pad ? 'p-4' : ''}`}>
-        <img
-          src={product.image}
-          srcSet={srcSet(product.image, product.imageWidth) ?? undefined}
-          sizes="(min-width: 1024px) 300px, (min-width: 640px) 45vw, 90vw"
-          alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
-          loading="lazy"
-          className={`h-full w-full ${imageFit(product.imageRole).className} transition-transform duration-300 group-hover:scale-105`}
-        />
+        {product.image ? (
+          <img
+            src={product.image}
+            srcSet={srcSet(product.image, product.imageWidth) ?? undefined}
+            sizes="(min-width: 1024px) 300px, (min-width: 640px) 45vw, 90vw"
+            alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
+            loading="lazy"
+            className={`h-full w-full ${imageFit(product.imageRole).className} transition-transform duration-300 group-hover:scale-105`}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gray-50">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" className="text-gray-300">
+              <rect x="6" y="10" width="36" height="28" rx="3" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="17" cy="20" r="4" stroke="currentColor" strokeWidth="2"/>
+              <path d="M6 32l10-8 8 6 6-5 12 9" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        )}
       </div>
       {(availabilityKeys(product).length > 0 || product.salePrice) && (
         <div className="absolute top-3 left-3 flex flex-col gap-1">
@@ -266,7 +276,17 @@ function ProductRow({ product }) {
       className="group flex gap-5 rounded-2xl border border-gray-100 bg-white p-4 transition-shadow duration-300 hover:shadow-lg"
     >
       <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-white p-2">
-        <img src={thumbSrc(product.image, product.imageWidth)} alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`} loading="lazy" className="h-full w-full object-contain" />
+        {product.image ? (
+          <img src={thumbSrc(product.image, product.imageWidth)} alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`} loading="lazy" className="h-full w-full object-contain" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gray-50 rounded-lg">
+            <svg width="32" height="32" viewBox="0 0 48 48" fill="none" className="text-gray-300">
+              <rect x="6" y="10" width="36" height="28" rx="3" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="17" cy="20" r="4" stroke="currentColor" strokeWidth="2"/>
+              <path d="M6 32l10-8 8 6 6-5 12 9" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        )}
       </div>
       <div className="flex flex-1 flex-col justify-center gap-1.5">
         <p className="font-sans text-xs font-bold tracking-wide text-royal-blue uppercase">
@@ -380,6 +400,7 @@ export default function Catalogue({ initialCategory = null, products = null }) {
       return new Set([key])
     })
     setPage(1)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function toggleCategory(category, subs) {
@@ -742,9 +763,21 @@ export default function Catalogue({ initialCategory = null, products = null }) {
               </div>
             ) : (
               <div className="flex flex-col gap-12">
-                {grouped.map((group) => (
+                {grouped.map((group) => {
+                  const activeSub = selectedSubs.size === 1
+                    ? [...selectedSubs][0].split('::')
+                    : null
+                  const subName = activeSub?.[0] === group.name ? activeSub[1] : null
+                  return (
                   <div key={group.name} className="flex flex-col gap-5">
-                    <h2 className="font-serif text-xl font-bold text-royal-blue">{group.name}</h2>
+                    <h2 className="font-serif text-xl font-bold text-royal-blue">
+                      {subName ? (
+                        <>
+                          <span className="font-normal text-gray-400">{group.name} › </span>
+                          {subName}
+                        </>
+                      ) : group.name}
+                    </h2>
                     {view === 'grid' ? (
                       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
                         {group.items.map((product) => (
@@ -759,7 +792,8 @@ export default function Catalogue({ initialCategory = null, products = null }) {
                       </div>
                     )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 

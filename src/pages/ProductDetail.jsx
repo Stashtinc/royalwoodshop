@@ -249,22 +249,6 @@ export default function ProductDetail({ product: productProp = null, related: re
     { label: 'Flexible version', value: product.flexAvailable ? 'Available' : null },
     { label: 'Category', value: product.category },
     { label: 'Type', value: subsOf(product).join(', ') },
-    {
-      label: 'Availability',
-      value: product.availabilityLabel ?? null,
-      render: availabilityKeys(product).length
-        ? () => (
-            <span className="flex flex-wrap gap-1.5">
-              {availabilityKeys(product).map((key) => {
-                const badge = AVAILABILITY_BADGE[key]
-                return badge
-                  ? <span key={key} className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>{badge.label}</span>
-                  : null
-              })}
-            </span>
-          )
-        : null,
-    },
     { label: 'Lead time', value: product.leadTime ?? null },
   ].filter((s) => s.value)
 

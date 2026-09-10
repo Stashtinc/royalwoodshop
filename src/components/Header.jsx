@@ -92,12 +92,12 @@ export default function Header() {
     <header
       className={`sticky top-0 z-40 w-full bg-white shadow-sm transition-shadow duration-300 ${desktopFixed}`}
     >
-      <div className="mx-auto flex h-20 max-w-[1280px] items-center justify-between gap-4 px-6 lg:px-8">
+      <div className="relative mx-auto flex h-20 max-w-[1280px] items-center justify-between gap-4 px-6 lg:px-8">
         <Link to="/" className="shrink-0">
           <img src={logoBlue} alt="The Royal Wood Shop" className="h-auto w-[100px]" />
         </Link>
 
-        <nav className="relative hidden h-full flex-1 items-center justify-end gap-8 xl:flex">
+        <nav className="hidden h-full flex-1 items-center justify-end gap-8 xl:flex">
           {navLinks.map((link) => (
             <div key={link.label} className="group/item flex h-full items-center">
               <Link
@@ -107,7 +107,7 @@ export default function Header() {
                 {link.label}
               </Link>
               {link.menu && (
-                <div className="invisible absolute top-full right-0 z-30 opacity-0 transition-all duration-150 group-hover/item:visible group-hover/item:opacity-100">
+                <div className="invisible absolute top-full left-1/2 z-30 -translate-x-1/2 opacity-0 transition-all duration-150 group-hover/item:visible group-hover/item:opacity-100">
                   <NavDropdownPanel menu={link.menu} />
                 </div>
               )}
