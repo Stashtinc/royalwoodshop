@@ -8,7 +8,7 @@ import Footer from './components/Footer'
 import NewsletterSignup from './components/NewsletterSignup'
 import royalEdgeHero from './assets/images/royal-edge-hero.jpg'
 import servicesHero from './assets/images/services-hero.jpg'
-import { listNavCategories } from './lib/admin-queries.server'
+import { listNavCategories } from './lib/nav.server'
 
 export async function loader() {
   try {
