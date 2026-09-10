@@ -8,11 +8,13 @@ import Footer from './components/Footer'
 import NewsletterSignup from './components/NewsletterSignup'
 import royalEdgeHero from './assets/images/royal-edge-hero.jpg'
 import servicesHero from './assets/images/services-hero.jpg'
+import { listNavCategories } from './lib/nav.server'
+
 export async function loader() {
   try {
-    const { listNavCategories } = await import('./lib/nav.server.js')
     return { navCategories: await listNavCategories() }
-  } catch {
+  } catch (e) {
+    console.error('[root loader] nav categories failed:', e?.message ?? e)
     return { navCategories: [] }
   }
 }
