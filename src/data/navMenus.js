@@ -16,18 +16,10 @@
 // catalogue category behind them. Guessing a category for those would send
 // people to the wrong products, which is worse than a dead link.
 
+import navCats from './navCategories.json'
+
 export const productsMenu = {
-  categories: [
-    { label: 'Trim & Moulding',           path: '/products/trim-mouldings' },
-    { label: 'Flat Stock Lumber',          path: '/products/flat-stock-lumber' },
-    { label: 'Interior Doors',             path: '/products/interior-doors' },
-    { label: 'Door Hardware',              path: '/products/door-hardware' },
-    { label: 'Wall & Ceiling Panelling',   path: '/products/wall-ceiling-panelling' },
-    { label: 'Stair & Railing',            path: '/products/stair-railing' },
-    { label: 'Sheet Stock',                path: '/products/sheet-stock' },
-    { label: 'Exterior Siding',            path: '/products/siding' },
-    { label: 'Aria Fittes Floor Vents',    path: '/products/aria-fittes-floor-vents' },
-  ],
+  categories: navCats.map((c) => ({ label: c.name, path: `/products/${c.slug}` })),
 }
 
 export const servicesMenu = [

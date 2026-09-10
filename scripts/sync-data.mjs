@@ -16,11 +16,22 @@ import { getDb } from '../src/lib/db.server.js'
 import { getAllProducts } from '../src/db/queries.js'
 import { allPostsForSnapshot } from '../src/lib/posts.server.js'
 import { log } from '../src/lib/activity.server.js'
+import { categories as catsTable } from '../src/db/schema.js'
+import { eq } from 'drizzle-orm'
 
 const db = await getDb()
 const rows = await getAllProducts(db)
 
 writeFileSync('src/data/products.json', JSON.stringify(rows, null, 0))
+
+// Sync nav categories — top-level with inNav = true, in sort order
+const navCats = await db
+  .select({ name: catsTable.name, slug: catsTable.slug })
+  .from(catsTable)
+  .where(eq(catsTable.inNav, true))
+  .orderBy(catsTable.sortOrder)
+writeFileSync('src/data/navCategories.json', JSON.stringify(navCats, null, 0))
+console.log(`wrote ${navCats.length} nav categories`)
 
 const articles = await allPostsForSnapshot()
 writeFileSync('src/data/posts.json', JSON.stringify(articles, null, 0))
