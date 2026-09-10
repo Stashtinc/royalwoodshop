@@ -1,5 +1,5 @@
 import {
-  Links, Meta, Outlet, Scripts, ScrollRestoration, useLocation, isRouteErrorResponse,
+  Links, Meta, Outlet, Scripts, ScrollRestoration, useLocation, useLoaderData, isRouteErrorResponse,
 } from 'react-router'
 import stylesheet from './index.css?url'
 import Header from './components/Header'
@@ -8,6 +8,11 @@ import Footer from './components/Footer'
 import NewsletterSignup from './components/NewsletterSignup'
 import royalEdgeHero from './assets/images/royal-edge-hero.jpg'
 import servicesHero from './assets/images/services-hero.jpg'
+import { listNavCategories } from './lib/admin-queries.server'
+
+export async function loader() {
+  return { navCategories: await listNavCategories() }
+}
 
 export const links = () => [
   { rel: 'stylesheet', href: stylesheet },
@@ -57,6 +62,7 @@ export function Layout({ children }) {
 }
 
 export default function Root() {
+  const { navCategories } = useLoaderData()
   const { pathname } = useLocation()
   const isHome = pathname === '/'
 
@@ -69,7 +75,7 @@ export default function Root() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <div data-print="hide"><Header /></div>
+      <div data-print="hide"><Header navCategories={navCategories} /></div>
       {!isHome && <div data-print="hide"><PageHeader {...pageHeaderImages[pathname]} /></div>}
       <Outlet />
       <div data-print="hide"><NewsletterSignup /></div>

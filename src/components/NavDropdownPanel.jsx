@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { productsMenu, servicesMenu, aboutMenu, resourcesMenu } from '../data/navMenus'
+import { servicesMenu, aboutMenu, resourcesMenu } from '../data/navMenus'
 
 const PANEL_WIDTH = 'w-[720px]'
 
@@ -52,10 +52,11 @@ function HighlightColumn({ eyebrow, title, description, ctaLabel, ctaTo }) {
   )
 }
 
-function ProductsPanel() {
+function ProductsPanel({ navCategories }) {
+  const items = navCategories.map((c) => ({ label: c.name, path: `/products/${c.slug}` }))
   return (
     <div className={`grid ${PANEL_WIDTH} grid-cols-2 gap-8 bg-white p-6 shadow-2xl`}>
-      <MenuColumn heading="Categories" items={productsMenu.categories} />
+      <MenuColumn heading="Categories" items={items} />
       <HighlightColumn
         eyebrow="In-Stock & Ready"
         title="Your local trim & door specialists"
@@ -112,8 +113,8 @@ function ResourcesPanel() {
   )
 }
 
-export default function NavDropdownPanel({ menu }) {
-  if (menu === 'products') return <ProductsPanel />
+export default function NavDropdownPanel({ menu, navCategories = [] }) {
+  if (menu === 'products') return <ProductsPanel navCategories={navCategories} />
   if (menu === 'services') return <ServicesPanel />
   if (menu === 'about') return <AboutPanel />
   if (menu === 'resources') return <ResourcesPanel />

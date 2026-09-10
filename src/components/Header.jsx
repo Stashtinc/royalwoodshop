@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router'
 import NavDropdownPanel from './NavDropdownPanel'
 import SearchResultsList from './SearchResultsList'
 import useSiteSearch from '../hooks/useSiteSearch'
-import { productsMenu, servicesMenu, aboutMenu, resourcesMenu } from '../data/navMenus'
+import { servicesMenu, aboutMenu, resourcesMenu } from '../data/navMenus'
 import logoBlue from '../assets/images/logo-blue.svg'
 
 const navLinks = [
@@ -14,14 +14,7 @@ const navLinks = [
   { label: 'Resources', menu: 'resources' },
 ]
 
-const mobileMenuItems = {
-  products: productsMenu.categories,
-  services: servicesMenu,
-  about: aboutMenu,
-  resources: resourcesMenu,
-}
-
-export default function Header() {
+export default function Header({ navCategories = [] }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [openMobileMenu, setOpenMobileMenu] = useState(null)
   const [scrolled, setScrolled] = useState(false)
@@ -82,6 +75,13 @@ export default function Header() {
   // Every page renders its own embedded nav banner at xl+ (Hero on home, PageHeader elsewhere),
   // so this header must stay out of flow (fixed, not sticky) and only fade in once that banner's
   // nav row has scrolled out of view — otherwise it'd duplicate/push the banner down.
+  const mobileMenuItems = {
+    products: navCategories.map((c) => ({ label: c.name, path: `/products/${c.slug}` })),
+    services: servicesMenu,
+    about: aboutMenu,
+    resources: resourcesMenu,
+  }
+
   const desktopFixed = `xl:fixed xl:inset-x-0 xl:top-0 xl:transition-all xl:duration-300 ${
     scrolled
       ? 'xl:translate-y-0 xl:opacity-100 xl:pointer-events-auto'
@@ -114,7 +114,7 @@ export default function Header() {
               )}
               {link.menu && (
                 <div className="invisible absolute top-full left-1/2 z-30 -translate-x-1/2 opacity-0 transition-all duration-150 group-hover/item:visible group-hover/item:opacity-100">
-                  <NavDropdownPanel menu={link.menu} />
+                  <NavDropdownPanel menu={link.menu} navCategories={navCategories} />
                 </div>
               )}
             </div>
