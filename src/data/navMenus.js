@@ -47,9 +47,9 @@ export const aboutMenu = [
 
 export const resourcesMenu = [
   { label: 'Blog', path: '/blog' },
-  { label: 'Downloads', path: '/resources/downloads' },
-  { label: 'Glossary of Terms', path: '/resources/glossary' },
-  { label: 'FAQ', path: '/resources/faq' },
-  { label: 'Installation Tips', path: '/resources/installation-tips' },
+  'Downloads',
+  'Glossary of Terms',
+  'FAQ',
+  'Installation Tips',
   'Royal Wood Shop LTD on "Made to Renovate"',
 ]
