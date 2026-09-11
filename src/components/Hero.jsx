@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate, useRouteLoaderData } from 'react-router'
 import logo from '../assets/images/logo.svg'
 import heroLeft from '../assets/images/hero-left.png'
 import heroRight from '../assets/images/hero-right.jpg'
@@ -189,6 +189,7 @@ function HeroPhoto() {
 }
 
 export default function Hero() {
+  const { navCategories = [] } = useRouteLoaderData('root') ?? {}
   const [searchOpen, setSearchOpen] = useState(false)
   const [selectedResult, setSelectedResult] = useState(null)
   const { query, setQuery, results } = useSiteSearch()
@@ -371,7 +372,7 @@ export default function Hero() {
                     </Link>
                     {link.menu && (
                       <div className="invisible absolute top-full left-0 z-30 opacity-0 transition-all duration-150 group-hover/item:visible group-hover/item:opacity-100">
-                        <NavDropdownPanel menu={link.menu} />
+                        <NavDropdownPanel menu={link.menu} navCategories={navCategories} />
                       </div>
                     )}
                   </div>
