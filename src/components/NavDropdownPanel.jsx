@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { servicesMenu, aboutMenu, resourcesMenu } from '../data/navMenus'
+import navCatsJson from '../data/navCategories.json'
 
 const PANEL_WIDTH = 'w-[720px]'
 
@@ -113,7 +114,7 @@ function ResourcesPanel() {
   )
 }
 
-export default function NavDropdownPanel({ menu, navCategories = [] }) {
+export default function NavDropdownPanel({ menu, navCategories = navCatsJson }) {
   if (menu === 'products') return <ProductsPanel navCategories={navCategories} />
   if (menu === 'services') return <ServicesPanel />
   if (menu === 'about') return <AboutPanel />

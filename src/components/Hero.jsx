@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useRouteLoaderData } from 'react-router'
+import navCatsJson from '../data/navCategories.json'
 import logo from '../assets/images/logo.svg'
 import heroLeft from '../assets/images/hero-left.png'
 import heroRight from '../assets/images/hero-right.jpg'
@@ -189,7 +190,7 @@ function HeroPhoto() {
 }
 
 export default function Hero() {
-  const { navCategories = [] } = useRouteLoaderData('root') ?? {}
+  const { navCategories = navCatsJson } = useRouteLoaderData('root') ?? {}
   const [searchOpen, setSearchOpen] = useState(false)
   const [selectedResult, setSelectedResult] = useState(null)
   const { query, setQuery, results } = useSiteSearch()

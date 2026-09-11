@@ -4,6 +4,7 @@ import NavDropdownPanel from './NavDropdownPanel'
 import SearchResultsList from './SearchResultsList'
 import useSiteSearch from '../hooks/useSiteSearch'
 import { servicesMenu, aboutMenu, resourcesMenu } from '../data/navMenus'
+import navCatsJson from '../data/navCategories.json'
 import logoBlue from '../assets/images/logo-blue.svg'
 
 const navLinks = [
@@ -14,7 +15,7 @@ const navLinks = [
   { label: 'Resources', menu: 'resources' },
 ]
 
-export default function Header({ navCategories = [] }) {
+export default function Header({ navCategories = navCatsJson }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [openMobileMenu, setOpenMobileMenu] = useState(null)
   const [scrolled, setScrolled] = useState(false)
