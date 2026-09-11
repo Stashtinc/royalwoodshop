@@ -103,6 +103,25 @@ export async function loader({ request }) {
     ]
   })
 
+  // Category reference sheet — all top-level categories with their sub-categories
+  const allCats = await db
+    .select({ id: categories.id, name: categories.name, parentId: categories.parentId })
+    .from(categories)
+    .orderBy(asc(categories.sortOrder), asc(categories.name))
+
+  const subsByCatId = new Map()
+  for (const c of allCats.filter((c) => c.parentId)) {
+    if (!subsByCatId.has(c.parentId)) subsByCatId.set(c.parentId, [])
+    subsByCatId.get(c.parentId).push(c.name)
+  }
+  const catRefRows = allCats
+    .filter((c) => !c.parentId)
+    .flatMap((c) => {
+      const subs = subsByCatId.get(c.id) ?? []
+      if (!subs.length) return [[c.name, '']]
+      return subs.map((s) => [c.name, s])
+    })
+
   const XLSX = (await import('xlsx')).default
   const wb = XLSX.utils.book_new()
   const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...data])
@@ -111,6 +130,11 @@ export async function loader({ request }) {
   ws['!views'] = [{ state: 'frozen', ySplit: 1 }]
 
   XLSX.utils.book_append_sheet(wb, ws, 'Master Product List')
+
+  const wsCats = XLSX.utils.aoa_to_sheet([['Category', 'Sub-Category'], ...catRefRows])
+  wsCats['!views'] = [{ state: 'frozen', ySplit: 1 }]
+  wsCats['!cols'] = [{ wch: 30 }, { wch: 30 }]
+  XLSX.utils.book_append_sheet(wb, wsCats, 'Categories')
 
   const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' })
   const now = new Date()
