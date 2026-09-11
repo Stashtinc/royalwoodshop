@@ -333,12 +333,12 @@ function ProductRow({ product }) {
   )
 }
 
-export default function Catalogue({ initialCategory = null, products = null }) {
+export default function Catalogue({ initialCategory = null, products = null, dbCategories = [] }) {
   // Products come from the loader (Postgres at build time). The snapshot is the
   // fallback so this component still renders on its own.
   const allProducts = products ?? snapshotProducts
   const categoryCounts = useMemo(() => countBy(allProducts), [allProducts])
-  const catalogueCategoryOrder = useMemo(() => categoryTree(allProducts), [allProducts])
+  const catalogueCategoryOrder = useMemo(() => categoryTree(allProducts, dbCategories), [allProducts, dbCategories])
   const speciesOptions = useMemo(() => speciesFacet(allProducts), [allProducts])
   const availabilityOptions = useMemo(() => availabilityFacet(allProducts), [allProducts])
   const [searchParams] = useSearchParams()
@@ -352,7 +352,7 @@ export default function Catalogue({ initialCategory = null, products = null }) {
   // client's first render disagree with the served HTML and trip a hydration
   // mismatch. The effect below applies it a beat later instead.
   const [selectedSubs, setSelectedSubs] = useState(() =>
-    subsFromUrl({ initialCategory, categoryParam: null, tree: categoryTree(allProducts) }),
+    subsFromUrl({ initialCategory, categoryParam: null, tree: categoryTree(allProducts, dbCategories) }),
   )
   const [expandedCats, setExpandedCats] = useState(new Set())
   const [advancedOpen, setAdvancedOpen] = useState(false)

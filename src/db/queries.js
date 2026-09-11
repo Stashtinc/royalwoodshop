@@ -187,3 +187,20 @@ export async function getProductBySlug(db, slug) {
   const all = await getAllProducts(db)
   return all.find((p) => p.slug === slug) ?? null
 }
+
+/** All top-level categories with their sub-category names, ordered for the sidebar. */
+export async function listCategoryTree(db) {
+  const rows = await db
+    .select({ id: categories.id, name: categories.name, parentId: categories.parentId })
+    .from(categories)
+    .orderBy(asc(categories.sortOrder), asc(categories.name))
+
+  const subsByParent = new Map()
+  for (const c of rows.filter((c) => c.parentId)) {
+    if (!subsByParent.has(c.parentId)) subsByParent.set(c.parentId, [])
+    subsByParent.get(c.parentId).push(c.name)
+  }
+  return rows
+    .filter((c) => !c.parentId)
+    .map((c) => ({ name: c.name, subcategories: subsByParent.get(c.id) ?? [] }))
+}

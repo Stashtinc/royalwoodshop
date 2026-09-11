@@ -17,10 +17,11 @@ export async function loader({ params }) {
   // Static lookup first — covers all pre-existing categories
   let name = NAMES[params.category]
   let products = null
+  let dbCategories = []
 
   try {
     const { getDb } = await import('../lib/db.server.js')
-    const { getAllProducts } = await import('../db/queries.js')
+    const { getAllProducts, listCategoryTree } = await import('../db/queries.js')
     const { categories: catsTable } = await import('../db/schema.js')
     const { eq } = await import('drizzle-orm')
     const db = await getDb()
@@ -36,8 +37,8 @@ export async function loader({ params }) {
     }
 
     if (name) {
-      const all = await getAllProducts(db)
-      if (all.length > 0) products = all
+      const [all, tree] = await Promise.all([getAllProducts(db), listCategoryTree(db)])
+      if (all.length > 0) { products = all; dbCategories = tree }
     }
   } catch {
     // DB not available — fall back to static snapshot
@@ -57,7 +58,7 @@ export async function loader({ params }) {
     }
   }
 
-  return { category: params.category, name, products }
+  return { category: params.category, name, products, dbCategories }
 }
 
 export const meta = ({ data }) => {
@@ -70,6 +71,6 @@ export const meta = ({ data }) => {
 }
 
 export default function Route() {
-  const { name, products } = useLoaderData()
-  return <Catalogue initialCategory={name} products={products} />
+  const { name, products, dbCategories = [] } = useLoaderData()
+  return <Catalogue initialCategory={name} products={products} dbCategories={dbCategories} />
 }

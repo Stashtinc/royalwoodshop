@@ -7,20 +7,20 @@ export async function loader() {
   // 1. Live DB (Railway SSR and local dev with DATABASE_URL)
   try {
     const { getDb } = await import('../lib/db.server.js')
-    const { getAllProducts } = await import('../db/queries.js')
+    const { getAllProducts, listCategoryTree } = await import('../db/queries.js')
     const db = await getDb()
-    const products = await getAllProducts(db)
-    if (products.length > 0) return { products }
+    const [products, dbCategories] = await Promise.all([getAllProducts(db), listCategoryTree(db)])
+    if (products.length > 0) return { products, dbCategories }
   } catch {}
   // 2. Read products.json directly from disk — bypasses Vite's module cache
   try {
     const { readFileSync } = await import('node:fs')
     const { resolve } = await import('node:path')
     const products = JSON.parse(readFileSync(resolve('src/data/products.json'), 'utf8'))
-    if (products.length > 0) return { products }
+    if (products.length > 0) return { products, dbCategories: [] }
   } catch {}
   // 3. Static module import (last resort)
-  return { products: catalogueProducts }
+  return { products: catalogueProducts, dbCategories: [] }
 }
 
 export const meta = () => pageMeta({
@@ -30,6 +30,6 @@ export const meta = () => pageMeta({
 })
 
 export default function Route() {
-  const { products } = useLoaderData()
-  return <Catalogue products={products} />
+  const { products, dbCategories = [] } = useLoaderData()
+  return <Catalogue products={products} dbCategories={dbCategories} />
 }

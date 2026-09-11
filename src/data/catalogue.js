@@ -74,9 +74,14 @@ const order = [
   'Sheet Stock', 'Exterior Siding', 'Aria Fittes Floor Vents',
 ]
 
-export function categoryTree(rows = products) {
+export function categoryTree(rows = products, dbTree = []) {
   // Pre-seed every known category so empty ones still appear in the sidebar
   const map = new Map(order.map((name) => [name, new Set()]))
+  // Pre-seed sub-categories from DB so newly-created subs appear even with no products yet
+  for (const cat of dbTree) {
+    if (!map.has(cat.name)) map.set(cat.name, new Set())
+    for (const sub of cat.subcategories) map.get(cat.name).add(sub)
+  }
   for (const p of rows) {
     for (const { category, sub } of placementsOf(p)) {
       if (!map.has(category)) map.set(category, new Set())
