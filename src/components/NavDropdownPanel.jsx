@@ -59,11 +59,11 @@ function ProductsPanel({ navCategories }) {
     <div className={`grid ${PANEL_WIDTH} grid-cols-2 gap-8 bg-white p-6 shadow-2xl`}>
       <MenuColumn heading="Categories" items={items} />
       <HighlightColumn
-        eyebrow="In-Stock & Ready"
-        title="Your local trim & door specialists"
-        description="Browse hundreds of mouldings, doors, and hardware available for pickup or delivery across the GTA."
-        ctaLabel="Shop Now"
-        ctaTo="/products"
+        eyebrow="Wall & Ceiling"
+        title="Panelling Surfaces"
+        description="V-groove, shiplap, beadboard, applied moulding, pre-finished, and acoustic panels — in stock for pickup or delivery across the GTA."
+        ctaLabel="Explore Panelling"
+        ctaTo="/panelling-surfaces"
       />
     </div>
   )

@@ -13,6 +13,7 @@ export default [
   route('the-royal-edge', 'routes/royal-edge.jsx'),
   route('core-values', 'routes/core-values.jsx'),
   route('environmental-commitment', 'routes/environmental.jsx'),
+  route('panelling-surfaces', 'routes/panelling-surfaces.jsx'),
   route('services', 'routes/services.jsx'),
   // Service pages keep the addresses WordPress used, so the pages that already
   // rank keep ranking. These must be declared before the ':slug' article

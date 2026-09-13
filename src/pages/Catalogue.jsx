@@ -32,7 +32,7 @@ function allSubKeys(tree) {
   return keys
 }
 
-function subsFromUrl({ initialCategory, categoryParam, tree }) {
+function subsFromUrl({ initialCategory, categoryParam, subParam, tree }) {
   const wanted = new Set()
   if (initialCategory) wanted.add(initialCategory)
   for (const slug of (categoryParam || '').split(',')) {
@@ -41,12 +41,16 @@ function subsFromUrl({ initialCategory, categoryParam, tree }) {
   }
 
   // No filter specified → all categories selected
-  if (wanted.size === 0) return allSubKeys(tree)
+  if (wanted.size === 0 && !subParam) return allSubKeys(tree)
 
   const keys = new Set()
   for (const cat of tree) {
-    if (!wanted.has(cat.name)) continue
-    for (const sub of cat.subcategories) keys.add(`${cat.name}::${sub}`)
+    if (wanted.size > 0 && !wanted.has(cat.name)) continue
+    if (subParam) {
+      if (cat.subcategories.includes(subParam)) keys.add(`${cat.name}::${subParam}`)
+    } else {
+      for (const sub of cat.subcategories) keys.add(`${cat.name}::${sub}`)
+    }
   }
   return keys
 }
@@ -150,35 +154,10 @@ function ListIcon() {
   )
 }
 
-function PaginationControls({ page, totalPages, onChange }) {
-  const buttonClasses =
-    'flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-500 transition-colors hover:border-royal-blue hover:text-royal-blue disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-gray-200 disabled:hover:text-gray-500'
-
+function LoadingSpinner() {
   return (
-    <div className="flex items-center gap-3 font-sans text-sm text-gray-500">
-      <span className="whitespace-nowrap">
-        Page {page} of {totalPages}
-      </span>
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          disabled={page <= 1}
-          onClick={() => onChange(page - 1)}
-          className={buttonClasses}
-          aria-label="Previous page"
-        >
-          &lsaquo;
-        </button>
-        <button
-          type="button"
-          disabled={page >= totalPages}
-          onClick={() => onChange(page + 1)}
-          className={buttonClasses}
-          aria-label="Next page"
-        >
-          &rsaquo;
-        </button>
-      </div>
+    <div className="flex justify-center py-8">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-royal-blue" aria-label="Loading more products" />
     </div>
   )
 }
@@ -361,6 +340,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const resultsRef = useRef(null)
   const sidebarRef = useRef(null)
+  const sentinelRef = useRef(null)
 
   useEffect(() => {
     const sidebar = sidebarRef.current
@@ -388,18 +368,19 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
     }
   }, [searchParams])
 
-  // Same for the category. The URL is the source of truth for which categories
-  // are ticked, so navigating from Products > Interior Doors to Products >
-  // Door Hardware replaces the selection rather than adding to it — and
-  // "Full Product Catalogue" (no param) clears it. Manual clicks in the
-  // sidebar do not touch the URL, so they are never clobbered by this.
+  // Same for the category and subcategory. The URL is the source of truth for
+  // which categories are ticked, so navigating from Products > Interior Doors
+  // to Products > Door Hardware replaces the selection rather than adding to
+  // it. ?sub=<name> narrows to a single subcategory (used by landing pages).
+  // Manual sidebar clicks do not touch the URL, so they are never clobbered.
   const categoryParam = searchParams.get('category')
+  const subParam = searchParams.get('sub')
   useEffect(() => {
     setSelectedSubs(
-      subsFromUrl({ initialCategory, categoryParam, tree: catalogueCategoryOrder }),
+      subsFromUrl({ initialCategory, categoryParam, subParam, tree: catalogueCategoryOrder }),
     )
     setPage(1)
-  }, [categoryParam, initialCategory, catalogueCategoryOrder])
+  }, [categoryParam, subParam, initialCategory, catalogueCategoryOrder])
 
   function withPageReset(setter) {
     return (value) => {
@@ -499,18 +480,24 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
     return [...filtered].sort((a, b) => (catIndex[a.category] ?? 99) - (catIndex[b.category] ?? 99))
   }, [filtered, catalogueCategoryOrder])
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const pageItems = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const visibleCount = page * pageSize
+  const hasMore = visibleCount < sorted.length
+  const pageItems = sorted.slice(0, visibleCount)
 
   const grouped = catalogueCategoryOrder
     .map((cat) => ({ name: cat.name, items: pageItems.filter((p) => p.category === cat.name) }))
     .filter((group) => group.items.length > 0)
 
-  function goToPage(nextPage) {
-    setPage(nextPage)
-    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || !hasMore) return
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setPage((p) => p + 1) },
+      { rootMargin: '300px' },
+    )
+    obs.observe(sentinel)
+    return () => obs.disconnect()
+  }, [hasMore, visibleCount])
 
   return (
     <section className="w-full bg-[#fbfbfb] py-16 lg:py-24">
@@ -724,30 +711,27 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1 rounded-lg border border-gray-200 p-1">
-                  <button
-                    type="button"
-                    aria-label="Grid view"
-                    onClick={() => setView('grid')}
-                    className={`rounded-md p-1.5 transition-colors ${
-                      view === 'grid' ? 'bg-royal-blue text-white' : 'text-gray-400 hover:text-royal-blue'
-                    }`}
-                  >
-                    <GridIcon />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="List view"
-                    onClick={() => setView('list')}
-                    className={`rounded-md p-1.5 transition-colors ${
-                      view === 'list' ? 'bg-royal-blue text-white' : 'text-gray-400 hover:text-royal-blue'
-                    }`}
-                  >
-                    <ListIcon />
-                  </button>
-                </div>
-                <PaginationControls page={currentPage} totalPages={totalPages} onChange={goToPage} />
+              <div className="flex items-center gap-1 rounded-lg border border-gray-200 p-1">
+                <button
+                  type="button"
+                  aria-label="Grid view"
+                  onClick={() => setView('grid')}
+                  className={`rounded-md p-1.5 transition-colors ${
+                    view === 'grid' ? 'bg-royal-blue text-white' : 'text-gray-400 hover:text-royal-blue'
+                  }`}
+                >
+                  <GridIcon />
+                </button>
+                <button
+                  type="button"
+                  aria-label="List view"
+                  onClick={() => setView('list')}
+                  className={`rounded-md p-1.5 transition-colors ${
+                    view === 'list' ? 'bg-royal-blue text-white' : 'text-gray-400 hover:text-royal-blue'
+                  }`}
+                >
+                  <ListIcon />
+                </button>
               </div>
             </div>
 
@@ -814,11 +798,8 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
               </div>
             )}
 
-            {grouped.length > 0 && (
-              <div className="flex justify-center border-t border-gray-200 pt-8">
-                <PaginationControls page={currentPage} totalPages={totalPages} onChange={goToPage} />
-              </div>
-            )}
+            <div ref={sentinelRef} aria-hidden="true" />
+            {hasMore && grouped.length > 0 && <LoadingSpinner />}
           </div>
         </div>
       </div>

@@ -5,16 +5,10 @@ import 'leaflet/dist/leaflet.css'
 
 const COORDS = [44.0888, -79.4111]
 
-const pinIcon = L.divIcon({
-  html: `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 30 42">
+const PIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 30 42">
     <path d="M15 0C6.716 0 0 6.716 0 15c0 9.941 13.5 24.75 14.1 25.425a1.2 1.2 0 0 0 1.8 0C16.5 39.75 30 24.941 30 15 30 6.716 23.284 0 15 0z" fill="#0065ab"/>
     <circle cx="15" cy="15" r="6" fill="white"/>
-  </svg>`,
-  className: '',
-  iconSize: [30, 42],
-  iconAnchor: [15, 42],
-  popupAnchor: [0, -44],
-})
+  </svg>`
 
 function AutoOpenPopup() {
   const map = useMap()
@@ -32,6 +26,14 @@ function AutoOpenPopup() {
 }
 
 export default function MapEmbed() {
+  const pinIcon = L.divIcon({
+    html: PIN_SVG,
+    className: '',
+    iconSize: [30, 42],
+    iconAnchor: [15, 42],
+    popupAnchor: [0, -44],
+  })
+
   return (
     <MapContainer
       center={COORDS}

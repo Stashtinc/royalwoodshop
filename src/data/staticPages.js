@@ -19,4 +19,5 @@ export const STATIC_PAGES = [
   '/core-values',
   '/environmental-commitment',
   '/services',
+  '/panelling-surfaces',
 ]
