@@ -137,7 +137,11 @@ function RelatedCard({ product }) {
 }
 
 function Gallery({ product }) {
-  const images = product.images?.length ? product.images : [{ url: product.image, role: product.imageRole, width: product.imageWidth, alt: product.name }]
+  const images = product.images?.length
+    ? product.images
+    : product.image
+      ? [{ url: product.image, role: product.imageRole, width: product.imageWidth, alt: product.name }]
+      : []
   const [active, setActive] = useState(0)
   const main = images[active] ?? images[0]
 
@@ -274,9 +278,11 @@ export default function ProductDetail({ product: productProp = null, related: re
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="flex flex-col gap-10 lg:flex-row lg:gap-16">
             {/* Image gallery */}
-            <div className="w-full shrink-0 lg:w-[480px]">
-              <Gallery product={product} />
-            </div>
+            {(product.image || product.images?.length > 0) && (
+              <div className="w-full shrink-0 lg:w-[480px]">
+                <Gallery product={product} />
+              </div>
+            )}
 
             {/* Details */}
             <div className="flex flex-1 flex-col gap-6">
