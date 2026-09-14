@@ -53,6 +53,14 @@ const ImportIcon = () => (
   </svg>
 )
 
+const MediaIcon = () => (
+  <svg viewBox="0 0 20 20" className={icon} aria-hidden="true" {...stroke}>
+    <rect x="2.5" y="4.5" width="15" height="11" rx="1.5" />
+    <circle cx="7" cy="8.5" r="1.5" />
+    <path d="M2.5 14l4-4 3 3 2.5-2.5 5.5 5.5" />
+  </svg>
+)
+
 const ProductsIcon = () => (
   <svg viewBox="0 0 20 20" className={icon} aria-hidden="true" {...stroke}>
     <path d="M10 2.2 17.3 6v8L10 17.8 2.7 14V6z" />
@@ -86,6 +94,7 @@ const NAV = [
   { to: '/admin/products', label: 'Products', Icon: ProductsIcon },
   { to: '/admin/categories', label: 'Categories', Icon: CategoriesIcon },
   { to: '/admin/posts', label: 'Blog', Icon: BlogIcon },
+  { to: '/admin/media', label: 'Media', Icon: MediaIcon },
   { to: '/admin/import', label: 'Import', Icon: ImportIcon },
   { to: '/admin/logs', label: 'Logs', Icon: LogsIcon },
 ]
