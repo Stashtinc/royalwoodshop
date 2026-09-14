@@ -6,20 +6,13 @@ import heroRight from '../assets/images/header-doors.jpg'
 import NavDropdownPanel from './NavDropdownPanel'
 import SearchResultsList from './SearchResultsList'
 import useSiteSearch from '../hooks/useSiteSearch'
+import { navLinks } from '../data/navMenus'
 
 const TEXTURE_WIDTH = 191
 const PANEL_WIDTH = 612
 const NAV_ROW_HEIGHT = 90
 const PHOTO_STRIP_HEIGHT = 170
 const NAV_ROW_MAX_WIDTH = 820
-
-const navLinks = [
-  { label: 'Products', to: '/products', menu: 'products' },
-  { label: 'Services', to: '/services', menu: 'services' },
-  { label: 'About Royal', to: '/#about', menu: 'about' },
-  { label: 'Contact Us', to: '/contact' },
-  { label: 'Resources', to: '/resources', menu: 'resources' },
-]
 
 function SearchIcon() {
   return (
@@ -209,12 +202,18 @@ export default function PageHeader({ image = heroRight, imageAlt = 'Interior sta
             <nav className="relative flex h-full flex-1 items-center justify-evenly">
               {navLinks.map((link) => (
                 <div key={link.label} className="group/item h-full">
-                  <Link
-                    to={link.to}
-                    className="flex h-full items-center justify-center border-b-4 border-transparent px-4 font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors hover:border-royal-blue hover:bg-parchment hover:text-royal-blue"
-                  >
-                    {link.label}
-                  </Link>
+                  {link.to ? (
+                    <Link
+                      to={link.to}
+                      className="flex h-full items-center justify-center border-b-4 border-transparent px-4 font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors hover:border-royal-blue hover:bg-parchment hover:text-royal-blue"
+                    >
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <span className="flex h-full cursor-default items-center justify-center border-b-4 border-transparent px-4 font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors group-hover/item:border-royal-blue group-hover/item:bg-parchment group-hover/item:text-royal-blue">
+                      {link.label}
+                    </span>
+                  )}
                   {link.menu && (
                     <div className="invisible absolute top-full left-0 z-30 opacity-0 transition-all duration-150 group-hover/item:visible group-hover/item:opacity-100">
                       <NavDropdownPanel menu={link.menu} />
