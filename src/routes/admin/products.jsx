@@ -166,32 +166,18 @@ export default function Products() {
         </div>
         <div className="flex items-center gap-2">
           {q && total > 0 && statusFilter === 'active' && (
-            <>
-              <Form method="post">
-                <input type="hidden" name="intent" value="bulk-publish" />
-                <input type="hidden" name="q" value={q} />
-                {missing && <input type="hidden" name="missing" value={missing} />}
-                <button
-                  type="submit"
-                  onClick={(e) => { if (!confirm(`Publish all ${total} matching products?`)) e.preventDefault() }}
-                  className="rounded-lg border border-green-300 px-4 py-2 text-sm font-medium text-green-700 hover:border-green-500 hover:bg-green-50"
-                >
-                  Publish all {total}
-                </button>
-              </Form>
-              <Form method="post">
-                <input type="hidden" name="intent" value="bulk-archive" />
-                <input type="hidden" name="q" value={q} />
-                {missing && <input type="hidden" name="missing" value={missing} />}
-                <button
-                  type="submit"
-                  onClick={(e) => { if (!confirm(`Archive all ${total} matching products?`)) e.preventDefault() }}
-                  className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:border-red-400 hover:bg-red-50"
-                >
-                  Archive all {total}
-                </button>
-              </Form>
-            </>
+            <Form method="post">
+              <input type="hidden" name="intent" value="bulk-publish" />
+              <input type="hidden" name="q" value={q} />
+              {missing && <input type="hidden" name="missing" value={missing} />}
+              <button
+                type="submit"
+                onClick={(e) => { if (!confirm(`Publish all ${total} matching products?`)) e.preventDefault() }}
+                className="rounded-lg border border-green-300 px-4 py-2 text-sm font-medium text-green-700 hover:border-green-500 hover:bg-green-50"
+              >
+                Publish all {total}
+              </button>
+            </Form>
           )}
           <Link
             to="/admin/products/new"
