@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { Link, Form, useLoaderData, useSearchParams, useSubmit, useNavigation } from 'react-router'
+import { Link, Form, useActionData, useLoaderData, useSearchParams, useSubmit, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { listProducts, listCategories } from '../../lib/admin-queries.server'
+import { listProducts, listCategories, bulkArchiveProducts } from '../../lib/admin-queries.server'
+import { syncProductsJson } from '../../lib/sync.server'
+import { log } from '../../lib/activity.server'
 import { AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
 import { thumbSrc } from '../../lib/images'
 import Pagination from '../../components/admin/Pagination'
@@ -29,6 +31,30 @@ export async function loader({ request }) {
   return { ...data, categoryOptions, savedId }
 }
 
+export async function action({ request }) {
+  const user = await requireUser(request)
+  const url = new URL(request.url)
+  const f = await request.formData()
+  if (f.get('intent') !== 'bulk-archive') return null
+
+  const count = await bulkArchiveProducts({
+    q: f.get('q') ?? '',
+    missing: f.get('missing') ?? '',
+    category: f.get('category') ?? '',
+    species: f.get('species') ?? '',
+    availability: f.get('availability') ?? '',
+  })
+
+  await log(user, 'product.status', {
+    entityType: 'product',
+    entityLabel: `Bulk archive (${f.get('q') || 'filter'})`,
+    details: { from: 'various', to: 'archived', count },
+  })
+  await syncProductsJson()
+
+  return { archived: count }
+}
+
 const MISSING_LABEL = {
   species: 'missing species',
   availability: 'missing availability',
@@ -37,6 +63,7 @@ const MISSING_LABEL = {
 
 export default function Products() {
   const { rows, total, page, pages, perPage, categoryOptions, sortBy, sortDir, savedId } = useLoaderData()
+  const actionData = useActionData()
   const [params] = useSearchParams()
   const missing = params.get('missing') ?? ''
   const q = params.get('q') ?? ''
@@ -99,6 +126,11 @@ export default function Products() {
 
   return (
     <div className="flex flex-col gap-5">
+      {actionData?.archived != null && (
+        <p className="rounded-lg bg-green-50 px-4 py-2.5 text-sm text-green-800">
+          {actionData.archived} product{actionData.archived === 1 ? '' : 's'} archived.
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-baseline gap-3">
           <h1 className="font-serif text-2xl font-bold text-tundora">Products</h1>
@@ -107,15 +139,31 @@ export default function Products() {
           </p>
           {missing && <Link to="/admin/products" className="text-sm text-royal-blue underline">clear filter</Link>}
         </div>
-        <Link
-          to="/admin/products/new"
-          className="flex items-center gap-1.5 rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-          Add New
-        </Link>
+        <div className="flex items-center gap-2">
+          {q && total > 0 && (
+            <Form method="post">
+              <input type="hidden" name="intent" value="bulk-archive" />
+              <input type="hidden" name="q" value={q} />
+              {missing && <input type="hidden" name="missing" value={missing} />}
+              <button
+                type="submit"
+                onClick={(e) => { if (!confirm(`Archive all ${total} matching products?`)) e.preventDefault() }}
+                className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:border-red-400 hover:bg-red-50"
+              >
+                Archive all {total}
+              </button>
+            </Form>
+          )}
+          <Link
+            to="/admin/products/new"
+            className="flex items-center gap-1.5 rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            Add New
+          </Link>
+        </div>
       </div>
 
       <Form id="products-filter" method="get" role="search" className="flex max-w-md gap-2">

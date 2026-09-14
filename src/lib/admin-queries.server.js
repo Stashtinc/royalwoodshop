@@ -129,6 +129,41 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
   return { rows, total, page, perPage, pages: Math.max(1, Math.ceil(total / perPage)), sortBy, sortDir }
 }
 
+/** Archives every product matching the given search/filter (ignores pagination — affects all). */
+export async function bulkArchiveProducts({ q = '', missing = '', category = '', species = '', availability = '' } = {}) {
+  const db = await getDb()
+  const where = []
+  if (q.trim()) {
+    where.push(or(
+      ilike(products.name, `%${q.trim()}%`),
+      ilike(products.productCode, `%${q.trim()}%`),
+      ilike(products.slug, `%${q.trim()}%`),
+    ))
+  }
+  if (missing === 'species') where.push(sql`${speciesSubquery} = '{}'`)
+  if (missing === 'availability') where.push(sql`${products.availability} is null`)
+  if (missing === 'description') where.push(sql`(${products.description} is null or ${products.description} = '')`)
+  if (category) where.push(ilike(categories.name, category))
+  if (species) where.push(sql`${speciesSubquery}::text[] @> array[${species}]::text[]`)
+  if (availability) where.push(eq(products.availability, availability))
+
+  const clause = where.length ? and(...where) : undefined
+
+  // Collect IDs via join (category filter needs the join)
+  const matched = await db
+    .select({ id: products.id })
+    .from(products)
+    .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
+    .where(clause)
+
+  if (!matched.length) return 0
+  const ids = matched.map(r => r.id)
+  await db.update(products)
+    .set({ status: 'archived', updatedAt: new Date() })
+    .where(inArray(products.id, ids))
+  return ids.length
+}
+
 export async function getProduct(id) {
   const db = await getDb()
   const [row] = await db.select({
