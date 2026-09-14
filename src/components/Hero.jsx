@@ -14,11 +14,11 @@ const PANEL_WIDTH = 612
 const NAV_ROW_MAX_WIDTH = 820
 
 const navLinks = [
-  { label: 'Products', to: '/products', menu: 'products' },
-  { label: 'Services', to: '/services', menu: 'services' },
-  { label: 'About Royal', to: '/#about', menu: 'about' },
+  { label: 'Products', menu: 'products' },
+  { label: 'Services', menu: 'services' },
+  { label: 'About Royal', menu: 'about' },
   { label: 'Contact Us', to: '/contact' },
-  { label: 'Resources', to: '/resources', menu: 'resources' },
+  { label: 'Resources', menu: 'resources' },
 ]
 
 function SearchIcon() {
@@ -362,15 +362,21 @@ export default function Hero() {
               className="pointer-events-auto flex h-[90px] shrink-0 items-center gap-6 pr-6"
               style={{ maxWidth: `${NAV_ROW_MAX_WIDTH}px` }}
             >
-              <nav className="relative flex h-full flex-1 items-center justify-evenly">
+              <nav className="relative flex h-full flex-1 items-center">
                 {navLinks.map((link) => (
-                  <div key={link.label} className="group/item h-full">
-                    <Link
-                      to={link.to}
-                      className="flex h-full items-center justify-center border-b-4 border-transparent px-4 font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors hover:border-royal-blue hover:bg-parchment hover:text-royal-blue"
-                    >
-                      {link.label}
-                    </Link>
+                  <div key={link.label} className="group/item flex-1 h-full">
+                    {link.to && !link.menu ? (
+                      <Link
+                        to={link.to}
+                        className="flex h-full w-full items-center justify-center border-b-4 border-transparent font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors hover:border-royal-blue hover:bg-parchment hover:text-royal-blue"
+                      >
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <span className="flex h-full w-full cursor-default items-center justify-center border-b-4 border-transparent font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors group-hover/item:border-royal-blue group-hover/item:bg-parchment group-hover/item:text-royal-blue">
+                        {link.label}
+                      </span>
+                    )}
                     {link.menu && (
                       <div className="invisible absolute top-full left-0 z-30 opacity-0 transition-all duration-150 group-hover/item:visible group-hover/item:opacity-100">
                         <NavDropdownPanel menu={link.menu} navCategories={navCategories} />

@@ -98,18 +98,18 @@ export default function Header({ navCategories = navCatsJson }) {
           <img src={logoBlue} alt="The Royal Wood Shop" className="h-auto w-[100px]" />
         </Link>
 
-        <nav className="hidden h-full flex-1 items-center justify-end gap-8 xl:flex">
+        <nav className="hidden h-full flex-1 items-center xl:flex">
           {navLinks.map((link) => (
-            <div key={link.label} className="group/item flex h-full items-center">
-              {link.to ? (
+            <div key={link.label} className="group/item flex-1 h-full">
+              {link.to && !link.menu ? (
                 <Link
                   to={link.to}
-                  className="flex h-full items-center border-b-4 border-transparent px-4 font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors hover:border-royal-blue hover:bg-parchment hover:text-royal-blue"
+                  className="flex h-full w-full items-center justify-center border-b-4 border-transparent font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors hover:border-royal-blue hover:bg-parchment hover:text-royal-blue"
                 >
                   {link.label}
                 </Link>
               ) : (
-                <span className="flex h-full cursor-default items-center border-b-4 border-transparent px-4 font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase">
+                <span className="flex h-full w-full cursor-default items-center justify-center border-b-4 border-transparent font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors group-hover/item:border-royal-blue group-hover/item:bg-parchment group-hover/item:text-royal-blue">
                   {link.label}
                 </span>
               )}
@@ -282,7 +282,7 @@ export default function Header({ navCategories = navCatsJson }) {
           {navLinks.map((link) => (
             <div key={link.label} className="flex flex-col">
               <div className="flex items-center justify-between">
-                {link.to ? (
+                {link.to && !link.menu ? (
                   <Link
                     to={link.to}
                     onClick={() => setMenuOpen(false)}
