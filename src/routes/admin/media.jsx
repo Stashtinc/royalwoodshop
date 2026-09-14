@@ -17,6 +17,11 @@ export async function loader({ request }) {
   const page = Math.max(1, Number(url.searchParams.get('page') ?? 1))
   const detailFile = url.searchParams.get('detail') ?? null
 
+  const filterCat     = url.searchParams.get('cat') ?? ''
+  const filterSpecies = url.searchParams.get('species') ?? ''
+  const filterUsage   = url.searchParams.get('usage') ?? ''   // 'used' | 'unused'
+  const filterType    = url.searchParams.get('type') ?? ''    // 'webp' | 'jpg' | 'png'
+
   const dirs = [UPLOADS_DIR, `${UPLOADS_DIR}/panelling`].filter(existsSync)
   const allFiles = []
   for (const dir of dirs) {
@@ -30,7 +35,29 @@ export async function loader({ request }) {
   }
   allFiles.sort((a, b) => a.name.localeCompare(b.name))
 
-  // Detail mode — rich info about a single file
+  // Build image → products lookup from products.json
+  const { readFile } = await import('node:fs/promises')
+  const { resolve } = await import('node:path')
+  let products = []
+  try { products = JSON.parse(await readFile(resolve('src/data/products.json'), 'utf8')) } catch {}
+
+  // Map: filename stem → array of products
+  const imageMap = new Map()
+  for (const p of products) {
+    if (!p.image) continue
+    const stem = p.image.split('/').pop().replace(/\.(webp|jpe?g|jpg|png)$/i, '')
+    if (!imageMap.has(stem)) imageMap.set(stem, [])
+    imageMap.get(stem).push(p)
+  }
+
+  // Derive filter options from products that actually have images
+  const categories = [...new Set(products.filter(p => p.image).map(p => p.category).filter(Boolean))].sort()
+  const speciesList = [...new Set(
+    products.filter(p => p.image)
+      .flatMap(p => (p.species ?? []).map(s => (typeof s === 'string' ? s : s?.name)).filter(Boolean))
+  )].sort()
+
+  // Detail mode
   if (detailFile) {
     const item = allFiles.find(f => f.name === detailFile)
     if (!item) return { detail: null }
@@ -39,23 +66,39 @@ export async function loader({ request }) {
     const ext = item.name.match(/\.(webp|jpe?g|jpg|png)$/i)?.[0] ?? ''
     const base = fullPath.replace(ext, '')
     const variants = [320, 400, 640, 800].filter(size => existsSync(`${base}-${size}${ext}`))
-    const { readFile } = await import('node:fs/promises')
-    const { resolve } = await import('node:path')
-    let usedIn = []
-    try {
-      const raw = await readFile(resolve('src/data/products.json'), 'utf8')
-      usedIn = JSON.parse(raw)
-        .filter(p => p.image?.includes(item.name.replace(ext, '')))
-        .map(p => ({ name: p.name, slug: p.slug, category: p.category }))
-        .slice(0, 10)
-    } catch {}
+    const stem = item.name.replace(/\.(webp|jpe?g|jpg|png)$/i, '')
+    const usedIn = (imageMap.get(stem) ?? []).map(p => ({ name: p.name, slug: p.slug, category: p.category })).slice(0, 10)
     return { detail: { ...item, size: s.size, mtime: s.mtime.toISOString(), variants, usedIn } }
   }
 
-  const filtered = q ? allFiles.filter(f => f.name.toLowerCase().includes(q)) : allFiles
+  // Apply filters
+  let filtered = allFiles
+  if (q) filtered = filtered.filter(f => f.name.toLowerCase().includes(q))
+  if (filterType) filtered = filtered.filter(f => f.name.toLowerCase().endsWith(`.${filterType}`))
+  if (filterUsage === 'used')   filtered = filtered.filter(f => imageMap.has(f.name.replace(/\.(webp|jpe?g|jpg|png)$/i, '')))
+  if (filterUsage === 'unused') filtered = filtered.filter(f => !imageMap.has(f.name.replace(/\.(webp|jpe?g|jpg|png)$/i, '')))
+  if (filterCat) {
+    filtered = filtered.filter(f => {
+      const stem = f.name.replace(/\.(webp|jpe?g|jpg|png)$/i, '')
+      return (imageMap.get(stem) ?? []).some(p => p.category === filterCat)
+    })
+  }
+  if (filterSpecies) {
+    filtered = filtered.filter(f => {
+      const stem = f.name.replace(/\.(webp|jpe?g|jpg|png)$/i, '')
+      return (imageMap.get(stem) ?? []).some(p =>
+        (p.species ?? []).some(s => (typeof s === 'string' ? s : s?.name) === filterSpecies)
+      )
+    })
+  }
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const items = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  return { items, total: filtered.length, page, totalPages, q }
+  return {
+    items, total: filtered.length, page, totalPages, q,
+    filterCat, filterSpecies, filterUsage, filterType,
+    filterOptions: { categories, species: speciesList },
+  }
 }
 
 /* ---------------------------------------------------------------- action -- */
@@ -393,6 +436,10 @@ export default function MediaAdmin() {
           const params = new URLSearchParams()
           params.set('page', nextPage)
           if (q) params.set('q', q)
+          if (filterCat) params.set('cat', filterCat)
+          if (filterSpecies) params.set('species', filterSpecies)
+          if (filterUsage) params.set('usage', filterUsage)
+          if (filterType) params.set('type', filterType)
           scrollFetcher.load(`/admin/media?${params}`)
         }
       },
@@ -416,7 +463,28 @@ export default function MediaAdmin() {
     setSearchParams(val ? { q: val } : {})
   }
 
-  const { total } = loaderData
+  const { total, filterCat, filterSpecies, filterUsage, filterType, filterOptions } = loaderData
+  const { categories = [], species: speciesList = [] } = filterOptions ?? {}
+
+  function setFilter(key, val) {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.delete('page')
+      if (val) next.set(key, val)
+      else next.delete(key)
+      return next
+    })
+  }
+
+  const activeFilterCount = [filterCat, filterSpecies, filterUsage, filterType].filter(Boolean).length
+
+  function clearAllFilters() {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      ;['cat', 'species', 'usage', 'type', 'page'].forEach(k => next.delete(k))
+      return next
+    })
+  }
 
   return (
     <div className="flex gap-6">
@@ -463,8 +531,60 @@ export default function MediaAdmin() {
               className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-4 text-sm focus:border-royal-blue focus:outline-none" />
           </div>
           <button type="submit" className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Search</button>
-          {q && <button type="button" onClick={() => setSearchParams({})} className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">✕</button>}
+          {q && <button type="button" onClick={() => setSearchParams(prev => { const n = new URLSearchParams(prev); n.delete('q'); return n })} className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">✕</button>}
         </form>
+
+        {/* Filter bar */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Usage */}
+          {['', 'used', 'unused'].map(val => (
+            <button key={val || 'all-usage'} type="button"
+              onClick={() => setFilter('usage', val)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${filterUsage === val ? 'border-royal-blue bg-royal-blue text-white' : 'border-gray-300 text-gray-600 hover:border-royal-blue hover:text-royal-blue'}`}>
+              {val === '' ? 'All' : val === 'used' ? 'Used' : 'Unused'}
+            </button>
+          ))}
+
+          <span className="h-4 w-px bg-gray-300" />
+
+          {/* File type */}
+          {['webp', 'jpg', 'png'].map(t => (
+            <button key={t} type="button"
+              onClick={() => setFilter('type', filterType === t ? '' : t)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium uppercase transition-colors ${filterType === t ? 'border-royal-blue bg-royal-blue text-white' : 'border-gray-300 text-gray-600 hover:border-royal-blue hover:text-royal-blue'}`}>
+              {t}
+            </button>
+          ))}
+
+          <span className="h-4 w-px bg-gray-300" />
+
+          {/* Category select */}
+          <select
+            value={filterCat}
+            onChange={e => setFilter('cat', e.target.value)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-none ${filterCat ? 'border-royal-blue bg-royal-blue text-white' : 'border-gray-300 text-gray-600 hover:border-royal-blue'}`}
+          >
+            <option value="">All categories</option>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          {/* Species select */}
+          <select
+            value={filterSpecies}
+            onChange={e => setFilter('species', e.target.value)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-none ${filterSpecies ? 'border-royal-blue bg-royal-blue text-white' : 'border-gray-300 text-gray-600 hover:border-royal-blue'}`}
+          >
+            <option value="">All species</option>
+            {speciesList.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+
+          {activeFilterCount > 0 && (
+            <button type="button" onClick={clearAllFilters}
+              className="ml-1 rounded-full border border-red-200 px-3 py-1 text-xs text-red-500 hover:bg-red-50">
+              Clear filters ({activeFilterCount})
+            </button>
+          )}
+        </div>
 
         {/* Grid */}
         {items.length === 0 ? (
