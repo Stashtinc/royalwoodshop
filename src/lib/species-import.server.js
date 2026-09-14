@@ -1,5 +1,5 @@
 import { parse } from 'csv-parse/sync'
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { getDb } from './db.server.js'
 import {
@@ -902,6 +902,17 @@ export async function apply(rows, overrides = {}, options = {}) {
   const [{ ticksWithAvail }] = await db
     .select({ ticksWithAvail: sql`count(*)::int` })
     .from(productAttributes).where(sql`${productAttributes.availability} is not null`)
+
+  // Master imports: auto-publish any draft that now has a category assigned.
+  // Products created by species-only imports land as drafts; importing the
+  // master list is the signal that they are ready to be visible.
+  let autoPublished = 0
+  if (layout === 'master') {
+    const result = await db.update(products)
+      .set({ status: 'published', publishedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(products.status, 'draft'), isNotNull(products.primaryCategoryId)))
+    autoPublished = result.rowCount ?? 0
+  }
 
   // Archive last, so a failure here cannot lose the species work above.
   let archived = []

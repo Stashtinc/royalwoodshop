@@ -165,20 +165,6 @@ export default function Products() {
           </Link>
         </div>
         <div className="flex items-center gap-2">
-          {q && total > 0 && statusFilter === 'active' && (
-            <Form method="post">
-              <input type="hidden" name="intent" value="bulk-publish" />
-              <input type="hidden" name="q" value={q} />
-              {missing && <input type="hidden" name="missing" value={missing} />}
-              <button
-                type="submit"
-                onClick={(e) => { if (!confirm(`Publish all ${total} matching products?`)) e.preventDefault() }}
-                className="rounded-lg border border-green-300 px-4 py-2 text-sm font-medium text-green-700 hover:border-green-500 hover:bg-green-50"
-              >
-                Publish all {total}
-              </button>
-            </Form>
-          )}
           <Link
             to="/admin/products/new"
             className="flex items-center gap-1.5 rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark"
