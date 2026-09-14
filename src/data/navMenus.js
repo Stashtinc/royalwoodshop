@@ -25,7 +25,7 @@ export const productsMenu = {
 // Single source of truth for the top nav. Items with `menu` open a dropdown
 // and must NOT have a `to` — the label is non-navigable by design.
 export const navLinks = [
-  { label: 'Products',    menu: 'products' },
+  { label: 'Products',    to: '/products', menu: 'products' },
   { label: 'Services',   menu: 'services' },
   { label: 'About Royal', menu: 'about' },
   { label: 'Contact Us', to: '/contact' },

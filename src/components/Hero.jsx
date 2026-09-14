@@ -360,7 +360,7 @@ export default function Hero() {
               <nav className="relative flex h-full flex-1 items-center">
                 {navLinks.map((link) => (
                   <div key={link.label} className="group/item flex-1 h-full">
-                    {link.to && !link.menu ? (
+                    {link.to ? (
                       <Link
                         to={link.to}
                         className="flex h-full w-full items-center justify-center border-b-4 border-transparent font-body text-xs font-bold tracking-wide whitespace-nowrap text-gray-500 uppercase transition-colors hover:border-royal-blue hover:bg-parchment hover:text-royal-blue"
