@@ -518,7 +518,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
         </div>
 
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
-          <aside ref={sidebarRef} className="flex w-full shrink-0 flex-col gap-8 lg:sticky lg:top-28 lg:w-[280px]">
+          <aside ref={sidebarRef} className="flex w-full shrink-0 flex-col gap-8 lg:sticky lg:top-28 lg:w-[280px] lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
             <div className="flex flex-col gap-3">
               <p className="font-serif text-base font-bold text-tundora">Product Search</p>
               <div className="relative">
