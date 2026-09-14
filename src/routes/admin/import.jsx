@@ -425,19 +425,11 @@ export default function Import() {
                   </li>
                 ))}
               </ul>
-              <label className="mt-3 flex cursor-pointer items-start gap-2">
-                <input
-                  type="checkbox"
-                  checked={archiveMissing}
-                  onChange={(e) => setArchiveMissing(e.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 rounded accent-royal-blue"
-                />
-                <span className="text-xs">
-                  Archive these when the import is applied. They drop off the catalogue but keep
-                  their address and history, so they can still be redirected at cutover and
-                  brought back if this was not intended. Leave unticked to change nothing.
-                </span>
-              </label>
+              <p className="mt-3 text-xs text-amber-700">
+                These will be archived automatically when you apply — the master file is the
+                source of truth. Archived products keep their address and history and can be
+                restored from the admin if needed.
+              </p>
             </div>
           )}
 
@@ -656,15 +648,14 @@ export default function Import() {
               {Object.keys(edits).length > 0 && (
                 <input type="hidden" name="overrides" value={JSON.stringify(edits)} />
               )}
-              {archiveMissing && <input type="hidden" name="archiveMissing" value="yes" />}
               {moveCategories && <input type="hidden" name="moveCategories" value="yes" />}
               {(() => {
                 const total = s.willChange + s.willCreate.length
                 return (
-                  <button disabled={busy || total === 0}
+                  <button disabled={busy || (total === 0 && !s.removed?.length)}
                     className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
-                    {busy ? 'Applying…' : total === 0 ? 'Nothing to apply'
-                      : `Apply — update ${s.willChange}, create ${s.willCreate.length}`}
+                    {busy ? 'Applying…' : total === 0 && !s.removed?.length ? 'Nothing to apply'
+                      : `Apply — update ${s.willChange}, create ${s.willCreate.length}${s.removed?.length ? `, archive ${s.removed.length}` : ''}`}
                   </button>
                 )
               })()}

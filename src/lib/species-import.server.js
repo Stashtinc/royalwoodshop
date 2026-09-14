@@ -642,9 +642,12 @@ export async function recordBaseline(rows, { fileName = null, userEmail = null }
  */
 export async function apply(rows, overrides = {}, options = {}) {
   const {
-    archiveMissing = false, fileName = null, userEmail = null, baseline = false,
     layout = 'species', moveCategories = false,
+    fileName = null, userEmail = null, baseline = false,
   } = options
+  // Master imports: auto-archive products removed from the sheet — the master
+  // is the source of truth so a product not in it should not stay published.
+  const archiveMissing = options.archiveMissing ?? (layout === 'master')
   const db = await getDb()
   const { summary, parsed: base, byCode } = await analyse(rows, { layout })
   const uploads = layout === 'master' ? await readUploads() : { files: new Set(), widths: new Map() }
