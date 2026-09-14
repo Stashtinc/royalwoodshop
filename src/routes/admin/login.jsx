@@ -1,4 +1,4 @@
-import { Form, useActionData, useSearchParams } from 'react-router'
+import { Form, useActionData } from 'react-router'
 import { login, createSession, getUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
 
@@ -12,13 +12,11 @@ export async function action({ request }) {
   const form = await request.formData()
   const email = String(form.get('email') ?? '')
   const password = String(form.get('password') ?? '')
-  const next = String(form.get('next') || '/admin')
-
   if (!email || !password) return { error: 'Enter your email and password.' }
   const user = await login(email, password)
   if (!user) return { error: 'Those details were not recognised.' }
   await log(user, 'auth.login', { entityType: 'user', entityId: user.id, entityLabel: user.name || user.email })
-  return createSession(user.id, next.startsWith('/admin') ? next : '/admin')
+  return createSession(user.id, '/admin')
 }
 
 export const meta = () => [
@@ -28,7 +26,6 @@ export const meta = () => [
 
 export default function Login() {
   const data = useActionData()
-  const [params] = useSearchParams()
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6">
       <div className="w-full max-w-sm">
@@ -37,7 +34,7 @@ export default function Login() {
             <img src="/logo.svg" alt="Royal Wood Shop" className="h-24" />
             <h1 className="font-serif text-2xl font-bold text-tundora">Sign in</h1>
           </div>
-          <input type="hidden" name="next" value={params.get('next') ?? '/admin'} />
+
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-gray-700">Email</span>
             <input name="email" type="email" autoComplete="username" required
