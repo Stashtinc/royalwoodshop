@@ -12,7 +12,10 @@ export default function NewsletterSignup() {
     setStatus('loading')
     setError(null)
     try {
-      const res = await fetch('/.netlify/functions/newsletter', {
+      const endpoint = typeof window !== 'undefined' && window.location.hostname.includes('netlify')
+        ? '/.netlify/functions/newsletter'
+        : '/api/newsletter'
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ email }),

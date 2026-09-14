@@ -2,6 +2,7 @@ import { index, route } from '@react-router/dev/routes'
 
 export default [
   index('routes/home.jsx'),
+  route('api/newsletter', 'routes/api.newsletter.js'),
 
   // Catalogue. Sub-category is deliberately not in the path — it is the
   // volatile part of the taxonomy and belongs in a facet. See spec §2.2.
