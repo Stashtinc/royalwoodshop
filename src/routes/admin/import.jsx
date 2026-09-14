@@ -138,10 +138,18 @@ function DropArea() {
       <input ref={ref} type="file" name="file"
         accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         onChange={(e) => setName(e.target.files?.[0]?.name ?? '')} className="hidden" />
-      <p className="text-sm font-medium text-gray-700">Drop the spreadsheet here, or click to choose</p>
-      <p className="mt-1 text-xs text-gray-500">
-        The Excel workbook itself, or a CSV export — either works
-      </p>
+      <p className="text-sm font-medium text-gray-700">Drop the spreadsheet here</p>
+      <p className="mt-1 text-xs text-gray-500">The Excel workbook itself, or a CSV export — either works</p>
+      <button
+        type="button"
+        onClick={e => { e.stopPropagation(); ref.current?.click() }}
+        className="mt-4 inline-flex items-center gap-2 rounded-lg border border-royal-blue bg-royal-blue px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-royal-blue-dark"
+      >
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M3 13v2.5A1.5 1.5 0 0 0 4.5 17h11a1.5 1.5 0 0 0 1.5-1.5V13M10 3v9m0 0L6.5 8.5M10 12l3.5-3.5" />
+        </svg>
+        Browse file…
+      </button>
       {name && <p className="mt-3 inline-block rounded bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-gray-200">{name}</p>}
     </div>
   )
