@@ -114,9 +114,9 @@ export function readSpeciesAvail(f) {
   for (let i = 0; i < otherNames.length; i++) {
     const name = otherNames[i].trim()
     const avail = otherAvails[i]
-    if (name && avail && avail !== '') {
+    if (name) {
       species.push(name)
-      speciesAvail[name] = avail === 'none_set' ? null : avail
+      speciesAvail[name] = avail === 'none_set' || !avail || avail === '' ? null : avail
     }
   }
 
