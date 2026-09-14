@@ -14,8 +14,7 @@ const TEXTURE_WIDTH = 191
 const PANEL_WIDTH = 612
 const NAV_ROW_MAX_WIDTH = 820
 
-// Hero has a separate "Get a Quote" CTA, so Contact Us is excluded
-const navLinks = allNavLinks.filter((l) => l.menu)
+const navLinks = allNavLinks
 
 function SearchIcon() {
   return (
