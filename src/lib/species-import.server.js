@@ -75,19 +75,24 @@ export async function parseUpload(buffer, fileName = '') {
     try { book = XLSX.read(buf, { type: 'buffer' }) }
     catch { throw new Error('That spreadsheet could not be read. Try File → Download → Comma-separated values instead.') }
 
-    // Prefer the species tab; fall back to any sheet with a PRODUCT CODE column.
-    const preferred = book.SheetNames.find((n) => /species/i.test(n))
-    const order = preferred ? [preferred, ...book.SheetNames.filter((n) => n !== preferred)] : book.SheetNames
-
+    // Try every sheet, then prefer the master-layout result over species-layout.
+    // Both tabs coexist in the same workbook; which one comes first in SheetNames
+    // must not determine which layout wins — the master sheet has the category
+    // data and must be used when it is present.
+    const results = []
     let lastError
-    for (const name of order) {
+    for (const name of book.SheetNames) {
       const grid = XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, blankrows: true, defval: '' })
-      try { return parseGrid(grid, { sheetName: name }) }
+      try { results.push(parseGrid(grid, { sheetName: name })) }
       catch (e) { lastError = e }
     }
-    throw new Error(
+    if (!results.length) throw new Error(
       `No sheet in that workbook has a PRODUCT CODE column. Sheets found: ${book.SheetNames.join(', ')}.`,
     )
+    // A master-layout sheet carries category, name, description, price etc.
+    // Prefer it so uploading the full workbook always imports the master list,
+    // not just whichever tab happens to be first.
+    return results.find((r) => r.layout === 'master') ?? results[0]
   }
 
   let text
@@ -575,7 +580,15 @@ export async function analyse(rows, { layout = 'species' } = {}) {
       && present.map((f) => `/uploads/${f}`).join('|') !== (currentImagesById.get(product.id) ?? []).join('|')
     if (imagesWouldChange) summary.willSetImages++
 
-    const hasFieldWork = Object.keys(fields).length > 0 || subsWouldChange || imagesWouldChange
+    // A product that has no primary category yet but the sheet names one.
+    // Counted as field work so the preview does not misreport it as "already correct".
+    const categoryNeedsSet = layout === 'master'
+      && !!p.category
+      && !!categorySlug(p.category)
+      && !product.categorySlug
+      && !product.primaryCategoryId
+
+    const hasFieldWork = Object.keys(fields).length > 0 || subsWouldChange || imagesWouldChange || categoryNeedsSet
 
     // Nothing ticked at all — apply skips these rows too
     if (!allSpecies.length && !p.availability && !p.flex && !hasFieldWork) {
@@ -753,17 +766,13 @@ export async function apply(rows, overrides = {}, options = {}) {
           || (p.imageFiles?.length ?? 0) > 0)
 
     // Species-only import: skip rows where nothing changed.
-    // Master import: the sheet IS the source of truth — always clear stale
-    // species even when nothing is ticked, so removed entries don't linger.
+    // Master import: the sheet IS the source of truth — always process the row
+    // even when nothing is ticked, so stale species are cleared and category/
+    // sub-category assignments still run.
     if (!allSpecies.length && !p.availability && !p.flex && !hasFieldWork) {
       if (layout !== 'master') continue
-      // Master with nothing ticked: clear any stale species and move on.
-      await db.delete(productAttributes).where(eq(productAttributes.productId, product.id))
-      await db.update(products)
-        .set({ flexAvailable: false, updatedAt: new Date() })
-        .where(eq(products.id, product.id))
-      written++
-      continue
+      // Fall through — the master block below clears species and handles
+      // category/sub-category/field assignments.
     }
 
     // Master: always replace species (authoritative source of truth).

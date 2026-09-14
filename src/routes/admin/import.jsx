@@ -435,7 +435,7 @@ export default function Import() {
 
           <p className="rounded-lg bg-gray-50 px-4 py-2 text-xs text-gray-600">
             Read as {data.layout === 'master'
-              ? 'the Master Product List — species, availability, name, description, size, price and unit of measure'
+              ? 'the Master Product List — category, species, availability, name, description, size, price and unit of measure'
               : 'a species sheet — species and availability only'}
             {data.sheetName ? ` (sheet "${data.sheetName}")` : ''}.
           </p>
@@ -557,8 +557,8 @@ export default function Import() {
           {s.willCreate.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-green-200 bg-white">
               <p className="border-b border-green-100 bg-green-50 px-4 py-2 text-xs tracking-wide text-green-800 uppercase">
-                {s.willCreate.length} new product{s.willCreate.length === 1 ? '' : 's'} will be created as drafts
-                <span className="ml-2 normal-case font-normal text-green-600">— set category and publish in the admin after import</span>
+                {s.willCreate.length} new product{s.willCreate.length === 1 ? '' : 's'} will be created
+                <span className="ml-2 normal-case font-normal text-green-600">— published immediately if the sheet names a category, otherwise saved as a draft</span>
               </p>
               <ul>
                 {s.willCreate.slice(0, 40).map((c) => (
@@ -681,7 +681,7 @@ export default function Import() {
           )}
           {r.created > 0 && (
             <p className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-900">
-              New products are set to <strong>Draft</strong> — open each one in the admin to assign a category and publish it to the catalogue.
+              New products with a category are <strong>published immediately</strong>. Any without a category are left as drafts — open them in the admin to assign a category and publish.
             </p>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
