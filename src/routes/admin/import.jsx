@@ -113,43 +113,43 @@ function Stat({ label, value, tone = 'default' }) {
   )
 }
 
-function DropArea() {
-  const ref = useRef(null)
+function DropArea({ fileRef, onFileChange }) {
   const [over, setOver] = useState(false)
   const [name, setName] = useState('')
+
+  function pick(f) {
+    if (!f || !fileRef.current) return
+    const dt = new DataTransfer(); dt.items.add(f)
+    fileRef.current.files = dt.files
+    setName(f.name)
+    onFileChange(f.name)
+  }
 
   return (
     <div
       onDragOver={(e) => { e.preventDefault(); setOver(true) }}
       onDragLeave={() => setOver(false)}
-      onDrop={(e) => {
-        e.preventDefault(); setOver(false)
-        const f = e.dataTransfer?.files?.[0]
-        if (!f || !ref.current) return
-        const dt = new DataTransfer(); dt.items.add(f)
-        ref.current.files = dt.files
-        setName(f.name)
-      }}
-      onClick={() => ref.current?.click()}
-      className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
-        over ? 'border-royal-blue bg-blue-50' : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+      onDrop={(e) => { e.preventDefault(); setOver(false); pick(e.dataTransfer?.files?.[0]) }}
+      onClick={() => fileRef.current?.click()}
+      className={`cursor-pointer rounded-xl border-2 border-dashed px-6 py-8 text-center transition-colors ${
+        over ? 'border-royal-blue bg-blue-50' : 'border-gray-300 bg-gray-50 hover:border-royal-blue/40 hover:bg-white'
       }`}
     >
-      <input ref={ref} type="file" name="file"
+      <input
+        ref={fileRef}
+        type="file"
+        name="file"
         accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        onChange={(e) => setName(e.target.files?.[0]?.name ?? '')} className="hidden" />
+        onChange={(e) => { const f = e.target.files?.[0]; setName(f?.name ?? ''); onFileChange(f?.name ?? '') }}
+        className="hidden"
+      />
       <p className="text-sm font-medium text-gray-700">Drop the spreadsheet here</p>
-      <p className="mt-1 text-xs text-gray-500">The Excel workbook itself, or a CSV export — either works</p>
-      <button
-        type="button"
-        onClick={e => { e.stopPropagation(); ref.current?.click() }}
-        className="mt-4 inline-flex items-center gap-2 rounded-lg border border-royal-blue bg-royal-blue px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-royal-blue-dark"
-      >
-        <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M3 13v2.5A1.5 1.5 0 0 0 4.5 17h11a1.5 1.5 0 0 0 1.5-1.5V13M10 3v9m0 0L6.5 8.5M10 12l3.5-3.5" />
-        </svg>
-        Browse file…
-      </button>
+      <p className="mt-1 text-xs text-gray-500">
+        The Excel workbook itself, or a CSV export — either works,{' '}
+        <button type="button" onClick={e => { e.stopPropagation(); fileRef.current?.click() }} className="text-royal-blue underline">
+          or browse
+        </button>
+      </p>
       {name && <p className="mt-3 inline-block rounded bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-gray-200">{name}</p>}
     </div>
   )
@@ -268,10 +268,12 @@ export default function Import() {
   const [editingCode, setEditingCode] = useState(null)
   const [archiveMissing, setArchiveMissing] = useState(false)
   const [moveCategories, setMoveCategories] = useState(false)
+  const [fileName, setFileName] = useState('')
+  const fileRef = useRef(null)
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-serif text-2xl font-bold text-tundora">Import species sheet</h1>
           <p className="mt-1 text-sm text-gray-500">
@@ -280,15 +282,27 @@ export default function Import() {
             before anything is saved.
           </p>
         </div>
-        <a
-          href="/admin/export-master"
-          className="flex shrink-0 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 hover:text-gray-900"
-        >
-          <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M10 3v10M6 9l4 4 4-4M3 17h14" />
-          </svg>
-          Download Master
-        </a>
+        <div className="flex shrink-0 items-center gap-2">
+          <a
+            href="/admin/export-master"
+            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 hover:text-gray-900"
+          >
+            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M10 3v10M6 9l4 4 4-4M3 17h14" />
+            </svg>
+            Download Master
+          </a>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="flex items-center gap-2 rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark"
+          >
+            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M10 13V4m0 0L6.5 7.5M10 4l3.5 3.5"/><path d="M3 13v2.5A1.5 1.5 0 0 0 4.5 17h11a1.5 1.5 0 0 0 1.5-1.5V13"/>
+            </svg>
+            Upload
+          </button>
+        </div>
       </div>
 
       {data?.error && (
@@ -299,9 +313,11 @@ export default function Import() {
       {(!data || data.error) && (
         <Form method="post" encType="multipart/form-data" className="flex flex-col gap-4">
           <input type="hidden" name="intent" value="preview" />
-          <DropArea />
-          <button disabled={busy}
-            className="w-fit rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
+          <DropArea fileRef={fileRef} onFileChange={setFileName} />
+          <button
+            disabled={busy || !fileName}
+            className="w-fit rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:cursor-not-allowed disabled:opacity-40"
+          >
             {busy ? 'Reading…' : 'Check the file'}
           </button>
         </Form>
