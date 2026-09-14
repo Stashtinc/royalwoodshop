@@ -743,18 +743,29 @@ export async function apply(rows, overrides = {}, options = {}) {
     const product = byCode.get(p.code)
     if (!product) continue
 
-    // A row with nothing ticked is untouched rather than treated as "clear it" —
-    // unless the Master Product List brings other fields with it.
     const allSpecies = speciesOf(p)
     const hasFieldWork = layout === 'master'
       && (Object.values(p.fields ?? {}).some((v) => v !== null && v !== '')
           || (p.subcategories?.length ?? 0) > 0
           || (p.imageFiles?.length ?? 0) > 0)
-    // `parsed` is already de-duplicated by code in analyse(), so each product
-    // is written once per run and the result does not depend on row order.
-    if (!allSpecies.length && !p.availability && !p.flex && !hasFieldWork) continue
 
-    if (allSpecies.length) {
+    // Species-only import: skip rows where nothing changed.
+    // Master import: the sheet IS the source of truth — always clear stale
+    // species even when nothing is ticked, so removed entries don't linger.
+    if (!allSpecies.length && !p.availability && !p.flex && !hasFieldWork) {
+      if (layout !== 'master') continue
+      // Master with nothing ticked: clear any stale species and move on.
+      await db.delete(productAttributes).where(eq(productAttributes.productId, product.id))
+      await db.update(products)
+        .set({ flexAvailable: false, updatedAt: new Date() })
+        .where(eq(products.id, product.id))
+      written++
+      continue
+    }
+
+    // Master: always replace species (authoritative source of truth).
+    // Species-only: only replace when something is ticked.
+    if (layout === 'master' || allSpecies.length) {
       await db.delete(productAttributes).where(eq(productAttributes.productId, product.id))
       for (const s of allSpecies) {
         let vid = valueIds.get(s.name.toLowerCase())
