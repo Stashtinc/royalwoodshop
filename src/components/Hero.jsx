@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useRouteLoaderData } from 'react-router'
 import navCatsJson from '../data/navCategories.json'
+import { navLinks as allNavLinks } from '../data/navMenus'
 import logo from '../assets/images/logo.svg'
 import heroLeft from '../assets/images/hero-left.png'
 import heroRight from '../assets/images/hero-right.jpg'
@@ -13,13 +14,8 @@ const TEXTURE_WIDTH = 191
 const PANEL_WIDTH = 612
 const NAV_ROW_MAX_WIDTH = 820
 
-const navLinks = [
-  { label: 'Products', menu: 'products' },
-  { label: 'Services', menu: 'services' },
-  { label: 'About Royal', menu: 'about' },
-  { label: 'Contact Us', to: '/contact' },
-  { label: 'Resources', menu: 'resources' },
-]
+// Hero has a separate "Get a Quote" CTA, so Contact Us is excluded
+const navLinks = allNavLinks.filter((l) => l.menu)
 
 function SearchIcon() {
   return (

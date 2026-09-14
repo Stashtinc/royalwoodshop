@@ -3,17 +3,10 @@ import { Link, useNavigate } from 'react-router'
 import NavDropdownPanel from './NavDropdownPanel'
 import SearchResultsList from './SearchResultsList'
 import useSiteSearch from '../hooks/useSiteSearch'
-import { servicesMenu, aboutMenu, resourcesMenu } from '../data/navMenus'
+import { navLinks, servicesMenu, aboutMenu, resourcesMenu } from '../data/navMenus'
 import navCatsJson from '../data/navCategories.json'
 import logoBlue from '../assets/images/logo-blue.svg'
 
-const navLinks = [
-  { label: 'Products', to: '/products', menu: 'products' },
-  { label: 'Services', to: '/services', menu: 'services' },
-  { label: 'About Royal', menu: 'about' },
-  { label: 'Contact Us', to: '/contact' },
-  { label: 'Resources', menu: 'resources' },
-]
 
 export default function Header({ navCategories = navCatsJson }) {
   const [menuOpen, setMenuOpen] = useState(false)
