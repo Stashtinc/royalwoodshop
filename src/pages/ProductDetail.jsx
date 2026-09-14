@@ -278,11 +278,20 @@ export default function ProductDetail({ product: productProp = null, related: re
         <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
           <div className="flex flex-col gap-10 lg:flex-row lg:gap-16">
             {/* Image gallery */}
-            {(product.image || product.images?.length > 0) && (
-              <div className="w-full shrink-0 lg:w-[480px]">
-                <Gallery product={product} />
-              </div>
-            )}
+            <div className="w-full shrink-0 lg:w-[480px]">
+              {(product.image || product.images?.length > 0)
+                ? <Gallery product={product} />
+                : (
+                  <div className="flex aspect-[4/3] w-full items-center justify-center rounded-2xl border border-gray-100 bg-gray-50">
+                    <svg width="64" height="64" viewBox="0 0 48 48" fill="none" className="text-gray-300">
+                      <rect x="6" y="10" width="36" height="28" rx="3" stroke="currentColor" strokeWidth="1.5"/>
+                      <circle cx="17" cy="20" r="4" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M6 32l10-8 8 6 6-5 12 9" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                )
+              }
+            </div>
 
             {/* Details */}
             <div className="flex flex-1 flex-col gap-6">

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Link, Form, useActionData, useLoaderData, useSearchParams, useSubmit, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { listProducts, listCategories, bulkArchiveProducts } from '../../lib/admin-queries.server'
+import { listProducts, listCategories, bulkArchiveProducts, bulkPublishProducts } from '../../lib/admin-queries.server'
 import { syncProductsJson } from '../../lib/sync.server'
 import { log } from '../../lib/activity.server'
 import { AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
@@ -36,23 +36,35 @@ export async function action({ request }) {
   const user = await requireUser(request)
   const url = new URL(request.url)
   const f = await request.formData()
-  if (f.get('intent') !== 'bulk-archive') return null
+  const intent = f.get('intent')
+  if (intent !== 'bulk-archive' && intent !== 'bulk-publish') return null
 
-  const count = await bulkArchiveProducts({
+  const filterArgs = {
     q: f.get('q') ?? '',
     missing: f.get('missing') ?? '',
     category: f.get('category') ?? '',
     species: f.get('species') ?? '',
     availability: f.get('availability') ?? '',
-  })
+  }
 
+  if (intent === 'bulk-publish') {
+    const count = await bulkPublishProducts(filterArgs)
+    await log(user, 'product.status', {
+      entityType: 'product',
+      entityLabel: `Bulk publish (${f.get('q') || f.get('category') || 'filter'})`,
+      details: { from: 'draft', to: 'published', count },
+    })
+    await syncProductsJson()
+    return { published: count }
+  }
+
+  const count = await bulkArchiveProducts(filterArgs)
   await log(user, 'product.status', {
     entityType: 'product',
     entityLabel: `Bulk archive (${f.get('q') || 'filter'})`,
     details: { from: 'various', to: 'archived', count },
   })
   await syncProductsJson()
-
   return { archived: count }
 }
 
@@ -133,6 +145,11 @@ export default function Products() {
           {actionData.archived} product{actionData.archived === 1 ? '' : 's'} archived.
         </p>
       )}
+      {actionData?.published != null && (
+        <p className="rounded-lg bg-green-50 px-4 py-2.5 text-sm text-green-800">
+          {actionData.published} product{actionData.published === 1 ? '' : 's'} published.
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-baseline gap-3">
           <h1 className="font-serif text-2xl font-bold text-tundora">Products</h1>
@@ -149,18 +166,32 @@ export default function Products() {
         </div>
         <div className="flex items-center gap-2">
           {q && total > 0 && statusFilter === 'active' && (
-            <Form method="post">
-              <input type="hidden" name="intent" value="bulk-archive" />
-              <input type="hidden" name="q" value={q} />
-              {missing && <input type="hidden" name="missing" value={missing} />}
-              <button
-                type="submit"
-                onClick={(e) => { if (!confirm(`Archive all ${total} matching products?`)) e.preventDefault() }}
-                className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:border-red-400 hover:bg-red-50"
-              >
-                Archive all {total}
-              </button>
-            </Form>
+            <>
+              <Form method="post">
+                <input type="hidden" name="intent" value="bulk-publish" />
+                <input type="hidden" name="q" value={q} />
+                {missing && <input type="hidden" name="missing" value={missing} />}
+                <button
+                  type="submit"
+                  onClick={(e) => { if (!confirm(`Publish all ${total} matching products?`)) e.preventDefault() }}
+                  className="rounded-lg border border-green-300 px-4 py-2 text-sm font-medium text-green-700 hover:border-green-500 hover:bg-green-50"
+                >
+                  Publish all {total}
+                </button>
+              </Form>
+              <Form method="post">
+                <input type="hidden" name="intent" value="bulk-archive" />
+                <input type="hidden" name="q" value={q} />
+                {missing && <input type="hidden" name="missing" value={missing} />}
+                <button
+                  type="submit"
+                  onClick={(e) => { if (!confirm(`Archive all ${total} matching products?`)) e.preventDefault() }}
+                  className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:border-red-400 hover:bg-red-50"
+                >
+                  Archive all {total}
+                </button>
+              </Form>
+            </>
           )}
           <Link
             to="/admin/products/new"

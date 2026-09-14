@@ -42,7 +42,7 @@ for (const [from, to] of PAGES) {
 lines.push('', `# ${rows.length} product redirects across four legacy URL patterns`)
 let skipped = 0
 for (const r of rows) {
-  const from = r.from_path.replace(/\/$/, '')
+  const from = r.from_path.replace(/\/$/, '').replace(/ /g, '%20')
   const to = r.to_path.replace(/\/$/, '')
   if (!from || from === to || seen.has(from)) { skipped++; continue }
   seen.add(from)

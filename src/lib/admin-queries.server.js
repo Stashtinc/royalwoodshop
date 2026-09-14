@@ -169,6 +169,33 @@ export async function bulkArchiveProducts({ q = '', missing = '', category = '',
   return ids.length
 }
 
+/** Publishes every product matching the given search/filter (ignores pagination — affects all). */
+export async function bulkPublishProducts({ q = '', missing = '', category = '', species = '', availability = '' } = {}) {
+  const db = await getDb()
+  const where = [sql`${products.status} != 'published'`]
+  if (q.trim()) {
+    where.push(or(
+      ilike(products.name, `%${q.trim()}%`),
+      ilike(products.productCode, `%${q.trim()}%`),
+      ilike(products.slug, `%${q.trim()}%`),
+    ))
+  }
+  if (category) where.push(ilike(categories.name, category))
+
+  const matched = await db
+    .select({ id: products.id })
+    .from(products)
+    .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
+    .where(and(...where))
+
+  if (!matched.length) return 0
+  const ids = matched.map(r => r.id)
+  await db.update(products)
+    .set({ status: 'published', publishedAt: new Date(), updatedAt: new Date() })
+    .where(inArray(products.id, ids))
+  return ids.length
+}
+
 export async function getProduct(id) {
   const db = await getDb()
   const [row] = await db.select({
