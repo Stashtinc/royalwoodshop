@@ -25,6 +25,7 @@ export async function loader({ request }) {
       availability: url.searchParams.get('availability') ?? '',
       sortBy: url.searchParams.get('sortBy') ?? 'code',
       sortDir: url.searchParams.get('sortDir') === 'desc' ? 'desc' : 'asc',
+      status: url.searchParams.get('status') === 'archived' ? 'archived' : 'active',
     }),
     listCategories(),
   ])
@@ -67,6 +68,7 @@ export default function Products() {
   const [params] = useSearchParams()
   const missing = params.get('missing') ?? ''
   const q = params.get('q') ?? ''
+  const statusFilter = params.get('status') === 'archived' ? 'archived' : 'active'
   const savedRowRef = useRef(null)
 
   useEffect(() => {
@@ -138,9 +140,15 @@ export default function Products() {
             {total} {missing ? MISSING_LABEL[missing] : 'total'}
           </p>
           {missing && <Link to="/admin/products" className="text-sm text-royal-blue underline">clear filter</Link>}
+          <Link
+            to={statusFilter === 'archived' ? '/admin/products' : '?status=archived'}
+            className="text-sm text-gray-400 hover:text-gray-600"
+          >
+            {statusFilter === 'archived' ? '← Active products' : 'View archived'}
+          </Link>
         </div>
         <div className="flex items-center gap-2">
-          {q && total > 0 && (
+          {q && total > 0 && statusFilter === 'active' && (
             <Form method="post">
               <input type="hidden" name="intent" value="bulk-archive" />
               <input type="hidden" name="q" value={q} />

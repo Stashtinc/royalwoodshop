@@ -70,9 +70,14 @@ export async function saveProductCategories(productId, { primaryCategoryId, cate
   }
 }
 
-export async function listProducts({ q = '', page = 1, perPage = 25, missing = '', category = '', species = '', availability = '', sortBy = 'code', sortDir = 'asc' } = {}) {
+export async function listProducts({ q = '', page = 1, perPage = 25, missing = '', category = '', species = '', availability = '', sortBy = 'code', sortDir = 'asc', status = 'active' } = {}) {
   const db = await getDb()
   const where = []
+  // Default: hide archived. Pass status='all' or status='archived' to see them.
+  if (status === 'active') where.push(sql`${products.status} != 'archived'`)
+  else if (status === 'archived') where.push(eq(products.status, 'archived'))
+  // status='all' → no filter
+
   if (q.trim()) {
     where.push(or(
       ilike(products.name, `%${q.trim()}%`),
