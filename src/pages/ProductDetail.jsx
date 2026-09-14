@@ -124,10 +124,12 @@ function RelatedCard({ product }) {
             <span className="font-medium text-gray-700">Product Code </span>
             {product.productCode}
           </p>
-          <p>
-            <span className="font-medium text-gray-700">Size </span>
-            {product.size}
-          </p>
+          {product.size && (
+            <p>
+              <span className="font-medium text-gray-700">Size </span>
+              {product.size}
+            </p>
+          )}
         </div>
       </div>
     </Link>

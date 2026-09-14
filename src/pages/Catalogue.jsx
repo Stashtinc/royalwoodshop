@@ -232,10 +232,12 @@ function ProductCard({ product }) {
             <span className="font-medium text-gray-700">Product Code </span>
             {product.productCode}
           </p>
-          <p>
-            <span className="font-medium text-gray-700">Size </span>
-            {product.size}
-          </p>
+          {product.size && (
+            <p>
+              <span className="font-medium text-gray-700">Size </span>
+              {product.size}
+            </p>
+          )}
           {product.price != null && (
             <p className="mt-1 font-sans text-sm font-semibold text-tundora">
               {product.salePrice != null ? (
@@ -294,10 +296,12 @@ function ProductRow({ product }) {
             <span className="font-medium text-gray-700">Product Code </span>
             {product.productCode}
           </p>
-          <p>
-            <span className="font-medium text-gray-700">Size </span>
-            {product.size}
-          </p>
+          {product.size && (
+            <p>
+              <span className="font-medium text-gray-700">Size </span>
+              {product.size}
+            </p>
+          )}
           {product.availability
             ? <AvailabilityPill availability={product.availability} />
             : product.material && (
