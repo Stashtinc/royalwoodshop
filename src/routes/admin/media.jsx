@@ -67,7 +67,7 @@ export async function loader({ request }) {
     const base = fullPath.replace(ext, '')
     const variants = [320, 400, 640, 800].filter(size => existsSync(`${base}-${size}${ext}`))
     const stem = item.name.replace(/\.(webp|jpe?g|jpg|png)$/i, '')
-    const usedIn = (imageMap.get(stem) ?? []).map(p => ({ name: p.name, slug: p.slug, category: p.category })).slice(0, 10)
+    const usedIn = (imageMap.get(stem) ?? []).map(p => ({ name: p.name, slug: p.slug, categorySlug: p.categorySlug })).slice(0, 10)
     return { detail: { ...item, size: s.size, mtime: s.mtime.toISOString(), variants, usedIn } }
   }
 
@@ -318,7 +318,10 @@ function DetailPanel({ item, onClose }) {
               <ul className="space-y-1">
                 {detail.usedIn.map(p => (
                   <li key={p.slug} className="flex items-center gap-1">
-                    <a href={`/admin/products/${p.slug}`} className="text-xs text-royal-blue hover:underline truncate">{p.name}</a>
+                    {p.categorySlug
+                      ? <a href={`/products/${p.categorySlug}/${p.slug}`} target="_blank" rel="noreferrer" className="text-xs text-royal-blue hover:underline truncate">{p.name}</a>
+                      : <span className="text-xs text-gray-600 truncate">{p.name}</span>
+                    }
                   </li>
                 ))}
               </ul>

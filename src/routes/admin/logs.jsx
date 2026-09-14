@@ -366,13 +366,17 @@ export default function Logs() {
                         ×{row.group.length}
                       </span>
                     )}
-                    {row.entityLabel && !row.group && (
-                      row.entityId
-                        ? <Link to={`/admin/products/${row.entityId}`} className="truncate text-sm font-medium text-tundora hover:text-royal-blue">
+                    {row.entityLabel && !row.group && (() => {
+                      const adminPath =
+                        row.entityId && row.entityType === 'product' ? `/admin/products/${row.entityId}`
+                        : row.entityId && row.entityType === 'post' ? `/admin/posts/${row.entityId}`
+                        : null
+                      return adminPath
+                        ? <Link to={adminPath} className="truncate text-sm font-medium text-tundora hover:text-royal-blue">
                             {row.entityLabel}
                           </Link>
                         : <span className="truncate text-sm font-medium text-tundora">{row.entityLabel}</span>
-                    )}
+                    })()}
                   </div>
                   {describe(row)}
                 </div>

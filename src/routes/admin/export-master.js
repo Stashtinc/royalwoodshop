@@ -11,9 +11,10 @@ const AVAIL_TICK = { in_stock: 'S', quick_ship: 'QS', made_to_order: 'MO' }
 const tick = (v) => AVAIL_TICK[v] ?? ''
 
 // Column order exactly as the master workbook: Flex sits between PVC and Steel.
-const SPECIES_BEFORE_FLEX = SPECIES.slice(0, SPECIES.indexOf('Steel'))  // up to and including PVC
-const SPECIES_AFTER_FLEX = SPECIES.slice(SPECIES.indexOf('Steel'))       // Steel, Plastic
+const SPECIES_BEFORE_FLEX = SPECIES.slice(0, SPECIES.indexOf('Steel'))
+const SPECIES_AFTER_FLEX  = SPECIES.slice(SPECIES.indexOf('Steel'))
 
+// Header labels exactly as the original workbook
 const HEADERS = [
   'image name', 'Code', 'Product\n Name', '\n Category', 'type\nsub-cat',
   'Size', 'Description', 'Availability', 'Price',
@@ -21,12 +22,25 @@ const HEADERS = [
   ...SPECIES_BEFORE_FLEX, 'Flex', ...SPECIES_AFTER_FLEX, 'Other',
 ]
 
+// Column widths from the original workbook (in characters)
+const COL_WIDTHS = [
+  22, 16, 34, 19, 18, 20, 58, 12, 9, 12,
+  6.51, 6.51, 6.51, 6.51, 6.51, 6.51, 6.51,
+  6.51, 6.51, 6.51, 6.51, 6.51, 6.51, 6.51,
+  6.51, 6.51, 6.51, 22,
+]
+
+// Cell styles matching the original header row
+const HDR_FILL_DEFAULT = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F3864' } }
+const HDR_FILL_OTHER   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7C7AC' } }
+const HDR_FONT = { bold: true, size: 9, color: { argb: 'FFFFFFFF' }, name: 'Arial' }
+const HDR_ALIGNMENT = { horizontal: 'center', vertical: 'bottom', wrapText: true }
+
 export async function loader({ request }) {
   await requireUser(request)
 
   const db = await getDb()
 
-  // Products with their primary category
   const rows = await db
     .select({
       id: products.id,
@@ -50,7 +64,6 @@ export async function loader({ request }) {
 
   const ids = rows.map((r) => r.id)
 
-  // Sub-categories (linked categories that have a parent)
   const subRows = await db
     .select({ productId: productCategories.productId, subName: categories.name })
     .from(productCategories)
@@ -63,7 +76,6 @@ export async function loader({ request }) {
     subsByProduct.get(productId).push(subName)
   }
 
-  // Per-species availability
   const speciesRows = await db
     .select({
       productId: productAttributes.productId,
@@ -81,12 +93,43 @@ export async function loader({ request }) {
     speciesByProduct.get(productId).set(speciesName, availability)
   }
 
-  // Build rows
-  const data = rows.map((p) => {
+  const ExcelJS = (await import('exceljs')).default
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('Master Product List')
+
+  // Freeze columns A-B and row 1 (matches the original view settings)
+  ws.views = [{
+    state: 'frozen',
+    xSplit: 2,
+    ySplit: 1,
+    topLeftCell: 'C2',
+    activeCell: 'A1',
+  }]
+
+  // Column widths
+  COL_WIDTHS.forEach((width, i) => { ws.getColumn(i + 1).width = width })
+
+  // Header row with full original styling
+  const hdrRow = ws.addRow(HEADERS)
+  hdrRow.height = 45.75
+  hdrRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+    cell.fill      = colNum === HEADERS.length ? HDR_FILL_OTHER : HDR_FILL_DEFAULT
+    cell.font      = { ...HDR_FONT, ...(colNum === HEADERS.length ? { color: { argb: 'FF000000' } } : {}) }
+    cell.alignment = HDR_ALIGNMENT
+    cell.border    = {
+      top:    { style: 'thin', color: { argb: 'FF000000' } },
+      bottom: { style: 'thin', color: { argb: 'FF000000' } },
+      left:   { style: 'thin', color: { argb: 'FF000000' } },
+      right:  { style: 'thin', color: { argb: 'FF000000' } },
+    }
+  })
+
+  // Data rows
+  for (const p of rows) {
     const subs = subsByProduct.get(p.id) ?? []
-    const sp = speciesByProduct.get(p.id) ?? new Map()
-    return [
-      '',                              // image name — not stored in DB
+    const sp   = speciesByProduct.get(p.id) ?? new Map()
+    ws.addRow([
+      '',
       p.productCode ?? '',
       p.name ?? '',
       p.categoryName ?? '',
@@ -97,47 +140,20 @@ export async function loader({ request }) {
       p.price ?? '',
       p.uom ?? '',
       ...SPECIES_BEFORE_FLEX.map((s) => tick(sp.get(s))),
-      p.flexAvailable ? 'X' : '',     // Flex column
+      p.flexAvailable ? 'X' : '',
       ...SPECIES_AFTER_FLEX.map((s) => tick(sp.get(s))),
-      '',                              // Other — free-text on the sheet, not stored
-    ]
-  })
-
-  // Category reference sheet — all top-level categories with their sub-categories
-  const allCats = await db
-    .select({ id: categories.id, name: categories.name, parentId: categories.parentId })
-    .from(categories)
-    .orderBy(asc(categories.sortOrder), asc(categories.name))
-
-  const subsByCatId = new Map()
-  for (const c of allCats.filter((c) => c.parentId)) {
-    if (!subsByCatId.has(c.parentId)) subsByCatId.set(c.parentId, [])
-    subsByCatId.get(c.parentId).push(c.name)
+      '',
+    ])
   }
-  const catRefRows = allCats
-    .filter((c) => !c.parentId)
-    .flatMap((c) => {
-      const subs = subsByCatId.get(c.id) ?? []
-      if (!subs.length) return [[c.name, '']]
-      return subs.map((s) => [c.name, s])
-    })
 
-  const XLSX = (await import('xlsx')).default
-  const wb = XLSX.utils.book_new()
-  const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...data])
+  // Autofilter on the header row
+  ws.autoFilter = {
+    from: { row: 1, column: 1 },
+    to:   { row: rows.length + 1, column: HEADERS.length },
+  }
 
-  // Freeze the header row so Brad can scroll without losing the column names
-  ws['!views'] = [{ state: 'frozen', ySplit: 1 }]
-
-  XLSX.utils.book_append_sheet(wb, ws, 'Master Product List')
-
-  const wsCats = XLSX.utils.aoa_to_sheet([['Category', 'Sub-Category'], ...catRefRows])
-  wsCats['!views'] = [{ state: 'frozen', ySplit: 1 }]
-  wsCats['!cols'] = [{ wch: 30 }, { wch: 30 }]
-  XLSX.utils.book_append_sheet(wb, wsCats, 'Categories')
-
-  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' })
-  const now = new Date()
+  const buf = await wb.xlsx.writeBuffer()
+  const now  = new Date()
   const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
   return new Response(buf, {

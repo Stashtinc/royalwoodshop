@@ -3,6 +3,7 @@ import { Form, Link, useActionData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { parseUpload, analyse, apply } from '../../lib/species-import.server'
 import { log } from '../../lib/activity.server'
+import { syncProductsJson } from '../../lib/sync.server'
 import { SPECIES, AVAILABILITY, AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
 
 export async function loader({ request }) {
@@ -91,7 +92,10 @@ export async function action({ request }) {
       },
     })
 
-    return { stage: 'done', result }
+    let syncError = null
+    try { await syncProductsJson() } catch (e) { syncError = e.message }
+
+    return { stage: 'done', result, syncError }
   }
 
   return { error: 'Unrecognised action.' }
@@ -676,7 +680,14 @@ export default function Import() {
           <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-900">
             Done. {r.written} product{r.written === 1 ? '' : 's'} updated
             {r.created > 0 && `, ${r.created} new product${r.created === 1 ? '' : 's'} created as drafts`}.
+            {!data.syncError && ' Site data synced — changes are live.'}
           </p>
+          {data.syncError && (
+            <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Database updated, but syncing products.json failed: {data.syncError}.
+              Run <code className="rounded bg-amber-100 px-1">npm run sync:data</code> to apply changes to the public site.
+            </p>
+          )}
           {r.created > 0 && (
             <p className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-900">
               New products are set to <strong>Draft</strong> — open each one in the admin to assign a category and publish it to the catalogue.
