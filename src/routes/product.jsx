@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { useLoaderData } from 'react-router'
 import ProductDetail from '../pages/ProductDetail'
 import { catalogueProducts } from '../data/catalogue'
@@ -10,7 +12,10 @@ const AVAIL_SCHEMA = {
 }
 
 export function loader({ params }) {
-  const all = catalogueProducts
+  let all = catalogueProducts
+  try {
+    all = JSON.parse(readFileSync(resolve('src/data/products.json'), 'utf8'))
+  } catch {}
   const product = all.find((p) => p.slug === params.slug)
   if (!product || product.categorySlug !== params.category) {
     throw new Response('Not found', { status: 404 })
