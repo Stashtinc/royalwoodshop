@@ -32,7 +32,9 @@ export function srcSet(storageKey, originalWidth) {
 /** Small enough for a thumbnail, without downloading the full image. */
 export function thumbSrc(storageKey, originalWidth) {
   if (!isLocal(storageKey) || storageKey.endsWith('.svg')) return storageKey
-  return !originalWidth || originalWidth >= 320 ? variantPath(storageKey, 320) : storageKey
+  // No recorded width means no variants were generated — use the original file.
+  if (!originalWidth) return storageKey
+  return originalWidth >= 320 ? variantPath(storageKey, 320) : storageKey
 }
 
 
