@@ -6,15 +6,14 @@ import { useRef, useState } from 'react'
  * Wraps a plain multiple file input, so it still works if JavaScript fails —
  * the drag-and-drop behaviour is an enhancement, not the mechanism.
  */
-export default function ImageDropZone({ name = 'images', hint, onHasFiles }) {
+export default function ImageDropZone({ name = 'images', hint }) {
   const inputRef = useRef(null)
   const [over, setOver] = useState(false)
   const [picked, setPicked] = useState([])
 
-  const describe = (files) => {
-    const names = [...files].map((f) => f.name)
-    setPicked(names)
-    onHasFiles?.(names.length > 0)
+  const submit = (files) => {
+    setPicked([...files].map((f) => f.name))
+    if (files.length) inputRef.current?.form?.requestSubmit()
   }
 
   function onDrop(e) {
@@ -22,11 +21,10 @@ export default function ImageDropZone({ name = 'images', hint, onHasFiles }) {
     setOver(false)
     const dropped = e.dataTransfer?.files
     if (!dropped?.length || !inputRef.current) return
-    // Hand the dropped files to the real input so a normal submit carries them.
     const dt = new DataTransfer()
     for (const f of dropped) if (f.type.startsWith('image/')) dt.items.add(f)
     inputRef.current.files = dt.files
-    describe(dt.files)
+    submit(dt.files)
   }
 
   return (
@@ -45,7 +43,7 @@ export default function ImageDropZone({ name = 'images', hint, onHasFiles }) {
         name={name}
         multiple
         accept="image/jpeg,image/png,image/webp,image/avif,image/svg+xml"
-        onChange={(e) => describe(e.target.files)}
+        onChange={(e) => submit(e.target.files)}
         className="hidden"
       />
       <p className="text-sm font-medium text-gray-700">Drag photos here, or click to choose</p>
