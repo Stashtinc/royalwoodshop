@@ -147,13 +147,11 @@ function shape(r) {
     categorySlug: catSlug,
     categories: categoryNames.length ? categoryNames : [CATEGORY_NAMES[catSlug]],
     /** {category, sub} pairs — a sub always carries its own parent. */
-    placements: placements.length
-      ? placements
-      : [{ category: CATEGORY_NAMES[catSlug], sub: 'Other' }],
+    placements,
     // `subcategory` stays as the single label for a breadcrumb or a card;
     // `subcategories` is the full set, kept for anything reading the old shape.
-    subcategories: subcategories.length ? subcategories : ['Other'],
-    subcategory: subcategories[0] || 'Other',
+    subcategories,
+    subcategory: subcategories[0] ?? null,
     size: r.sizeDisplay ?? '',
     sizeCategory: SIZE_BAND(width),
     thicknessIn: r.thicknessIn == null ? null : Number(r.thicknessIn),

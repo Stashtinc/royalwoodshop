@@ -474,7 +474,14 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
       // Availability is per species, so a profile in stock in poplar and made
       // to order in walnut answers to both filters.
       if (availability !== 'All' && !availabilityKeys(product).includes(availability)) return false
-      if (!subKeysOf(product).some((key) => selectedSubs.has(key))) return false
+      const productSubKeys = subKeysOf(product)
+      if (productSubKeys.length > 0) {
+        if (!productSubKeys.some((key) => selectedSubs.has(key))) return false
+      } else {
+        // Product has no sub-category — show it whenever its top-level category is selected
+        const cats = new Set(catsOf(product))
+        if (![...selectedSubs].some((k) => cats.has(k.split('::')[0]))) return false
+      }
       return true
     })
   }, [allProducts, search, productCode, sizeCategory, species, availability, selectedSubs])
