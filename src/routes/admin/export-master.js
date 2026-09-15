@@ -1,4 +1,4 @@
-import { eq, asc, and, inArray, isNotNull } from 'drizzle-orm'
+import { eq, asc, and, inArray, isNotNull, ne } from 'drizzle-orm'
 import { requireUser } from '../../lib/auth.server'
 import { getDb } from '../../lib/db.server.js'
 import {
@@ -56,6 +56,7 @@ export async function loader({ request }) {
     })
     .from(products)
     .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
+    .where(ne(products.status, 'archived'))
     .orderBy(asc(categories.name), asc(products.productCode), asc(products.name))
 
   if (!rows.length) {

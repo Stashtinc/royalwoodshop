@@ -410,11 +410,10 @@ export default function Import() {
           {s.removed.length > 0 && (
             <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               <p className="font-medium">
-                {s.removed.length} product{s.removed.length === 1 ? '' : 's'} dropped out of the
-                sheet since the last import
-                {s.previousImportAt
-                  ? ` (${new Date(s.previousImportAt).toLocaleDateString('en-CA')})`
-                  : ''}
+                {s.removed.length} product{s.removed.length === 1 ? '' : 's'}{' '}
+                {s.layout === 'master'
+                  ? 'not in the master sheet'
+                  : `dropped out of the sheet since the last import${s.previousImportAt ? ` (${new Date(s.previousImportAt).toLocaleDateString('en-CA')})` : ''}`}
                 .
               </p>
               <ul className="mt-2 max-h-48 overflow-y-auto text-xs">

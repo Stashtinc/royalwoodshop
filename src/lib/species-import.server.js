@@ -217,23 +217,35 @@ async function previousCodes(db) {
 }
 
 /**
- * Rows Royal Wood Shop have taken OUT of the sheet since last time.
+ * Published products that are no longer (or never were) in the sheet.
  *
- * Deliberately not "every product missing from the sheet": the sheet covers
- * 473 of 533 products and never has covered the rest, so absence on its own
- * says nothing. Only a code that was on the previous sheet and is not on this
- * one counts as a removal.
+ * Master layout: the sheet IS the complete catalogue — any published product
+ * whose code is absent is one that should be archived, full stop. No baseline
+ * required; we compare against every published product in the DB.
  *
- * Those removals split two ways, and both need saying:
+ * Species-only layout: we only have a partial sheet, so absence alone says
+ * nothing. Only a code that was on the *previous* species sheet and is gone
+ * from this one counts as a removal.
  *
- *   `products`  — a live product sits behind the code, so removing the row is
- *                 a decision about the catalogue and can be acted on.
- *   `orphans`   — no product was ever created for it. Nothing to archive, but
- *                 silence is the wrong answer: the seven KP- knotty pine
- *                 boards left the sheet in the same pass that asked for a
- *                 Knotty Pine column, and nobody would have seen it.
+ * Both cases split into:
+ *   `products`  — a published product sits behind the code; it can be archived.
+ *   `orphans`   — no product was ever created for the code; nothing to archive,
+ *                 but the removal is still worth reporting.
  */
-async function findRemoved(db, previous, current) {
+async function findRemoved(db, previous, current, { layout = 'species' } = {}) {
+  if (layout === 'master') {
+    // Master is the source of truth for the full catalogue — archive every
+    // published product whose code is not in the sheet.
+    const allPublished = await db
+      .select({ id: products.id, code: products.productCode, name: products.name, status: products.status })
+      .from(products)
+      .where(eq(products.status, 'published'))
+    return {
+      products: allPublished.filter((r) => r.code && !current.has(r.code)),
+      orphans: [],
+    }
+  }
+
   if (!previous) return { products: [], orphans: [] }
   const gone = [...previous.codes].filter((c) => !current.has(c))
   if (!gone.length) return { products: [], orphans: [] }
@@ -368,7 +380,7 @@ export async function analyse(rows, { layout = 'species' } = {}) {
 
   const sheetCodes = new Set(parsed.map((p) => p.code))
   const previous = await previousCodes(db)
-  const { products: removed, orphans: removedOrphans } = await findRemoved(db, previous, sheetCodes)
+  const { products: removed, orphans: removedOrphans } = await findRemoved(db, previous, sheetCodes, { layout })
 
   const codes = [...new Set(parsed.map((p) => p.code))]
   const found = codes.length
@@ -473,7 +485,7 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     /** Dropped rows with no product behind them: nothing to archive, but they
      *  are still Royal Wood Shop telling us something. */
     removedOrphans,
-    hasBaseline: Boolean(previous),
+    hasBaseline: layout === 'master' || Boolean(previous),
     previousImportAt: previous?.at ?? null,
     sheetCodes: [...sheetCodes],
     badCodes: [],
