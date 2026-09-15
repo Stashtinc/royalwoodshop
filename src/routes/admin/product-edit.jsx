@@ -163,7 +163,7 @@ export async function action({ request, params }) {
     }
   }
 
-  return redirect(`/admin/products?saved=${params.id}`)
+  return redirect(`/admin/products?saved=${params.id}&sortBy=updated&sortDir=desc`)
 }
 
 const field = 'rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue'

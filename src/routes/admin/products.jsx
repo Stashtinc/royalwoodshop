@@ -23,7 +23,7 @@ export async function loader({ request }) {
       category: url.searchParams.get('category') ?? '',
       species: url.searchParams.get('species') ?? '',
       availability: url.searchParams.get('availability') ?? '',
-      sortBy: url.searchParams.get('sortBy') ?? 'id',
+      sortBy: url.searchParams.get('sortBy') ?? 'updated',
       sortDir: url.searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc',
       status: url.searchParams.get('status') === 'archived' ? 'archived' : 'active',
     }),
@@ -80,6 +80,7 @@ export default function Products() {
   const [params] = useSearchParams()
   const missing = params.get('missing') ?? ''
   const q = params.get('q') ?? ''
+  const category = params.get('category') ?? ''
   const statusFilter = params.get('status') === 'archived' ? 'archived' : 'active'
   const savedRowRef = useRef(null)
 
@@ -154,9 +155,8 @@ export default function Products() {
         <div className="flex flex-wrap items-baseline gap-3">
           <h1 className="font-serif text-2xl font-bold text-tundora">Products</h1>
           <p className="text-sm text-gray-500">
-            {total} {missing ? MISSING_LABEL[missing] : 'total'}
+            {total} total
           </p>
-          {missing && <Link to="/admin/products" className="text-sm text-royal-blue underline">clear filter</Link>}
           <Link
             to={statusFilter === 'archived' ? '/admin/products' : '?status=archived'}
             className="text-sm text-gray-400 hover:text-gray-600"
@@ -177,9 +177,8 @@ export default function Products() {
         </div>
       </div>
 
-      <Form id="products-filter" method="get" role="search" className="flex max-w-md gap-2">
-        {missing && <input type="hidden" name="missing" value={missing} />}
-        <div className="relative flex-1">
+      <Form id="products-filter" method="get" role="search" className="flex flex-wrap gap-2">
+        <div className="relative min-w-64 flex-1">
           <input
             ref={inputRef}
             name="q"
@@ -204,7 +203,28 @@ export default function Products() {
             </svg>
           )}
         </div>
-        {/* Still works without JavaScript. */}
+        <select
+          name="category"
+          defaultValue={category}
+          onChange={(e) => submit(e.currentTarget.form, { replace: true })}
+          className="rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-royal-blue"
+        >
+          <option value="">All categories</option>
+          {categoryOptions.map((c) => (
+            <option key={c.id} value={c.name}>{c.name}</option>
+          ))}
+        </select>
+        <select
+          name="missing"
+          defaultValue={missing}
+          onChange={(e) => submit(e.currentTarget.form, { replace: true })}
+          className="rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-royal-blue"
+        >
+          <option value="">All products</option>
+          <option value="species">Missing species</option>
+          <option value="availability">Missing availability</option>
+          <option value="description">Missing description</option>
+        </select>
         <noscript>
           <button className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm hover:border-gray-400">Search</button>
         </noscript>
