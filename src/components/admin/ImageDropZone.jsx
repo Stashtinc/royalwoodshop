@@ -46,7 +46,7 @@ export default function ImageDropZone({ name = 'images', hint }) {
         onChange={(e) => submit(e.target.files)}
         className="hidden"
       />
-      <p className="text-sm font-medium text-gray-700">Drag photos here, or click to choose</p>
+      <p className="text-sm font-medium text-gray-700">Drag photos here, or <span className="text-royal-blue underline">click to choose</span></p>
       {hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
       {picked.length > 0 && (
         <ul className="mt-3 flex flex-wrap justify-center gap-2">
