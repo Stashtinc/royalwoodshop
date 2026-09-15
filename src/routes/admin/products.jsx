@@ -221,6 +221,8 @@ export default function Products() {
           className="rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-royal-blue"
         >
           <option value="">All products</option>
+          <option value="has_image">Has image</option>
+          <option value="no_image">No image</option>
           <option value="species">Missing species</option>
           <option value="availability">Missing availability</option>
           <option value="description">Missing description</option>

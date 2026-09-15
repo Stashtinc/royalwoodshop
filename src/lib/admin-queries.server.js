@@ -88,6 +88,8 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
   if (missing === 'species') where.push(sql`${speciesSubquery} = '{}'`)
   if (missing === 'availability') where.push(sql`${products.availability} is null`)
   if (missing === 'description') where.push(sql`(${products.description} is null or ${products.description} = '')`)
+  if (missing === 'no_image') where.push(sql`not exists (select 1 from product_images pi where pi.product_id = ${products.id})`)
+  if (missing === 'has_image') where.push(sql`exists (select 1 from product_images pi where pi.product_id = ${products.id})`)
   if (category) where.push(ilike(categories.name, category))
   if (species) where.push(sql`${speciesSubquery}::text[] @> array[${species}]::text[]`)
   if (availability) where.push(eq(products.availability, availability))
