@@ -4,7 +4,7 @@ import { requireUser } from '../../lib/auth.server'
 import { listProducts, listCategories, bulkArchiveProducts, bulkPublishProducts } from '../../lib/admin-queries.server'
 import { syncProductsJson } from '../../lib/sync.server'
 import { log } from '../../lib/activity.server'
-import { AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
+import { AVAILABILITY_LABEL, SPECIES } from '../../lib/catalogue-constants'
 import { thumbSrc } from '../../lib/images'
 import Pagination from '../../components/admin/Pagination'
 
@@ -78,9 +78,9 @@ export default function Products() {
   const { rows, total, page, pages, perPage, categoryOptions, sortBy, sortDir, savedId } = useLoaderData()
   const actionData = useActionData()
   const [params] = useSearchParams()
-  const missing = params.get('missing') ?? ''
   const q = params.get('q') ?? ''
   const category = params.get('category') ?? ''
+  const species = params.get('species') ?? ''
   const statusFilter = params.get('status') === 'archived' ? 'archived' : 'active'
   const savedRowRef = useRef(null)
 
@@ -209,23 +209,21 @@ export default function Products() {
           onChange={(e) => submit(e.currentTarget.form, { replace: true })}
           className="rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-royal-blue"
         >
-          <option value="">All categories</option>
+          <option value="">All types</option>
           {categoryOptions.map((c) => (
             <option key={c.id} value={c.name}>{c.name}</option>
           ))}
         </select>
         <select
-          name="missing"
-          defaultValue={missing}
+          name="species"
+          defaultValue={species}
           onChange={(e) => submit(e.currentTarget.form, { replace: true })}
           className="rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-royal-blue"
         >
-          <option value="">All products</option>
-          <option value="has_image">Has image</option>
-          <option value="no_image">No image</option>
-          <option value="species">Missing species</option>
-          <option value="availability">Missing availability</option>
-          <option value="description">Missing description</option>
+          <option value="">All species</option>
+          {SPECIES.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
         </select>
         <noscript>
           <button className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm hover:border-gray-400">Search</button>
