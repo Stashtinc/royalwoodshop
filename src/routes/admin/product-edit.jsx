@@ -32,7 +32,7 @@ export async function action({ request, params }) {
   const intent = String(f.get('intent') ?? 'details')
 
   if (intent === 'upload') {
-    const files = f.getAll('images').filter((x) => typeof x !== 'string')
+    const files = f.getAll('images').filter((x) => typeof x !== 'string' && x.size > 0)
     if (!files.length) return { error: 'No files were selected.' }
     const product = await getProduct(params.id)
     const errors = []
@@ -181,6 +181,7 @@ const ROLE_LABEL = {
 
 function ImagesSection() {
   const { product, images, limits } = useLoaderData()
+  const [hasFiles, setHasFiles] = useState(false)
 
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
@@ -256,8 +257,12 @@ function ImagesSection() {
         <input type="hidden" name="intent" value="upload" />
         <ImageDropZone
           hint={`JPG, PNG, WebP, AVIF or SVG · up to ${limits.maxMb} MB each · several at once`}
+          onHasFiles={setHasFiles}
         />
-        <button className="w-fit rounded-lg bg-royal-blue px-5 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark">
+        <button
+          disabled={!hasFiles}
+          className="w-fit rounded-lg bg-royal-blue px-5 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:cursor-not-allowed disabled:opacity-40"
+        >
           Upload
         </button>
       </Form>
