@@ -43,7 +43,10 @@
       "Bash(netlify status *)",
       "Bash(netlify sites:list)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('scripts',{}\\), indent=2\\)\\)\")",
-      "Bash(chmod +x *)"
+      "Bash(chmod +x *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,'=',v[:80]\\) for k,v in d.items\\(\\) if 'DATABASE' in k or 'POSTGRES' in k.upper\\(\\)]\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.items\\(\\) if 'PUBLIC' in k.upper\\(\\) or 'postgres' in v.lower\\(\\)}, indent=2\\)\\)\")",
+      "Bash(DATABASE_URL=\"postgresql://postgres:gMHQGLDgOQzWJqfLUFmxJMDflgsftTFd@postgres-production-28b0.up.railway.app:5432/railway\" node *)"
     ]
   }
 }
