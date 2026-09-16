@@ -724,27 +724,41 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-1 rounded-lg border border-gray-200 p-1">
-                <button
-                  type="button"
-                  aria-label="Grid view"
-                  onClick={() => setView('grid')}
-                  className={`rounded-md p-1.5 transition-colors ${
-                    view === 'grid' ? 'bg-royal-blue text-white' : 'text-gray-400 hover:text-royal-blue'
-                  }`}
-                >
-                  <GridIcon />
-                </button>
-                <button
-                  type="button"
-                  aria-label="List view"
-                  onClick={() => setView('list')}
-                  className={`rounded-md p-1.5 transition-colors ${
-                    view === 'list' ? 'bg-royal-blue text-white' : 'text-gray-400 hover:text-royal-blue'
-                  }`}
-                >
-                  <ListIcon />
-                </button>
+              <div className="flex items-center gap-2">
+                {speciesOptions.length > 0 && (
+                  <div className="w-44">
+                    <CustomSelect
+                      value={species}
+                      onChange={withPageReset(setSpecies)}
+                      options={[
+                        { value: 'All', label: 'Wood species' },
+                        ...speciesOptions.map((o) => ({ value: o.value, label: `${o.value} (${o.count})` })),
+                      ]}
+                    />
+                  </div>
+                )}
+                <div className="flex items-center gap-1 rounded-lg border border-gray-200 p-1">
+                  <button
+                    type="button"
+                    aria-label="Grid view"
+                    onClick={() => setView('grid')}
+                    className={`rounded-md p-1.5 transition-colors ${
+                      view === 'grid' ? 'bg-royal-blue text-white' : 'text-gray-400 hover:text-royal-blue'
+                    }`}
+                  >
+                    <GridIcon />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="List view"
+                    onClick={() => setView('list')}
+                    className={`rounded-md p-1.5 transition-colors ${
+                      view === 'list' ? 'bg-royal-blue text-white' : 'text-gray-400 hover:text-royal-blue'
+                    }`}
+                  >
+                    <ListIcon />
+                  </button>
+                </div>
               </div>
             </div>
 
