@@ -4,6 +4,7 @@ import SignaturePad from '../components/SignaturePad'
 const RATE = 500
 const CAD_RATE = 1.38
 const HST = 0.13
+const HST_ON_PREVIOUS_PAID = true
 
 const lineItems = [
   {
@@ -478,7 +479,15 @@ export default function Quotation() {
             const paidUSD = paymentRows.filter(r => r.paid).reduce((s, r) => s + subtotal * r.pct, 0)
             const paidCAD = hourlyPeriods.filter(p => p.paid).reduce((s, p) => s + Math.round(p.hours * p.rate), 0)
             const hstOwing = Math.round((Math.round(paidUSD * CAD_RATE) + paidCAD) * HST)
-            return (
+            return HST_ON_PREVIOUS_PAID ? (
+              <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3 font-sans text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">HST on previous payments</span>
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-600">Paid</span>
+                </div>
+                <span className="font-semibold text-gray-400 line-through">{fmt(hstOwing)} <span className="font-normal text-gray-400 text-xs">CAD</span></span>
+              </div>
+            ) : (
               <div className="flex items-center justify-between border-t border-amber-100 bg-amber-50/60 px-5 py-3.5 font-sans text-sm">
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
@@ -523,12 +532,9 @@ export default function Quotation() {
             if (!dueMilestones.length && !dueHourly.length) return null
             const dueUSD = dueMilestones.reduce((s, r) => s + subtotal * r.pct, 0)
             const dueCAD = dueHourly.reduce((s, p) => s + Math.round(p.hours * p.rate), 0)
-            const paidUSD = paymentRows.filter(r => r.paid).reduce((s, r) => s + subtotal * r.pct, 0)
-            const paidCAD = hourlyPeriods.filter(p => p.paid).reduce((s, p) => s + Math.round(p.hours * p.rate), 0)
-            const hstOwing = Math.round((Math.round(paidUSD * CAD_RATE) + paidCAD) * HST)
             const currentSubtotalCAD = Math.round(dueUSD * CAD_RATE) + dueCAD
             const currentHST = Math.round(currentSubtotalCAD * HST)
-            const grandTotal = currentSubtotalCAD + currentHST + hstOwing
+            const grandTotal = currentSubtotalCAD + currentHST
             return (
               <div className="flex items-center justify-between border-t-2 border-amber-300 bg-amber-100 px-5 py-4 font-sans font-bold text-amber-900">
                 <span className="text-base">Total Due Now</span>
@@ -539,10 +545,7 @@ export default function Quotation() {
                     </p>
                   )}
                   <p className="text-sm font-normal text-amber-700">
-                    + HST 13% on current = {fmt(currentHST)} CAD
-                  </p>
-                  <p className="text-sm font-normal text-amber-700">
-                    + HST owing on previous = {fmt(hstOwing)} CAD
+                    + HST 13% = {fmt(currentHST)} CAD
                   </p>
                   <p className="text-xl">{fmt(grandTotal)} <span className="text-sm font-normal text-amber-700">CAD</span></p>
                 </div>
