@@ -1,4 +1,4 @@
-import { Form, Link, useLoaderData, useNavigation } from 'react-router'
+import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { dashboardStats, ensureSpecies } from '../../lib/admin-queries.server'
 import { getSearchConsole, refresh as refreshSearchConsole } from '../../lib/search-console.server'
@@ -36,7 +36,10 @@ export async function action({ request }) {
   // for new numbers, so returning before they land would be a lie.
   if (intent === 'refresh-search-console') await refreshSearchConsole({ force: true })
   if (intent === 'refresh-analytics') await refreshAnalytics({ force: true })
-  if (intent === 'sync') await syncProductsJson()
+  if (intent === 'sync') {
+    await syncProductsJson()
+    return { synced: true }
+  }
   return { ok: true }
 }
 
@@ -58,8 +61,10 @@ function Card({ label, value, tone = 'default', to, hint }) {
 
 export default function Dashboard() {
   const { stats, search, analytics } = useLoaderData()
+  const actionData = useActionData()
   const nav = useNavigation()
   const syncing = nav.state === 'submitting' && nav.formData?.get('intent') === 'sync'
+  const synced = actionData?.synced && !syncing
   return (
     <div className="flex flex-col gap-8">
       {!INDEXING_ENABLED && (
@@ -104,9 +109,9 @@ export default function Dashboard() {
         </div>
         <Form method="post">
           <input type="hidden" name="intent" value="sync" />
-          <button disabled={syncing}
+          <button disabled={syncing || synced}
             className="rounded-lg bg-royal-blue px-5 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
-            {syncing ? 'Syncing…' : 'Sync now'}
+            {syncing ? 'Syncing…' : synced ? 'Synced ✓' : 'Sync now'}
           </button>
         </Form>
       </div>
