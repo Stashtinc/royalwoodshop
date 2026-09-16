@@ -339,6 +339,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   )
   const [expandedCats, setExpandedCats] = useState(new Set())
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [view, setView] = useState('grid')
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
@@ -520,8 +521,38 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
         </div>
 
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
-          <aside ref={sidebarRef} className="w-full shrink-0 lg:sticky lg:top-28 lg:w-[280px]">
-          <div className="flex flex-col gap-8 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+          {/* Mobile flyout backdrop */}
+          {filterOpen && (
+            <div
+              className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+              onClick={() => setFilterOpen(false)}
+              aria-hidden="true"
+            />
+          )}
+
+          <aside
+            ref={sidebarRef}
+            className={
+              filterOpen
+                ? 'fixed inset-y-0 left-0 z-50 flex w-[min(85vw,320px)] flex-col bg-white shadow-2xl lg:relative lg:inset-auto lg:z-auto lg:w-[280px] lg:shrink-0 lg:bg-transparent lg:shadow-none lg:sticky lg:top-28'
+                : 'hidden lg:flex lg:w-[280px] lg:shrink-0 lg:flex-col lg:sticky lg:top-28'
+            }
+          >
+          {/* Mobile flyout header */}
+          <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 lg:hidden">
+            <p className="font-serif text-base font-bold text-tundora">Categories</p>
+            <button
+              type="button"
+              onClick={() => setFilterOpen(false)}
+              aria-label="Close filters"
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg width="18" height="18" viewBox="0 0 14 14" fill="none">
+                <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-5 py-4 lg:max-h-[calc(100vh-7rem)] lg:px-0 lg:py-0 lg:overscroll-contain lg:pr-2">
             <div className="flex flex-col gap-3">
               <p className="font-serif text-base font-bold text-tundora">Product Search</p>
               <div className="relative">
@@ -689,11 +720,35 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
               </button>
             )}
           </div>
+          {/* Mobile flyout footer */}
+          <div className="border-t border-gray-200 px-5 py-4 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setFilterOpen(false)}
+              className="w-full rounded-lg bg-royal-blue py-3 font-sans text-sm font-medium text-white hover:bg-royal-blue-dark"
+            >
+              Show {filtered.length} product{filtered.length === 1 ? '' : 's'}
+            </button>
+          </div>
           </aside>
 
           <div ref={resultsRef} className="flex min-w-0 flex-1 scroll-mt-28 flex-col gap-8">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 pb-5">
               <div className="flex flex-wrap items-center gap-3">
+                {/* Mobile categories trigger */}
+                <button
+                  type="button"
+                  onClick={() => setFilterOpen(true)}
+                  className="relative flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 font-sans text-sm text-gray-700 hover:border-royal-blue lg:hidden"
+                >
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                  Categories
+                  {hasActiveFilters && (
+                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-royal-blue" />
+                  )}
+                </button>
                 <p className="font-sans text-sm text-gray-500">
                   {filtered.length} product{filtered.length === 1 ? '' : 's'}
                 </p>
