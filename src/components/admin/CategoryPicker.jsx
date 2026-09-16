@@ -106,15 +106,15 @@ export default function CategoryPicker({ tree, initialLinkedIds = [], initialPri
                       onClick={() => setPrimaryId(String(top.id))}
                       className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
                         isPrimary
-                          ? 'bg-royal-blue text-white'
-                          : 'border border-gray-300 text-gray-500 hover:border-royal-blue hover:text-royal-blue'
+                          ? 'bg-amber-500 text-white'
+                          : 'border border-gray-300 text-gray-500 hover:border-amber-500 hover:text-amber-600'
                       }`}
                     >
-                      {isPrimary ? '★ Primary' : 'Set primary'}
+                      {isPrimary ? '★ Primary · sets the URL' : 'Set primary'}
                     </button>
                   ) : (
-                    <span className="shrink-0 rounded bg-royal-blue px-2 py-0.5 text-[10px] font-medium text-white">
-                      ★ Primary
+                    <span className="shrink-0 rounded bg-amber-500 px-2 py-0.5 text-[10px] font-medium text-white">
+                      ★ Primary · sets the URL
                     </span>
                   )
                 )}

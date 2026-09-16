@@ -289,10 +289,7 @@ function CategoriesSection() {
 
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
-      <div className="flex items-baseline justify-between">
-        <h2 className="font-serif font-bold text-tundora">Categories</h2>
-        <p className="text-xs text-gray-500">Primary sets the URL · others are browse paths</p>
-      </div>
+      <h2 className="font-serif font-bold text-tundora">Categories</h2>
       <Form method="post" className="flex flex-col gap-4">
         <input type="hidden" name="intent" value="categories" />
         <CategoryPicker
