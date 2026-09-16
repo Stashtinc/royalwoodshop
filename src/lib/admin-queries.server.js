@@ -95,7 +95,10 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
   if (availability) where.push(eq(products.availability, availability))
 
   const clause = where.length ? and(...where) : undefined
-  const [{ total }] = await db.select({ total: sql`count(*)::int` }).from(products).where(clause)
+  const [{ total }] = await db.select({ total: sql`count(*)::int` })
+    .from(products)
+    .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
+    .where(clause)
 
   const rows = await db.select({
     id: products.id,
