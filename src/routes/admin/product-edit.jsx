@@ -9,6 +9,7 @@ import {
 } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
 import { saveUpload, deleteUpload, describeLimits } from '../../lib/uploads.server'
+import { syncProductsJson } from '../../lib/sync.server'
 import ImageDropZone from '../../components/admin/ImageDropZone'
 import CategoryPicker from '../../components/admin/CategoryPicker'
 import SpeciesPicker, { readSpeciesAvail } from '../../components/admin/SpeciesPicker'
@@ -53,6 +54,7 @@ export async function action({ request, params }) {
         entityType: 'product', entityId: params.id, entityLabel: product?.name,
         details: { count: added },
       })
+      await syncProductsJson()
     }
     return errors.length
       ? { error: errors.join(' '), saved: added ? `${added} added.` : undefined }
@@ -66,6 +68,7 @@ export async function action({ request, params }) {
       entityLabel: (await getProduct(params.id))?.name,
       details: { field: 'description', to: String(f.get('altText') ?? '') },
     })
+    await syncProductsJson()
     return { saved: 'Description updated.' }
   }
 
@@ -76,6 +79,7 @@ export async function action({ request, params }) {
       entityLabel: (await getProduct(params.id))?.name,
       details: { field: 'type', to: String(f.get('role')) },
     })
+    await syncProductsJson()
     return { saved: 'Image type updated.' }
   }
 
@@ -85,6 +89,7 @@ export async function action({ request, params }) {
       entityType: 'product', entityId: params.id,
       entityLabel: (await getProduct(params.id))?.name,
     })
+    await syncProductsJson()
     return { saved: 'Order updated.' }
   }
 
@@ -96,6 +101,7 @@ export async function action({ request, params }) {
       entityLabel: (await getProduct(params.id))?.name,
       details: { file: key ?? 'external' },
     })
+    await syncProductsJson()
     return { saved: 'Image removed.' }
   }
 
@@ -108,6 +114,7 @@ export async function action({ request, params }) {
       entityLabel: (await getProduct(params.id))?.name,
       details: { changed: [{ field: 'categories', from: '—', to: categoryIds.length + ' linked' }] },
     })
+    await syncProductsJson()
     return { saved: 'Categories saved.' }
   }
 
@@ -163,6 +170,7 @@ export async function action({ request, params }) {
     }
   }
 
+  await syncProductsJson()
   return redirect(`/admin/products?saved=${params.id}&sortBy=updated&sortDir=desc`)
 }
 
