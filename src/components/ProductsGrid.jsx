@@ -20,7 +20,7 @@ export default function ProductsGrid() {
             <Link
               key={category.name}
               to="/products"
-              className="group relative flex aspect-[2/3] items-end overflow-hidden rounded-2xl border-b-[8px] border-royal-blue p-4 transition-shadow duration-300 hover:shadow-xl active:shadow-xl sm:rounded-[36px] sm:border-b-[15px] sm:p-7"
+              className="group relative flex aspect-[2/3] items-end overflow-hidden rounded-2xl border-b-[8px] border-royal-blue p-4 transition-all duration-150 hover:shadow-xl active:scale-[0.96] active:brightness-90 active:shadow-none sm:rounded-[36px] sm:border-b-[15px] sm:p-7"
             >
               <img
                 src={category.image}
