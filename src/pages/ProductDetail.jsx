@@ -252,6 +252,7 @@ export default function ProductDetail({ product: productProp = null, related: re
           )
         : null,
     },
+    { label: 'Unit of Measure', value: product.uom ?? null },
     { label: 'Flexible version', value: product.flexAvailable ? 'Available' : null },
     { label: 'Category', value: product.category },
     { label: 'Type', value: subsOf(product).join(', ') },

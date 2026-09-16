@@ -50,6 +50,7 @@ export async function getAllProducts(db) {
       thicknessIn: products.thicknessIn,
       widthIn: products.widthIn,
       availability: products.availability,
+      uom: products.uom,
       flexAvailable: products.flexAvailable,
       leadTime: products.leadTime,
       price: products.price,
@@ -160,6 +161,7 @@ function shape(r) {
     // The old free-text Material column is superseded by species. Until the
     // sheet is complete, fall back so the filter is never empty for a product.
     material: species.length ? species.join(', ') : 'Unspecified',
+    uom: r.uom ?? null,
     availability: r.availability ?? null,
     availabilityLabel: r.availability ? AVAILABILITY_LABEL[r.availability] : null,
     speciesAvailability: detail.map((d) => ({

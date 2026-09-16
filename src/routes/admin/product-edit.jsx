@@ -147,6 +147,7 @@ export async function action({ request, params }) {
     sizeDisplay: String(f.get('sizeDisplay') ?? '').trim(),
     thicknessIn: num(f.get('thicknessIn')),
     widthIn: num(f.get('widthIn')),
+    uom: String(f.get('uom') ?? '').trim() || null,
     availability: before.availability,  // preserved; overwritten by saveProduct if species set
     leadTime: String(f.get('leadTime') ?? '').trim(),
     flexAvailable: f.get('flexAvailable') === 'on',
@@ -373,8 +374,20 @@ export default function ProductEdit() {
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Dimensions</h2>
-          <label className="flex flex-col gap-1.5"><Label>Size shown to customers</Label>
-            <input name="sizeDisplay" defaultValue={product.sizeDisplay ?? ''} className={field} /></label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5"><Label>Size shown to customers</Label>
+              <input name="sizeDisplay" defaultValue={product.sizeDisplay ?? ''} className={field} /></label>
+            <label className="flex flex-col gap-1.5"><Label>Unit of measure</Label>
+              <select name="uom" defaultValue={product.uom ?? ''} className={field}>
+                <option value="">— not set —</option>
+                <option value="Lft">Lft — Linear Foot</option>
+                <option value="Ea">Ea — Each</option>
+                <option value="SqFt">SqFt — Square Foot</option>
+                <option value="Kit">Kit — Kit</option>
+                <option value="Pc">Pc — Piece</option>
+              </select>
+            </label>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5"><Label>Thickness</Label>
               <input name="thicknessIn" defaultValue={product.thicknessIn ?? ''} className={field} inputMode="decimal" /></label>
