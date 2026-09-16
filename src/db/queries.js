@@ -138,6 +138,7 @@ function shape(r) {
     : JSON.parse(r.speciesAvailability ?? '[]')
   return {
     id: r.slug,
+    dbId: r.id,
     slug: r.slug,
     productCode: r.productCode ?? '',
     name: r.name,

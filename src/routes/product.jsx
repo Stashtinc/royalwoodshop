@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { useLoaderData } from 'react-router'
+import { Link, useLoaderData, useRouteLoaderData } from 'react-router'
 import ProductDetail from '../pages/ProductDetail'
 import { catalogueProducts } from '../data/catalogue'
 import { pageMeta, truncate, BASE, SITE } from '../seo'
@@ -76,5 +76,26 @@ export const meta = ({ data }) => {
 
 export default function Route() {
   const { product, related } = useLoaderData()
-  return <ProductDetail product={product} related={related} />
+  const { isAdmin } = useRouteLoaderData('root') ?? {}
+  return (
+    <>
+      {isAdmin && product.dbId && (
+        <div className="sticky top-0 z-40 flex items-center justify-between gap-4 border-b border-amber-300 bg-amber-50 px-6 py-2 print:hidden">
+          <p className="font-sans text-xs font-medium text-amber-800">
+            Admin mode — viewing as a customer
+          </p>
+          <Link
+            to={`/admin/products/${product.dbId}`}
+            className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 font-sans text-xs font-medium text-white hover:bg-amber-600"
+          >
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+              <path d="M9.5 1.5l3 3-8 8H1.5v-3l8-8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Edit this product
+          </Link>
+        </div>
+      )}
+      <ProductDetail product={product} related={related} />
+    </>
+  )
 }

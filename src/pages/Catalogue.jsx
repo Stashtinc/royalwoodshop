@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useRouteLoaderData, useSearchParams } from 'react-router'
 import { srcSet, thumbSrc, imageFit } from '../lib/images'
 import {
   productPath, catalogueProducts as snapshotProducts,
@@ -194,7 +194,7 @@ function AvailabilityPill({ availability, className = '' }) {
   )
 }
 
-function ProductCard({ product, query = '' }) {
+function ProductCard({ product, query = '', isAdmin = false }) {
   return (
     <Link
       to={productPath(product)}
@@ -241,7 +241,21 @@ function ProductCard({ product, query = '' }) {
         </div>
       )}
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <p className="font-serif text-base leading-snug font-medium text-tundora"><Highlight text={product.name} query={query} /></p>
+        <div className="flex items-start justify-between gap-1">
+          <p className="font-serif text-base leading-snug font-medium text-tundora"><Highlight text={product.name} query={query} /></p>
+          {isAdmin && product.dbId && (
+            <Link
+              to={`/admin/products/${product.dbId}`}
+              onClick={(e) => e.stopPropagation()}
+              title="Edit product"
+              className="shrink-0 rounded-md border border-amber-300 bg-amber-50 p-1 text-amber-600 hover:bg-amber-100"
+            >
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                <path d="M9.5 1.5l3 3-8 8H1.5v-3l8-8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </Link>
+          )}
+        </div>
         <div className="mt-auto flex flex-col gap-0.5 font-sans text-xs text-gray-500">
           <p>
             <span className="font-medium text-gray-700">Product Code </span>
@@ -271,7 +285,7 @@ function ProductCard({ product, query = '' }) {
   )
 }
 
-function ProductRow({ product, query = '' }) {
+function ProductRow({ product, query = '', isAdmin = false }) {
   return (
     <Link
       to={productPath(product)}
@@ -305,7 +319,21 @@ function ProductRow({ product, query = '' }) {
         <p className="font-sans text-xs font-bold tracking-wide text-royal-blue uppercase">
           {product.subcategory}
         </p>
-        <p className="font-serif text-lg leading-snug font-medium text-tundora"><Highlight text={product.name} query={query} /></p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-serif text-lg leading-snug font-medium text-tundora"><Highlight text={product.name} query={query} /></p>
+          {isAdmin && product.dbId && (
+            <Link
+              to={`/admin/products/${product.dbId}`}
+              onClick={(e) => e.stopPropagation()}
+              title="Edit product"
+              className="shrink-0 rounded-md border border-amber-300 bg-amber-50 p-1 text-amber-600 hover:bg-amber-100"
+            >
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                <path d="M9.5 1.5l3 3-8 8H1.5v-3l8-8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </Link>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 font-sans text-sm text-gray-500">
           <p>
             <span className="font-medium text-gray-700">Product Code </span>
@@ -332,6 +360,7 @@ function ProductRow({ product, query = '' }) {
 }
 
 export default function Catalogue({ initialCategory = null, products = null, dbCategories = [] }) {
+  const { isAdmin = false } = useRouteLoaderData('root') ?? {}
   // Products come from the loader (Postgres at build time). The snapshot is the
   // fallback so this component still renders on its own.
   const allProducts = products ?? snapshotProducts
@@ -874,13 +903,13 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                     {view === 'grid' ? (
                       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
                         {group.items.map((product) => (
-                          <ProductCard key={product.id} product={product} query={search} />
+                          <ProductCard key={product.id} product={product} query={search} isAdmin={isAdmin} />
                         ))}
                       </div>
                     ) : (
                       <div className="flex flex-col gap-4">
                         {group.items.map((product) => (
-                          <ProductRow key={product.id} product={product} query={search} />
+                          <ProductRow key={product.id} product={product} query={search} isAdmin={isAdmin} />
                         ))}
                       </div>
                     )}

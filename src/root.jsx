@@ -8,14 +8,21 @@ import Footer from './components/Footer'
 import NewsletterSignup from './components/NewsletterSignup'
 import royalEdgeHero from './assets/images/royal-edge-hero.jpg'
 import servicesHero from './assets/images/services-hero.jpg'
-export async function loader() {
-  try {
-    const { listNavCategories } = await import('./lib/nav.server.js')
-    return { navCategories: await listNavCategories() }
-  } catch (e) {
-    console.error('[root loader] nav categories failed:', e?.message ?? e)
-    return { navCategories: [] }
-  }
+export async function loader({ request }) {
+  const { getUser } = await import('./lib/auth.server.js')
+  const [navResult, user] = await Promise.all([
+    (async () => {
+      try {
+        const { listNavCategories } = await import('./lib/nav.server.js')
+        return { navCategories: await listNavCategories() }
+      } catch (e) {
+        console.error('[root loader] nav categories failed:', e?.message ?? e)
+        return { navCategories: [] }
+      }
+    })(),
+    getUser(request).catch(() => null),
+  ])
+  return { ...navResult, isAdmin: !!user }
 }
 
 export const links = () => [
