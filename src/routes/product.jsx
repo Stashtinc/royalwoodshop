@@ -82,7 +82,7 @@ export default function Route() {
       {isAdmin && product.dbId && (
         <div className="sticky top-0 z-40 flex items-center justify-between gap-4 border-b border-amber-300 bg-amber-50 px-6 py-2 print:hidden">
           <p className="font-sans text-xs font-medium text-amber-800">
-            Admin mode — viewing as a customer
+            Admin mode — public view
           </p>
           <Link
             to={`/admin/products/${product.dbId}`}
