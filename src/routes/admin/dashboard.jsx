@@ -1,8 +1,9 @@
-import { Link, useLoaderData } from 'react-router'
+import { Form, Link, useLoaderData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { dashboardStats, ensureSpecies } from '../../lib/admin-queries.server'
 import { getSearchConsole, refresh as refreshSearchConsole } from '../../lib/search-console.server'
 import { getAnalytics, refresh as refreshAnalytics } from '../../lib/analytics.server'
+import { syncProductsJson } from '../../lib/sync.server'
 import SearchConsolePanel from '../../components/admin/SearchConsolePanel'
 import AnalyticsPanel from '../../components/admin/AnalyticsPanel'
 import { INDEXING_ENABLED } from '../../seo'
@@ -35,6 +36,7 @@ export async function action({ request }) {
   // for new numbers, so returning before they land would be a lie.
   if (intent === 'refresh-search-console') await refreshSearchConsole({ force: true })
   if (intent === 'refresh-analytics') await refreshAnalytics({ force: true })
+  if (intent === 'sync') await syncProductsJson()
   return { ok: true }
 }
 
@@ -56,6 +58,8 @@ function Card({ label, value, tone = 'default', to, hint }) {
 
 export default function Dashboard() {
   const { stats, search, analytics } = useLoaderData()
+  const nav = useNavigation()
+  const syncing = nav.state === 'submitting' && nav.formData?.get('intent') === 'sync'
   return (
     <div className="flex flex-col gap-8">
       {!INDEXING_ENABLED && (
@@ -91,6 +95,20 @@ export default function Dashboard() {
           to="/admin/products?missing=availability" hint="In stock / quick ship / made-to-order" />
         <Card label="No description" value={stats.noDescription} tone={stats.noDescription ? 'warn' : 'good'}
           to="/admin/products?missing=description" hint="Blank pages cannot rank" />
+      </div>
+
+      <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-5 py-4">
+        <div>
+          <p className="text-sm font-medium text-tundora">Sync to public site</p>
+          <p className="text-xs text-gray-500">Rebuilds the product catalogue from the database — run this after uploading images or making bulk changes.</p>
+        </div>
+        <Form method="post">
+          <input type="hidden" name="intent" value="sync" />
+          <button disabled={syncing}
+            className="rounded-lg bg-royal-blue px-5 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
+            {syncing ? 'Syncing…' : 'Sync now'}
+          </button>
+        </Form>
       </div>
 
       <SearchConsolePanel search={search} />
