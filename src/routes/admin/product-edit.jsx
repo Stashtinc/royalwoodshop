@@ -330,7 +330,7 @@ export default function ProductEdit() {
           <Link to="/admin/products" className="text-sm text-royal-blue hover:underline">← Products</Link>
           <span className="font-mono text-xs text-gray-500">{product.productCode}</span>
         </div>
-        {product.categorySlug && product.slug && product.status === 'published' && (
+        {product.categorySlug && product.slug && (
           <a
             href={`/products/${product.categorySlug}/${product.slug}`}
             target="_blank"
