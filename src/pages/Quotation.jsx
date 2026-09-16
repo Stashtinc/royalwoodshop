@@ -135,7 +135,7 @@ const optionalItems = [
 const paymentRows = [
   { milestone: 'On acceptance', trigger: 'Development begins', pct: 0.3, paid: true },
   { milestone: 'Public website and catalogue delivered for review', trigger: 'End of Step 2', pct: 0.3, paid: true },
-  { milestone: 'Admin screen delivered for review', trigger: 'End of Step 3', pct: 0.2, due: true },
+  { milestone: 'Admin screen delivered for review', trigger: 'End of Step 3', pct: 0.2, paid: true },
   { milestone: 'On launch', trigger: 'Site live, redirects verified', pct: 0.2 },
 ]
 
@@ -151,8 +151,15 @@ const hourlyPeriods = [
     label: 'Aug 13 – Aug 28',
     hours: 65.4,
     rate: 65,
-    paid: false,
+    paid: true,
     timesheetUrl: 'https://drive.google.com/file/d/1SbVP-0jXlwIldRdxnvhNnmaatde9I5cM/view?usp=sharing',
+  },
+  {
+    label: 'Aug 29 – Sep 16',
+    hours: 63.15,
+    rate: 65,
+    paid: false,
+    timesheetUrl: null,
   },
 ]
 
