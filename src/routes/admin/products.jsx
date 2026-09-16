@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Form, useActionData, useLoaderData, useSearchParams, useSubmit, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { listProducts, listCategories, bulkArchiveProducts, bulkPublishProducts } from '../../lib/admin-queries.server'
+import { listProducts, listCategories, bulkArchiveProducts, bulkPublishProducts, bulkDeleteProducts } from '../../lib/admin-queries.server'
+import { deleteUpload } from '../../lib/uploads.server'
 import { syncProductsJson } from '../../lib/sync.server'
 import { log } from '../../lib/activity.server'
 import { AVAILABILITY_LABEL, SPECIES } from '../../lib/catalogue-constants'
@@ -37,6 +38,20 @@ export async function action({ request }) {
   const url = new URL(request.url)
   const f = await request.formData()
   const intent = f.get('intent')
+  if (intent === 'bulk-delete') {
+    const ids = f.getAll('productId').map(Number).filter(Boolean)
+    if (!ids.length) return null
+    const storageKeys = await bulkDeleteProducts(ids)
+    for (const key of storageKeys) await deleteUpload(key)
+    await log(user, 'product.deleted', {
+      entityType: 'product',
+      entityLabel: `Bulk delete (${ids.length} products)`,
+      details: { count: ids.length },
+    })
+    await syncProductsJson()
+    return { deleted: ids.length }
+  }
+
   if (intent !== 'bulk-archive' && intent !== 'bulk-publish') return null
 
   const filterArgs = {
@@ -114,6 +129,30 @@ export default function Products() {
     )
   }
 
+  const [bulkEdit, setBulkEdit] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    if (rows.every((r) => selectedIds.has(r.id))) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(rows.map((r) => r.id)))
+    }
+  }
+
+  function exitBulkEdit() {
+    setBulkEdit(false)
+    setSelectedIds(new Set())
+  }
+
   const submit = useSubmit()
   const navigation = useNavigation()
   const timer = useRef(null)
@@ -151,6 +190,11 @@ export default function Products() {
           {actionData.published} product{actionData.published === 1 ? '' : 's'} published.
         </p>
       )}
+      {actionData?.deleted != null && (
+        <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-800">
+          {actionData.deleted} product{actionData.deleted === 1 ? '' : 's'} deleted.
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-baseline gap-3">
           <h1 className="font-serif text-2xl font-bold text-tundora">Products</h1>
@@ -165,15 +209,51 @@ export default function Products() {
           </Link>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            to="/admin/products/new"
-            className="flex items-center gap-1.5 rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-            Add New
-          </Link>
+          {bulkEdit ? (
+            <>
+              {selectedIds.size > 0 && (
+                <Form method="post" onSubmit={(e) => {
+                  if (!confirm(`Are you sure you want to delete ${selectedIds.size} product${selectedIds.size === 1 ? '' : 's'}? This cannot be undone.`)) e.preventDefault()
+                  else exitBulkEdit()
+                }}>
+                  <input type="hidden" name="intent" value="bulk-delete" />
+                  {[...selectedIds].map((id) => (
+                    <input key={id} type="hidden" name="productId" value={id} />
+                  ))}
+                  <button type="submit"
+                    className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
+                    Delete {selectedIds.size} selected
+                  </button>
+                </Form>
+              )}
+              <button
+                type="button"
+                onClick={exitBulkEdit}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setBulkEdit(true)}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400"
+              >
+                Bulk Edit
+              </button>
+              <Link
+                to="/admin/products/new"
+                className="flex items-center gap-1.5 rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+                Add New
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
@@ -236,6 +316,17 @@ export default function Products() {
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr className="text-xs font-bold tracking-wide text-gray-500 uppercase">
+              {bulkEdit && (
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={rows.length > 0 && rows.every((r) => selectedIds.has(r.id))}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 rounded border-gray-300 accent-royal-blue"
+                    title="Select all on this page"
+                  />
+                </th>
+              )}
               <th className="w-14 px-4 py-3" />
               <th className="px-4 py-3">
                 <Link to={sortLink('code')} className="inline-flex items-center gap-1 hover:text-royal-blue">Code<SortIndicator col="code" /></Link>
@@ -255,7 +346,17 @@ export default function Products() {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} ref={r.id === savedId ? savedRowRef : null} className="border-b border-gray-100 last:border-0">
+              <tr key={r.id} ref={r.id === savedId ? savedRowRef : null} className={`border-b border-gray-100 last:border-0 ${bulkEdit && selectedIds.has(r.id) ? 'bg-red-50' : ''}`}>
+                {bulkEdit && (
+                  <td className="px-4 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(r.id)}
+                      onChange={() => toggleSelect(r.id)}
+                      className="h-4 w-4 rounded border-gray-300 accent-royal-blue"
+                    />
+                  </td>
+                )}
                 <td className="py-2 pl-4">
                   <Link to={`/admin/products/${r.id}`} className="block">
                     {r.image ? (

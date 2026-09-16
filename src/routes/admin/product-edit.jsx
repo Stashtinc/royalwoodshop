@@ -5,7 +5,7 @@ import { requireUser } from '../../lib/auth.server'
 import {
   getProduct, saveProduct, diffProduct, listImages, addImage, updateImage,
   removeImage, moveImage, listCategoriesWithSubs, listProductCategories,
-  saveProductCategories,
+  saveProductCategories, deleteProduct,
 } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
 import { saveUpload, deleteUpload, describeLimits } from '../../lib/uploads.server'
@@ -103,6 +103,17 @@ export async function action({ request, params }) {
     })
     await syncProductsJson()
     return { saved: 'Image removed.' }
+  }
+
+  if (intent === 'delete') {
+    const product = await getProduct(params.id)
+    const storageKeys = await deleteProduct(params.id)
+    for (const key of storageKeys) await deleteUpload(key)
+    await log(user, 'product.deleted', {
+      entityType: 'product', entityId: params.id, entityLabel: product?.name,
+    })
+    await syncProductsJson()
+    return redirect('/admin/products')
   }
 
   if (intent === 'categories') {
@@ -425,12 +436,23 @@ export default function ProductEdit() {
             <textarea name="seoDescription" rows={2} defaultValue={product.seoDescription ?? ''} className={field} /></label>
         </section>
 
-        <div className="flex items-center gap-3">
-          <button disabled={saving}
-            className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
-            {saving ? 'Saving…' : 'Save changes'}
-          </button>
-          <Link to="/admin/products" className="text-sm text-gray-600 hover:underline">Cancel</Link>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button disabled={saving}
+              className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
+              {saving ? 'Saving…' : 'Save changes'}
+            </button>
+            <Link to="/admin/products" className="text-sm text-gray-600 hover:underline">Cancel</Link>
+          </div>
+          <Form method="post" onSubmit={(e) => {
+            if (!confirm(`Are you sure you want to delete "${product.name}"? This cannot be undone.`)) e.preventDefault()
+          }}>
+            <input type="hidden" name="intent" value="delete" />
+            <button type="submit"
+              className="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 hover:border-red-400 hover:bg-red-50">
+              Delete product
+            </button>
+          </Form>
         </div>
       </Form>
     </div>

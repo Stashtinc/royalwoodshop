@@ -567,3 +567,23 @@ export async function moveImage(productId, imageId, direction) {
     await db.update(productImages).set({ sortOrder: order }).where(eq(productImages.id, r.id))
   }
 }
+
+/** Deletes one product. Returns image storageKeys so the caller can remove files. */
+export async function deleteProduct(id) {
+  const db = await getDb()
+  const imgs = await db.select({ storageKey: productImages.storageKey })
+    .from(productImages).where(eq(productImages.productId, Number(id)))
+  await db.delete(products).where(eq(products.id, Number(id)))
+  return imgs.map((i) => i.storageKey)
+}
+
+/** Deletes multiple products by ID. Returns all image storageKeys for file cleanup. */
+export async function bulkDeleteProducts(ids) {
+  if (!ids.length) return []
+  const db = await getDb()
+  const numIds = ids.map(Number)
+  const imgs = await db.select({ storageKey: productImages.storageKey })
+    .from(productImages).where(inArray(productImages.productId, numIds))
+  await db.delete(products).where(inArray(products.id, numIds))
+  return imgs.map((i) => i.storageKey)
+}
