@@ -154,6 +154,21 @@ function ListIcon() {
   )
 }
 
+function Highlight({ text, query }) {
+  if (!text || !query.trim()) return text
+  const q = query.trim()
+  const idx = String(text).toLowerCase().indexOf(q.toLowerCase())
+  if (idx === -1) return text
+  const s = String(text)
+  return (
+    <>
+      {s.slice(0, idx)}
+      <mark className="rounded-sm bg-yellow-200 px-0 text-inherit not-italic">{s.slice(idx, idx + q.length)}</mark>
+      {s.slice(idx + q.length)}
+    </>
+  )
+}
+
 function LoadingSpinner() {
   return (
     <div className="flex justify-center py-8">
@@ -179,7 +194,7 @@ function AvailabilityPill({ availability, className = '' }) {
   )
 }
 
-function ProductCard({ product }) {
+function ProductCard({ product, query = '' }) {
   return (
     <Link
       to={productPath(product)}
@@ -226,11 +241,11 @@ function ProductCard({ product }) {
         </div>
       )}
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <p className="font-serif text-base leading-snug font-medium text-tundora">{product.name}</p>
+        <p className="font-serif text-base leading-snug font-medium text-tundora"><Highlight text={product.name} query={query} /></p>
         <div className="mt-auto flex flex-col gap-0.5 font-sans text-xs text-gray-500">
           <p>
             <span className="font-medium text-gray-700">Product Code </span>
-            {product.productCode}
+            <Highlight text={product.productCode} query={query} />
           </p>
           {product.size && (
             <p>
@@ -256,7 +271,7 @@ function ProductCard({ product }) {
   )
 }
 
-function ProductRow({ product }) {
+function ProductRow({ product, query = '' }) {
   return (
     <Link
       to={productPath(product)}
@@ -290,11 +305,11 @@ function ProductRow({ product }) {
         <p className="font-sans text-xs font-bold tracking-wide text-royal-blue uppercase">
           {product.subcategory}
         </p>
-        <p className="font-serif text-lg leading-snug font-medium text-tundora">{product.name}</p>
+        <p className="font-serif text-lg leading-snug font-medium text-tundora"><Highlight text={product.name} query={query} /></p>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 font-sans text-sm text-gray-500">
           <p>
             <span className="font-medium text-gray-700">Product Code </span>
-            {product.productCode}
+            <Highlight text={product.productCode} query={query} />
           </p>
           {product.size && (
             <p>
@@ -859,13 +874,13 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                     {view === 'grid' ? (
                       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
                         {group.items.map((product) => (
-                          <ProductCard key={product.id} product={product} />
+                          <ProductCard key={product.id} product={product} query={search} />
                         ))}
                       </div>
                     ) : (
                       <div className="flex flex-col gap-4">
                         {group.items.map((product) => (
-                          <ProductRow key={product.id} product={product} />
+                          <ProductRow key={product.id} product={product} query={search} />
                         ))}
                       </div>
                     )}
