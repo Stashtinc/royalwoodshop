@@ -125,11 +125,13 @@ export async function loader({ request }) {
     }
   })
 
+  const UOM_COL = HEADERS.indexOf('uom\n (Lft, Ea, SqFt, Kit, Pc)') + 1
+
   // Data rows
   for (const p of rows) {
     const subs = subsByProduct.get(p.id) ?? []
     const sp   = speciesByProduct.get(p.id) ?? new Map()
-    ws.addRow([
+    const row = ws.addRow([
       '',
       p.productCode ?? '',
       p.name ?? '',
@@ -145,6 +147,12 @@ export async function loader({ request }) {
       ...SPECIES_AFTER_FLEX.map((s) => tick(sp.get(s))),
       '',
     ])
+    row.getCell(UOM_COL).dataValidation = {
+      type: 'list',
+      allowBlank: true,
+      formulae: ['"Lft,Ea,SqFt,Kit,Pc"'],
+      showDropDown: false,
+    }
   }
 
   // Autofilter on the header row
