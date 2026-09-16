@@ -744,8 +744,8 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                   <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
                     <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                  Categories
-                  {hasActiveFilters && (
+                  {selectedSubs.size >= totalSubCount ? 'All Categories' : 'Categories'}
+                  {selectedSubs.size < totalSubCount && (
                     <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-royal-blue" />
                   )}
                 </button>
