@@ -227,7 +227,7 @@ export default function Hero() {
           hamburger menu takes over instead. */}
       <div className="flex w-full flex-col xl:hidden">
         <div
-          className="h-20 w-full bg-cover bg-center sm:h-24"
+          className="hidden h-20 w-full bg-cover bg-center sm:block sm:h-24"
           style={{ backgroundImage: `url(${heroLeft})` }}
           aria-hidden="true"
         />
