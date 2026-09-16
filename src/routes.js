@@ -41,6 +41,7 @@ export default [
     route('media', 'routes/admin/media.jsx'),
     route('export-master', 'routes/admin/export-master.js'),
     route('export-products-json', 'routes/admin/export-products-json.js'),
+    route('export-images', 'routes/admin/export-images.js'),
   ]),
 
   route('blog', 'routes/journal.jsx'),

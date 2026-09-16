@@ -116,6 +116,19 @@ export default function Dashboard() {
         </Form>
       </div>
 
+      <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-5 py-4">
+        <div>
+          <p className="text-sm font-medium text-tundora">Download all images</p>
+          <p className="text-xs text-gray-500">Exports every uploaded product image as a ZIP file — original full-size files only.</p>
+        </div>
+        <a
+          href="/admin/export-images"
+          className="rounded-lg border border-gray-300 bg-white px-5 py-2 text-sm font-medium text-gray-700 hover:border-gray-400"
+        >
+          Download ZIP
+        </a>
+      </div>
+
       <SearchConsolePanel search={search} />
 
       <AnalyticsPanel analytics={analytics} />

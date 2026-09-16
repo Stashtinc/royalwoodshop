@@ -215,8 +215,18 @@ function ImagesSection() {
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {images.map((img, i) => (
             <li key={img.id} className="flex flex-col gap-2 rounded-xl border border-gray-200 p-3">
-              <div className="aspect-[4/3] overflow-hidden rounded-lg bg-white ring-1 ring-gray-100">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-white ring-1 ring-gray-100">
                 <img src={thumbSrc(img.storageKey, img.width)} alt={img.altText} loading="lazy" className="h-full w-full object-contain" />
+                <a
+                  href={img.storageKey}
+                  download
+                  title="Download original"
+                  className="absolute top-1.5 right-1.5 flex items-center justify-center rounded-lg border border-gray-200 bg-white/90 p-1.5 text-gray-500 hover:border-royal-blue hover:text-royal-blue"
+                >
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 1v9m0 0L4.5 6.5M8 10l3.5-3.5M1.5 11.5v1a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </a>
               </div>
 
               <Form method="post" className="flex flex-col gap-1.5">
