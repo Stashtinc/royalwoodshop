@@ -517,11 +517,6 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
           <h1 className="font-serif text-3xl font-bold text-royal-blue lg:text-[36px]">
             Products Catalogue
           </h1>
-          <p className="font-sans text-lg leading-relaxed text-gray-600">
-            Browse The Royal Wood Shop&rsquo;s selection of in-stock mouldings, trim profiles, and
-            interior doors. Find the right products for your renovation, build, or finishing
-            project &mdash; all available for pickup or delivery across Toronto and the GTA.
-          </p>
         </div>
 
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
