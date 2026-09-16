@@ -82,10 +82,11 @@ async function writeImage(buffer, stem, label = 'image') {
 
   const storageKey = `${PUBLIC_PREFIX}/${stem}.webp`
 
-  // Full-size, compressed.
+  // Full-size. Higher quality (92) keeps line-art drawings sharp — lossy WebP
+  // at 80–82 blurs thin lines noticeably even though it looks fine on photos.
   await writeFile(
     join(UPLOAD_DIR, `${stem}.webp`),
-    await image.clone().webp({ quality: 82 }).toBuffer(),
+    await image.clone().webp({ quality: 92 }).toBuffer(),
   )
 
   // One file per width, never larger than the original.
@@ -94,7 +95,7 @@ async function writeImage(buffer, stem, label = 'image') {
     const key = variantPath(storageKey, w)
     await writeFile(
       join(UPLOAD_DIR, key.slice(PUBLIC_PREFIX.length + 1)),
-      await image.clone().resize({ width: w, withoutEnlargement: true }).webp({ quality: 80 }).toBuffer(),
+      await image.clone().resize({ width: w, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
     )
   }
 
