@@ -237,7 +237,7 @@ export default function Quotation() {
         </p>
 
         {/* Pricing basis */}
-        <div className="mb-6 flex items-center justify-between rounded-xl border border-royal-blue/20 bg-royal-blue/5 px-5 py-3">
+        <div className="print:hidden mb-6 flex items-center justify-between rounded-xl border border-royal-blue/20 bg-royal-blue/5 px-5 py-3">
           <p className="font-sans text-sm font-medium text-royal-blue">
             PRICING BASIS — work is priced in fixed units ("buckets").
           </p>
@@ -256,7 +256,7 @@ export default function Quotation() {
 
         <div className="mb-8 flex flex-col gap-3">
           {lineItems.map((item, idx) => (
-            <div key={idx} className="rounded-xl border border-gray-200 bg-white px-5 py-4">
+            <div key={idx} className="break-inside-avoid rounded-xl border border-gray-200 bg-white px-5 py-4">
               <div className="grid grid-cols-[2rem_1fr] gap-x-4 sm:grid-cols-[2rem_1fr_8rem_5rem_5rem_5.5rem]">
                 <span className="font-sans text-sm font-bold text-royal-blue">{item.step}</span>
                 <div>
@@ -285,7 +285,7 @@ export default function Quotation() {
         </div>
 
         {/* Hourly rate note */}
-        <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 font-sans text-sm text-amber-900">
+        <div className="print:hidden mb-8 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 font-sans text-sm text-amber-900">
           <p className="font-semibold">Hourly time billed separately</p>
           <p className="mt-1 text-amber-700">
             Any time outside the fixed bucket scope is billed at{' '}
@@ -295,7 +295,7 @@ export default function Quotation() {
         </div>
 
         {/* Totals */}
-        <div className="mb-10 flex justify-end">
+        <div className="break-inside-avoid mb-10 flex justify-end">
           <div className="w-full max-w-xs rounded-xl border border-gray-200 bg-white overflow-hidden">
             <div className="flex justify-between px-5 py-3 font-sans text-sm text-gray-500">
               <span>Total buckets</span>
@@ -321,7 +321,7 @@ export default function Quotation() {
         </div>
 
         {/* Optional items */}
-        <div className="mb-10">
+        <div className="print:hidden mb-10">
           <p className="mb-3 font-sans text-xs font-bold tracking-widest text-gray-400 uppercase">
             Optional — not included in the total above
           </p>
@@ -357,7 +357,7 @@ export default function Quotation() {
         </div>
 
         {/* Payment schedule */}
-        <div className="mb-10">
+        <div className="break-inside-avoid mb-10">
           <p className="mb-3 font-sans text-xs font-bold tracking-widest text-gray-400 uppercase">Payment Schedule</p>
           <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
             {paymentRows.map((row, idx) => (
@@ -387,7 +387,7 @@ export default function Quotation() {
         </div>
 
         {/* Hourly time summary */}
-        <div className="mb-10 overflow-hidden rounded-xl border border-gray-200">
+        <div className="print:hidden mb-10 overflow-hidden rounded-xl border border-gray-200">
           <p className="border-b border-gray-100 bg-gray-50 px-5 py-3 font-sans text-xs font-bold tracking-widest text-gray-400 uppercase">
             Hourly Time — $65 CAD / hr
           </p>
@@ -433,7 +433,7 @@ export default function Quotation() {
         </div>
 
         {/* Payment Summary */}
-        <div className="mb-10 overflow-hidden rounded-xl border border-gray-200">
+        <div className="print:hidden mb-10 overflow-hidden rounded-xl border border-gray-200">
           <p className="border-b border-gray-100 bg-gray-50 px-5 py-3 font-sans text-xs font-bold tracking-widest text-gray-400 uppercase">
             Payment Summary
           </p>
