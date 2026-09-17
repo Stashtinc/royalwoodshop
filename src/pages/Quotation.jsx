@@ -433,7 +433,7 @@ export default function Quotation() {
         </div>
 
         {/* Payment Summary */}
-        <div className="print:hidden mb-10 overflow-hidden rounded-xl border border-gray-200">
+        <div className="break-inside-avoid mb-10 overflow-hidden rounded-xl border border-gray-200">
           <p className="border-b border-gray-100 bg-gray-50 px-5 py-3 font-sans text-xs font-bold tracking-widest text-gray-400 uppercase">
             Payment Summary
           </p>
