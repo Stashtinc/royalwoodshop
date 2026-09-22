@@ -415,7 +415,7 @@ export default function Hero() {
               </div>
             )}
             <HeroPanelContent />
-            <SlideIndicators activeIndex={activeIndex} goTo={goTo} className="mt-auto pt-10" />
+            <SlideIndicators activeIndex={activeIndex} goTo={goTo} className="mt-[120px]" />
           </div>
 
           <div className="pointer-events-none flex flex-1 flex-col">
