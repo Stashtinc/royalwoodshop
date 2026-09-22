@@ -173,16 +173,49 @@ const heroSlides = [
 
 const HERO_SLIDE_INTERVAL_MS = 14000
 
-function HeroPhoto() {
+function useSlideshow() {
   const [activeIndex, setActiveIndex] = useState(0)
+  const intervalRef = useRef(null)
 
-  useEffect(() => {
-    const id = setInterval(() => {
+  function startTimer() {
+    clearInterval(intervalRef.current)
+    intervalRef.current = setInterval(() => {
       setActiveIndex((i) => (i + 1) % heroSlides.length)
     }, HERO_SLIDE_INTERVAL_MS)
-    return () => clearInterval(id)
+  }
+
+  useEffect(() => {
+    startTimer()
+    return () => clearInterval(intervalRef.current)
   }, [])
 
+  function goTo(index) {
+    setActiveIndex(index)
+    startTimer()
+  }
+
+  return { activeIndex, goTo }
+}
+
+function SlideIndicators({ activeIndex, goTo, className = '' }) {
+  return (
+    <div className={`flex items-center gap-2.5 ${className}`}>
+      {heroSlides.map((_, i) => (
+        <button
+          key={i}
+          type="button"
+          aria-label={`Go to slide ${i + 1}`}
+          onClick={() => goTo(i)}
+          className={`h-2 rounded-full transition-all duration-300 ${
+            i === activeIndex ? 'w-6 bg-white' : 'w-2 bg-white/40 hover:bg-white/70'
+          }`}
+        />
+      ))}
+    </div>
+  )
+}
+
+function HeroPhoto({ activeIndex }) {
   return (
     <>
       {heroSlides.map((slide, i) => (
@@ -213,6 +246,7 @@ function HeroPhoto() {
 }
 
 export default function Hero() {
+  const { activeIndex, goTo } = useSlideshow()
   const { navCategories = navCatsJson } = useRouteLoaderData('root') ?? {}
   const [searchOpen, setSearchOpen] = useState(false)
   const [selectedResult, setSelectedResult] = useState(null)
@@ -263,7 +297,10 @@ export default function Hero() {
           <HeroPanelContent showLogo={false} />
         </div>
         <div className="relative min-h-[320px] w-full overflow-hidden">
-          <HeroPhoto />
+          <HeroPhoto activeIndex={activeIndex} />
+        </div>
+        <div className="flex justify-center bg-royal-blue py-4">
+          <SlideIndicators activeIndex={activeIndex} goTo={goTo} />
         </div>
       </div>
 
@@ -283,7 +320,7 @@ export default function Hero() {
           <div className="flex flex-1 flex-col">
             <div className="h-[90px] shrink-0 bg-white" />
             <div className="relative flex-1 overflow-hidden">
-              <HeroPhoto />
+              <HeroPhoto activeIndex={activeIndex} />
             </div>
           </div>
         </div>
@@ -378,6 +415,7 @@ export default function Hero() {
               </div>
             )}
             <HeroPanelContent />
+            <SlideIndicators activeIndex={activeIndex} goTo={goTo} className="mt-auto pt-10" />
           </div>
 
           <div className="pointer-events-none flex flex-1 flex-col">
