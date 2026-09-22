@@ -63,7 +63,7 @@ function HeroPanelContent({ showLogo = true }) {
   )
 }
 
-function ProductHotspot({ left, top, name, partNo, price, popoverSide = 'left' }) {
+function ProductHotspot({ left, top, name, partNo, price, to, popoverSide = 'left' }) {
   const popoverPositionClass =
     popoverSide === 'bottom'
       ? 'top-0 left-0 mt-5 -translate-x-1/2'
@@ -90,10 +90,10 @@ function ProductHotspot({ left, top, name, partNo, price, popoverSide = 'left' }
         <p className="font-serif text-base font-bold text-[#24140d]">{name}</p>
         <p className="mt-1 font-sans text-xs text-gray-500">Part No. {partNo}</p>
         <div className="mt-1.5 flex items-center justify-between gap-2">
-          <span className="font-sans text-sm font-medium text-royal-blue">{price}</span>
+          {price && <span className="font-sans text-sm font-medium text-royal-blue">{price}</span>}
           <Link
-            to="/products"
-            className="rounded-md border border-royal-blue px-3 py-1.5 font-sans text-xs text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
+            to={to}
+            className="ml-auto rounded-md border border-royal-blue px-3 py-1.5 font-sans text-xs text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
           >
             View
           </Link>
@@ -109,13 +109,19 @@ const heroSlides = [
     image: heroRight,
     alt: "Interior staircase showcasing The Royal Wood Shop's millwork",
     hotspots: [
-      { left: '68%', top: '38%', name: 'Wall & Ceiling Panelling', partNo: 'WP-2400', price: 'From $18.50/sq ft' },
+      {
+        left: '68%',
+        top: '38%',
+        name: 'Acoustic Wall Panel',
+        partNo: 'PANEL-NATURALOAK',
+        to: '/products/wall-ceiling-panelling/panel-naturaloak',
+      },
       {
         left: '78%',
         top: '7%',
-        name: 'Crown Moulding',
-        partNo: 'CM-3050',
-        price: 'From $4.75/lin ft',
+        name: 'Colonial Crown Moulding',
+        partNo: 'CRO-400',
+        to: '/products/trim-mouldings/colonial-crown-moulding-cro400',
         popoverSide: 'bottom',
       },
     ],
@@ -127,17 +133,17 @@ const heroSlides = [
       {
         left: '46%',
         top: '12%',
-        name: 'Shiplap Wall & Ceiling Panel',
-        partNo: 'WP-5512',
-        price: 'From $5.75/sq ft',
+        name: '5-1/4" Crown Moulding',
+        partNo: 'CRO-500',
+        to: '/products/trim-mouldings/five-inch-crown-moulding-cro500',
         popoverSide: 'bottom',
       },
       {
         left: '45%',
         top: '63%',
-        name: 'Rustic Mantel Beam',
-        partNo: 'BM-4800',
-        price: 'From $28.00/lin ft',
+        name: 'Acoustic Wall Panel Walnut',
+        partNo: 'PANEL-WALNUT',
+        to: '/products/wall-ceiling-panelling/panel-walnut',
       },
     ],
   },
