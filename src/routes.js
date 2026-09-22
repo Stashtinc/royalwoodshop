@@ -45,6 +45,10 @@ export default [
   ]),
 
   route('blog', 'routes/journal.jsx'),
+  route('resources/downloads', 'routes/downloads.jsx'),
+  route('glossary', 'routes/glossary.jsx'),
+  route('faq', 'routes/faq.jsx'),
+  route('installation-tips', 'routes/installation-tips.jsx'),
   route('design-system', 'routes/design-system.jsx'),
 
   route('404', 'routes/not-found.jsx'),
