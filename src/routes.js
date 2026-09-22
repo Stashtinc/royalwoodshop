@@ -45,6 +45,7 @@ export default [
   ]),
 
   route('blog', 'routes/journal.jsx'),
+  route('design-system', 'routes/design-system.jsx'),
 
   route('404', 'routes/not-found.jsx'),
 
