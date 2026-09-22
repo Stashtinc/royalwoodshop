@@ -68,10 +68,14 @@ function ProductHotspot({ left, top, name, partNo, price, to, popoverSide = 'lef
   const popoverPositionClass =
     popoverSide === 'bottom'
       ? 'top-0 left-0 mt-5 -translate-x-1/2'
+      : popoverSide === 'top'
+      ? 'bottom-0 left-0 mb-5 -translate-x-1/2'
       : 'top-0 right-full mr-4 -translate-y-1/2'
   const arrowPositionClass =
     popoverSide === 'bottom'
       ? 'bottom-full left-1/2 -translate-x-1/2 translate-y-1/2'
+      : popoverSide === 'top'
+      ? 'top-full left-1/2 -translate-x-1/2 -translate-y-1/2'
       : 'top-1/2 left-full -translate-x-1/2 -translate-y-1/2'
 
   return (
@@ -127,11 +131,11 @@ const heroSlides = [
       },
       {
         left: '42%',
-        top: '72%',
+        top: '73%',
         name: 'Classic Ogee Baseboard 7-1/4"',
         partNo: 'BAS-7K2',
         to: '/products/trim-mouldings/baseboard-ogee-7-inch-bas7k2',
-        popoverSide: 'bottom',
+        popoverSide: 'top',
       },
     ],
   },
