@@ -125,7 +125,8 @@ export async function loader({ request }) {
     }
   })
 
-  const UOM_COL = HEADERS.indexOf('uom\n (Lft, Ea, SqFt, Kit, Pc)') + 1
+  const UOM_COL  = HEADERS.indexOf('uom\n (Lft, Ea, SqFt, Kit, Pc)') + 1
+  const FLEX_COL = HEADERS.indexOf('Flex') + 1
 
   // Data rows
   for (const p of rows) {
@@ -143,7 +144,7 @@ export async function loader({ request }) {
       p.price ?? '',
       p.uom ?? '',
       ...SPECIES_BEFORE_FLEX.map((s) => tick(sp.get(s))),
-      p.flexAvailable ? 'X' : '',
+      tick(p.flexAvailability),
       ...SPECIES_AFTER_FLEX.map((s) => tick(sp.get(s))),
       '',
     ])
@@ -151,6 +152,12 @@ export async function loader({ request }) {
       type: 'list',
       allowBlank: true,
       formulae: ['"Lft,Ea,SqFt,Kit,Pc"'],
+      showDropDown: false,
+    }
+    row.getCell(FLEX_COL).dataValidation = {
+      type: 'list',
+      allowBlank: true,
+      formulae: ['"S,QS,MO"'],
       showDropDown: false,
     }
   }

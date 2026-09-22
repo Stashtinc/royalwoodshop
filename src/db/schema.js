@@ -87,9 +87,11 @@ export const products = pgTable('products', {
   uom: varchar('uom', { length: 20 }),
 
   /** Profile is also available as a flexible moulding.
-   *  Recorded as a tick alongside species on the audit sheet, but it is a
-   *  variant of the profile rather than a species, so it lives here. */
+   *  flexAvailability stores the availability code (in_stock / quick_ship /
+   *  made_to_order). flexAvailable is kept as the legacy boolean synonym and
+   *  stays in sync: true whenever flexAvailability is not null. */
   flexAvailable: boolean('flex_available').notNull().default(false),
+  flexAvailability: availabilityEnum('flex_availability'),
 
   price: numeric('price', { precision: 10, scale: 2 }),
   salePrice: numeric('sale_price', { precision: 10, scale: 2 }),

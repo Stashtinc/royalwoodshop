@@ -52,6 +52,7 @@ export async function getAllProducts(db) {
       availability: products.availability,
       uom: products.uom,
       flexAvailable: products.flexAvailable,
+      flexAvailability: products.flexAvailability,
       leadTime: products.leadTime,
       price: products.price,
       salePrice: products.salePrice,
@@ -165,12 +166,21 @@ function shape(r) {
     uom: r.uom ?? null,
     availability: r.availability ?? null,
     availabilityLabel: r.availability ? AVAILABILITY_LABEL[r.availability] : null,
-    speciesAvailability: detail.map((d) => ({
-      name: d.name,
-      availability: d.availability ?? null,
-      label: d.availability ? AVAILABILITY_LABEL[d.availability] : null,
-    })),
+    speciesAvailability: [
+      ...detail.map((d) => ({
+        name: d.name,
+        availability: d.availability ?? null,
+        label: d.availability ? AVAILABILITY_LABEL[d.availability] : null,
+      })),
+      // Flex is shown as a species in the "Available In" section when set
+      ...(r.flexAvailability ? [{
+        name: 'Flex',
+        availability: r.flexAvailability,
+        label: AVAILABILITY_LABEL[r.flexAvailability],
+      }] : []),
+    ],
     flexAvailable: !!r.flexAvailable,
+    flexAvailability: r.flexAvailability ?? null,
     leadTime: r.leadTime ?? null,
     price: r.price != null ? Number(r.price) : null,
     salePrice: r.salePrice != null ? Number(r.salePrice) : null,

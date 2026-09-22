@@ -157,12 +157,15 @@ function readRow(r, layout = 'species') {
   }
 
   const flexCell = cell(r, canon(FLEX))
+  // Flex now accepts availability codes (S/QS/MO) as well as legacy X/x tick
+  const flexAvailability = CODE.get(flexCell?.toUpperCase?.() ?? '') ?? null
   const row = {
     code,
     name,
     species,
     other: pipes(r.other),
-    flex: flexCell !== '',
+    flex: !!flexAvailability,
+    flexAvailability,
     availability: bestAvailability(species.map((x) => x.availability).filter(Boolean)),
     badCodes,
     notes: cell(r, 'notes'),
@@ -396,6 +399,7 @@ export async function analyse(rows, { layout = 'species' } = {}) {
         categorySlug: categories.slug,
         availability: products.availability,
         flexAvailable: products.flexAvailable,
+        flexAvailability: products.flexAvailability,
       }).from(products)
         .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
         .where(inArray(products.productCode, codes))
@@ -612,7 +616,7 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     const currentSpecies = currentSpeciesById.get(product.id) ?? []
     const speciesWouldChange = allSpecies.length > 0
       && speciesKey(allSpecies) !== speciesKey(currentSpecies)
-    const flexWouldChange = p.flex !== Boolean(product.flexAvailable)
+    const flexWouldChange = p.flex !== Boolean(product.flexAvailable) || p.flexAvailability !== (product.flexAvailability ?? null)
     const availWouldChange = Boolean(p.availability) && p.availability !== product.availability
 
     if (!speciesWouldChange && !flexWouldChange && !availWouldChange && !hasFieldWork) {
@@ -720,7 +724,7 @@ export async function apply(rows, overrides = {}, options = {}) {
     const [row] = await db.insert(products)
       .values({
         slug, productCode: p.code, name: p.name || p.code, status: newStatus,
-        flexAvailable: false,
+        flexAvailable: false, flexAvailability: null,
         ...(primaryCategoryId ? { primaryCategoryId } : {}),
         ...(newStatus === 'published' ? { publishedAt: new Date() } : {}),
       })
@@ -819,6 +823,7 @@ export async function apply(rows, overrides = {}, options = {}) {
 
     const patch = {
       flexAvailable: p.flex,
+      flexAvailability: p.flexAvailability ?? null,
       ...(p.availability ? { availability: p.availability } : {}),
       updatedAt: new Date(),
     }
