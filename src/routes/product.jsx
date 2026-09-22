@@ -11,15 +11,28 @@ const AVAIL_SCHEMA = {
   made_to_order: 'https://schema.org/PreOrder',
 }
 
-export function loader({ params }) {
+export async function loader({ params }) {
   let all = catalogueProducts
   try {
     all = JSON.parse(readFileSync(resolve('src/data/products.json'), 'utf8'))
   } catch {}
-  const product = all.find((p) => p.slug === params.slug)
+
+  let product = all.find((p) => p.slug === params.slug)
   if (!product || product.categorySlug !== params.category) {
     throw new Response('Not found', { status: 404 })
   }
+
+  // On SSR (Railway), look up the DB row to attach dbId so the admin edit bar works.
+  if (!product.dbId) {
+    try {
+      const { getDb } = await import('../lib/db.server.js')
+      const { getProductBySlug } = await import('../db/queries.js')
+      const db = await getDb()
+      const dbProduct = await getProductBySlug(db, params.slug)
+      if (dbProduct?.dbId) product = { ...product, dbId: dbProduct.dbId }
+    } catch {}
+  }
+
   const related = all
     .filter((p) => p.slug !== product.slug
       && (p.subcategories ?? [p.subcategory]).some((s) => (product.subcategories ?? [product.subcategory]).includes(s)))
