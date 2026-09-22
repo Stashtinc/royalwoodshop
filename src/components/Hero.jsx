@@ -125,6 +125,14 @@ const heroSlides = [
         partNo: '8402',
         to: '/products/interior-doors/two-panel-shaker-door-8402',
       },
+      {
+        left: '78%',
+        top: '78%',
+        name: 'Classic Ogee Baseboard 7-1/4"',
+        partNo: 'BAS-7K2',
+        to: '/products/trim-mouldings/baseboard-ogee-7-inch-bas7k2',
+        popoverSide: 'bottom',
+      },
     ],
   },
   {
