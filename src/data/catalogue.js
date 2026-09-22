@@ -101,7 +101,10 @@ export function categoryTree(rows = products, dbTree = []) {
  *  being completed this list grows; it is never a list of empty filters. */
 export function speciesFacet(rows = products) {
   const counts = new Map()
-  for (const p of rows) for (const s of p.species ?? []) counts.set(s, (counts.get(s) ?? 0) + 1)
+  for (const p of rows) {
+    for (const s of p.species ?? []) counts.set(s, (counts.get(s) ?? 0) + 1)
+    if (p.flexAvailability) counts.set('Flex', (counts.get('Flex') ?? 0) + 1)
+  }
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([value, count]) => ({ value, count }))
 }

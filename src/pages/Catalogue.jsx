@@ -515,7 +515,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
       }
       if (codeTerm && !product.productCode.toLowerCase().includes(codeTerm)) return false
       if (sizeCategory !== 'All' && product.sizeCategory !== sizeCategory) return false
-      if (species !== 'All' && !(product.species ?? []).includes(species)) return false
+      if (species !== 'All' && !(product.species ?? []).includes(species) && !(species === 'Flex' && product.flexAvailability)) return false
       // Availability is per species, so a profile in stock in poplar and made
       // to order in walnut answers to both filters.
       if (availability !== 'All' && !availabilityKeys(product).includes(availability)) return false
