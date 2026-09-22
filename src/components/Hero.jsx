@@ -4,6 +4,7 @@ import navCatsJson from '../data/navCategories.json'
 import { navLinks as allNavLinks } from '../data/navMenus'
 import logo from '../assets/images/logo.svg'
 import heroLeft from '../assets/images/hero-left.png'
+import heroKitchen from '../assets/images/hero-kitchen.png'
 import heroRight from '../assets/images/hero-right.jpg'
 import heroShiplap from '../assets/images/hero-shiplap.jpg'
 import NavDropdownPanel from './NavDropdownPanel'
@@ -105,6 +106,27 @@ function ProductHotspot({ left, top, name, partNo, price, to, popoverSide = 'lef
 }
 
 const heroSlides = [
+  {
+    image: heroKitchen,
+    alt: 'Open-plan kitchen with wood tongue-and-groove ceiling and primed shaker interior doors from The Royal Wood Shop',
+    hotspots: [
+      {
+        left: '20%',
+        top: '10%',
+        name: 'Acoustic Wall Panel Natural',
+        partNo: 'PANEL-NATURALOAK',
+        to: '/products/wall-ceiling-panelling/panel-naturaloak',
+        popoverSide: 'bottom',
+      },
+      {
+        left: '78%',
+        top: '38%',
+        name: '2 Panel Shaker Interior Door',
+        partNo: '8402',
+        to: '/products/interior-doors/two-panel-shaker-door-8402',
+      },
+    ],
+  },
   {
     image: heroRight,
     alt: "Interior staircase showcasing The Royal Wood Shop's millwork",
