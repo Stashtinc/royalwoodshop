@@ -119,7 +119,7 @@ const heroSlides = [
         popoverSide: 'bottom',
       },
       {
-        left: '78%',
+        left: '91%',
         top: '38%',
         name: '2 Panel Shaker Interior Door',
         partNo: '8402',
