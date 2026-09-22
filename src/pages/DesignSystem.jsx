@@ -142,7 +142,7 @@ export default function DesignSystem() {
             <h3 className="mb-4 font-sans text-sm font-semibold tracking-wide text-gray-400 uppercase">Body — Lato</h3>
             <div className="rounded-xl bg-[#fbfbfb] p-6">
               <TypeSpec label="Nav item" className="font-body text-xs font-bold tracking-wide text-gray-500 uppercase" sample="Interior Doors" />
-              <TypeSpec label="Prose body" className="font-body text-base leading-7 text-gray-700" sample="For standard 8-foot ceilings, 5" to 8" baseboard is recommended. The scale should coordinate with your door and window casing and crown moulding." />
+              <TypeSpec label="Prose body" className="font-body text-base leading-7 text-gray-700" sample='For standard 8-foot ceilings, 5" to 8" baseboard is recommended. The scale should coordinate with your door and window casing and crown moulding.' />
             </div>
           </Section>
 
