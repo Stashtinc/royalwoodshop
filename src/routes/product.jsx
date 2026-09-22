@@ -93,7 +93,7 @@ export default function Route() {
   return (
     <>
       {isAdmin && product.dbId && (
-        <div className="sticky top-0 z-40 flex items-center justify-between gap-4 border-b border-amber-300 bg-amber-50 px-6 py-2 print:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-4 border-t border-amber-300 bg-amber-50 px-6 py-2 print:hidden">
           <p className="font-sans text-xs font-medium text-amber-800">
             Admin mode — public view
           </p>
