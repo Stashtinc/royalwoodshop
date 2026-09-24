@@ -584,6 +584,16 @@ export async function deleteProduct(id) {
   return imgs.map((i) => i.storageKey)
 }
 
+/** Sets the given product IDs to published. Returns count updated. */
+export async function activateProductsByIds(ids) {
+  if (!ids.length) return 0
+  const db = await getDb()
+  await db.update(products)
+    .set({ status: 'published', publishedAt: new Date(), updatedAt: new Date() })
+    .where(inArray(products.id, ids))
+  return ids.length
+}
+
 /** Deletes multiple products by ID. Returns all image storageKeys for file cleanup. */
 export async function bulkDeleteProducts(ids) {
   if (!ids.length) return []

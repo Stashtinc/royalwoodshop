@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Form, useActionData, useLoaderData, useSearchParams, useSubmit, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { listProducts, listCategories, bulkArchiveProducts, bulkPublishProducts, bulkDeleteProducts } from '../../lib/admin-queries.server'
+import { listProducts, listCategories, bulkArchiveProducts, bulkPublishProducts, bulkDeleteProducts, activateProductsByIds } from '../../lib/admin-queries.server'
 import { deleteUpload } from '../../lib/uploads.server'
 import { syncProductsJson } from '../../lib/sync.server'
 import { log } from '../../lib/activity.server'
@@ -38,6 +38,19 @@ export async function action({ request }) {
   const url = new URL(request.url)
   const f = await request.formData()
   const intent = f.get('intent')
+  if (intent === 'activate-selected') {
+    const ids = f.getAll('productId').map(Number).filter(Boolean)
+    if (!ids.length) return null
+    const count = await activateProductsByIds(ids)
+    await log(user, 'product.status', {
+      entityType: 'product',
+      entityLabel: `Bulk activate (${ids.length} products)`,
+      details: { from: 'archived', to: 'published', count },
+    })
+    await syncProductsJson()
+    return { activated: count }
+  }
+
   if (intent === 'bulk-delete') {
     const ids = f.getAll('productId').map(Number).filter(Boolean)
     if (!ids.length) return null
@@ -180,6 +193,11 @@ export default function Products() {
 
   return (
     <div className="flex flex-col gap-5">
+      {actionData?.activated != null && (
+        <p className="rounded-lg bg-green-50 px-4 py-2.5 text-sm text-green-800">
+          {actionData.activated} product{actionData.activated === 1 ? '' : 's'} activated and published.
+        </p>
+      )}
       {actionData?.archived != null && (
         <p className="rounded-lg bg-green-50 px-4 py-2.5 text-sm text-green-800">
           {actionData.archived} product{actionData.archived === 1 ? '' : 's'} archived.
@@ -198,6 +216,9 @@ export default function Products() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-baseline gap-3">
           <h1 className="font-serif text-2xl font-bold text-tundora">Products</h1>
+          {statusFilter === 'archived' && (
+            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">Archived</span>
+          )}
           <p className="text-sm text-gray-500">
             {total} total
           </p>
@@ -211,6 +232,18 @@ export default function Products() {
         <div className="flex items-center gap-2">
           {bulkEdit ? (
             <>
+              {selectedIds.size > 0 && statusFilter === 'archived' && (
+                <Form method="post" onSubmit={() => exitBulkEdit()}>
+                  <input type="hidden" name="intent" value="activate-selected" />
+                  {[...selectedIds].map((id) => (
+                    <input key={id} type="hidden" name="productId" value={id} />
+                  ))}
+                  <button type="submit"
+                    className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
+                    Activate {selectedIds.size} selected
+                  </button>
+                </Form>
+              )}
               {selectedIds.size > 0 && (
                 <Form method="post" onSubmit={(e) => {
                   if (!confirm(`Are you sure you want to delete ${selectedIds.size} product${selectedIds.size === 1 ? '' : 's'}? This cannot be undone.`)) e.preventDefault()
@@ -346,7 +379,7 @@ export default function Products() {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} ref={r.id === savedId ? savedRowRef : null} className={`border-b border-gray-100 last:border-0 ${bulkEdit && selectedIds.has(r.id) ? 'bg-red-50' : ''}`}>
+              <tr key={r.id} ref={r.id === savedId ? savedRowRef : null} className={`border-b border-gray-100 last:border-0 ${bulkEdit && selectedIds.has(r.id) ? (statusFilter === 'archived' ? 'bg-amber-50' : 'bg-red-50') : ''}`}>
                 {bulkEdit && (
                   <td className="px-4 py-2.5">
                     <input
@@ -394,12 +427,21 @@ export default function Products() {
                     : <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">not set</span>}
                 </td>
                 <td className="px-4 py-2.5 text-right">
-                  <Link to={`/admin/products/${r.id}`} className="text-sm text-royal-blue hover:underline">Edit</Link>
+                  <div className="flex items-center justify-end gap-3">
+                    {statusFilter === 'archived' && !bulkEdit && (
+                      <Form method="post">
+                        <input type="hidden" name="intent" value="activate-selected" />
+                        <input type="hidden" name="productId" value={r.id} />
+                        <button type="submit" className="text-sm text-green-700 hover:underline">Activate</button>
+                      </Form>
+                    )}
+                    <Link to={`/admin/products/${r.id}`} className="text-sm text-royal-blue hover:underline">Edit</Link>
+                  </div>
                 </td>
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
+              <tr><td colSpan={bulkEdit ? 8 : 7} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
             )}
           </tbody>
         </table>
