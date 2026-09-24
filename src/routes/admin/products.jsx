@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Form, useActionData, useLoaderData, useSearchParams, useSubmit, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { listProducts, listCategories, bulkArchiveProducts, bulkPublishProducts, bulkDeleteProducts, activateProductsByIds } from '../../lib/admin-queries.server'
+import { listProducts, listCategories, bulkArchiveProducts, bulkPublishProducts, bulkDeleteProducts, activateProductsByIds, archiveProductsByIds } from '../../lib/admin-queries.server'
 import { deleteUpload } from '../../lib/uploads.server'
 import { syncProductsJson } from '../../lib/sync.server'
 import { log } from '../../lib/activity.server'
@@ -38,6 +38,19 @@ export async function action({ request }) {
   const url = new URL(request.url)
   const f = await request.formData()
   const intent = f.get('intent')
+  if (intent === 'archive-selected') {
+    const ids = f.getAll('productId').map(Number).filter(Boolean)
+    if (!ids.length) return null
+    const count = await archiveProductsByIds(ids)
+    await log(user, 'product.status', {
+      entityType: 'product',
+      entityLabel: `Archive (${ids.length} products)`,
+      details: { from: 'active', to: 'archived', count },
+    })
+    await syncProductsJson()
+    return { archived: count }
+  }
+
   if (intent === 'activate-selected') {
     const ids = f.getAll('productId').map(Number).filter(Boolean)
     if (!ids.length) return null
@@ -244,6 +257,18 @@ export default function Products() {
                   </button>
                 </Form>
               )}
+              {selectedIds.size > 0 && statusFilter !== 'archived' && (
+                <Form method="post" onSubmit={() => exitBulkEdit()}>
+                  <input type="hidden" name="intent" value="archive-selected" />
+                  {[...selectedIds].map((id) => (
+                    <input key={id} type="hidden" name="productId" value={id} />
+                  ))}
+                  <button type="submit"
+                    className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400">
+                    Archive {selectedIds.size} selected
+                  </button>
+                </Form>
+              )}
               {selectedIds.size > 0 && (
                 <Form method="post" onSubmit={(e) => {
                   if (!confirm(`Are you sure you want to delete ${selectedIds.size} product${selectedIds.size === 1 ? '' : 's'}? This cannot be undone.`)) e.preventDefault()
@@ -435,7 +460,7 @@ export default function Products() {
                         <button type="submit" className="text-sm text-green-700 hover:underline">Activate</button>
                       </Form>
                     )}
-                    <Link to={`/admin/products/${r.id}`} className="text-sm text-royal-blue hover:underline">Edit</Link>
+<Link to={`/admin/products/${r.id}`} className="text-sm text-royal-blue hover:underline">Edit</Link>
                   </div>
                 </td>
               </tr>

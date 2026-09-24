@@ -584,6 +584,16 @@ export async function deleteProduct(id) {
   return imgs.map((i) => i.storageKey)
 }
 
+/** Archives the given product IDs. Returns count updated. */
+export async function archiveProductsByIds(ids) {
+  if (!ids.length) return 0
+  const db = await getDb()
+  await db.update(products)
+    .set({ status: 'archived', updatedAt: new Date() })
+    .where(inArray(products.id, ids))
+  return ids.length
+}
+
 /** Sets the given product IDs to published. Returns count updated. */
 export async function activateProductsByIds(ids) {
   if (!ids.length) return 0
