@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, Form, useActionData, useLoaderData, useSearchParams, useSubmit, useNavigation } from 'react-router'
+import { Link, Form, useActionData, useLoaderData, useSearchParams, useSubmit, useNavigation, useNavigate } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { listProducts, listCategories, bulkArchiveProducts, bulkPublishProducts, bulkDeleteProducts, activateProductsByIds, archiveProductsByIds } from '../../lib/admin-queries.server'
 import { deleteUpload } from '../../lib/uploads.server'
@@ -180,6 +180,7 @@ export default function Products() {
   }
 
   const submit = useSubmit()
+  const navigate = useNavigate()
   const navigation = useNavigation()
   const timer = useRef(null)
   const inputRef = useRef(null)
@@ -235,12 +236,6 @@ export default function Products() {
           <p className="text-sm text-gray-500">
             {total} total
           </p>
-          <Link
-            to={statusFilter === 'archived' ? '/admin/products' : '?status=archived'}
-            className="text-sm text-gray-400 hover:text-gray-600"
-          >
-            {statusFilter === 'archived' ? '← Active products' : 'View archived'}
-          </Link>
         </div>
         <div className="flex items-center gap-2">
           {bulkEdit ? (
@@ -342,16 +337,30 @@ export default function Products() {
           )}
         </div>
         <select
-          name="category"
-          defaultValue={category}
-          onChange={(e) => submit(e.currentTarget.form, { replace: true })}
+          {...(statusFilter !== 'archived' ? { name: 'category' } : {})}
+          value={statusFilter === 'archived' ? '__archived__' : category}
+          onChange={(e) => {
+            const val = e.currentTarget.value
+            if (val === '__archived__') {
+              navigate('?status=archived', { replace: true })
+            } else if (statusFilter === 'archived') {
+              const next = new URLSearchParams()
+              if (val) next.set('category', val)
+              navigate(`?${next.toString()}`, { replace: true })
+            } else {
+              submit(e.currentTarget.form, { replace: true })
+            }
+          }}
           className="rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-royal-blue"
         >
           <option value="">All types</option>
           {categoryOptions.map((c) => (
             <option key={c.id} value={c.name}>{c.name}</option>
           ))}
+          <option disabled>──────────</option>
+          <option value="__archived__">Archived</option>
         </select>
+        {statusFilter === 'archived' && <input type="hidden" name="status" value="archived" />}
         <select
           name="species"
           defaultValue={species}
