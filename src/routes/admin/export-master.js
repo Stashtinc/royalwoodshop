@@ -66,16 +66,21 @@ export async function loader({ request }) {
 
   const ids = rows.map((r) => r.id)
 
+  // Fetch all categories for parent-name lookup
+  const allCats = await db.select({ id: categories.id, name: categories.name, parentId: categories.parentId }).from(categories)
+  const catById = new Map(allCats.map(c => [c.id, c]))
+
   const subRows = await db
-    .select({ productId: productCategories.productId, subName: categories.name })
+    .select({ productId: productCategories.productId, subName: categories.name, parentId: categories.parentId })
     .from(productCategories)
     .innerJoin(categories, eq(categories.id, productCategories.categoryId))
     .where(and(isNotNull(categories.parentId), inArray(productCategories.productId, ids)))
 
-  const subsByProduct = new Map()
-  for (const { productId, subName } of subRows) {
-    if (!subsByProduct.has(productId)) subsByProduct.set(productId, [])
-    subsByProduct.get(productId).push(subName)
+  // placementsByProduct: productId → [{parentName, subName}], primary category first
+  const placementsByProduct = new Map()
+  for (const { productId, subName, parentId } of subRows) {
+    if (!placementsByProduct.has(productId)) placementsByProduct.set(productId, [])
+    placementsByProduct.get(productId).push({ parentName: catById.get(parentId)?.name ?? '', subName })
   }
 
   const speciesRows = await db
@@ -146,14 +151,25 @@ export async function loader({ request }) {
 
   // Data rows
   for (const p of rows) {
-    const subs = subsByProduct.get(p.id) ?? []
+    const placements = placementsByProduct.get(p.id) ?? []
+    // Primary category first, then additional categories
+    const primaryName = p.categoryName ?? ''
+    placements.sort((a, b) => {
+      if (a.parentName === primaryName) return -1
+      if (b.parentName === primaryName) return 1
+      return 0
+    })
+    const catCol = placements.length > 0
+      ? [...new Map(placements.map(pl => [pl.parentName, pl.parentName])).values()].join('|')
+      : primaryName
+    const subCol = placements.map(pl => pl.subName).join('|')
     const sp   = speciesByProduct.get(p.id) ?? new Map()
     const row = ws.addRow([
       imageByProduct.get(p.id) ?? '',
       p.productCode ?? '',
       p.name ?? '',
-      p.categoryName ?? '',
-      subs.join('|'),
+      catCol,
+      subCol,
       p.sizeDisplay ?? '',
       p.description ?? '',
       tick(p.availability),
