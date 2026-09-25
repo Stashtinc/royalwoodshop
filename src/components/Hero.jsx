@@ -70,12 +70,16 @@ function ProductHotspot({ left, top, name, partNo, price, to, popoverSide = 'lef
       ? 'top-0 left-0 mt-5 -translate-x-1/2'
       : popoverSide === 'top'
       ? 'bottom-0 left-0 mb-5 -translate-x-1/2'
+      : popoverSide === 'right'
+      ? 'top-0 left-full ml-4 -translate-y-1/2'
       : 'top-0 right-full mr-4 -translate-y-1/2'
   const arrowPositionClass =
     popoverSide === 'bottom'
       ? 'bottom-full left-1/2 -translate-x-1/2 translate-y-1/2'
       : popoverSide === 'top'
       ? 'top-full left-1/2 -translate-x-1/2 -translate-y-1/2'
+      : popoverSide === 'right'
+      ? 'top-1/2 right-full translate-x-1/2 -translate-y-1/2'
       : 'top-1/2 left-full -translate-x-1/2 -translate-y-1/2'
 
   return (
@@ -111,15 +115,37 @@ function ProductHotspot({ left, top, name, partNo, price, to, popoverSide = 'lef
 
 const heroSlides = [
   {
+    image: heroShiplap,
+    alt: 'Living room with shiplap ceiling and beam millwork from The Royal Wood Shop',
+    hotspots: [
+      {
+        left: '46%',
+        top: '12%',
+        name: '1x8 Shiplap Primed MDF',
+        partNo: 'T&G-727-MDF',
+        to: '/products/wall-ceiling-panelling/t-g-727-mdf',
+        popoverSide: 'bottom',
+      },
+      {
+        left: '11%',
+        top: '45%',
+        name: 'Square Modern Backband 1E5',
+        partNo: 'BAC-1E5',
+        to: '/products/trim-mouldings/square-backband-1e5',
+        popoverSide: 'right',
+      },
+    ],
+  },
+  {
     image: heroKitchen,
     alt: 'Open-plan kitchen with wood tongue-and-groove ceiling and primed shaker interior doors from The Royal Wood Shop',
     hotspots: [
       {
         left: '20%',
         top: '10%',
-        name: 'Acoustic Wall Panel Natural',
-        partNo: 'PANEL-NATURALOAK',
-        to: '/products/wall-ceiling-panelling/panel-naturaloak',
+        name: '1X6 V-Groove Pre-Finished Irish Cream',
+        partNo: 'T&G-500-IRISHCREAM',
+        to: '/products/wall-ceiling-panelling/t-g-500-irishcream',
         popoverSide: 'bottom',
       },
       {
@@ -144,40 +170,19 @@ const heroSlides = [
     alt: "Interior staircase showcasing The Royal Wood Shop's millwork",
     hotspots: [
       {
-        left: '68%',
-        top: '38%',
-        name: 'Acoustic Wall Panel',
-        partNo: 'PANEL-NATURALOAK',
-        to: '/products/wall-ceiling-panelling/panel-naturaloak',
-      },
-      {
         left: '78%',
         top: '7%',
-        name: 'Colonial Crown Moulding',
-        partNo: 'CRO-400',
-        to: '/products/trim-mouldings/colonial-crown-moulding-cro400',
-        popoverSide: 'bottom',
-      },
-    ],
-  },
-  {
-    image: heroShiplap,
-    alt: 'Living room with shiplap ceiling and beam millwork from The Royal Wood Shop',
-    hotspots: [
-      {
-        left: '46%',
-        top: '12%',
         name: '5-1/4" Crown Moulding',
         partNo: 'CRO-500',
         to: '/products/trim-mouldings/five-inch-crown-moulding-cro500',
         popoverSide: 'bottom',
       },
       {
-        left: '45%',
-        top: '63%',
-        name: 'Acoustic Wall Panel Walnut',
-        partNo: 'PANEL-WALNUT',
-        to: '/products/wall-ceiling-panelling/panel-walnut',
+        left: '82%',
+        top: '45%',
+        name: '1X4 Smooth 4 Sides Flat Stock',
+        partNo: 'D4S-3/4X3-1/2',
+        to: '/products/flat-stock-lumber/d4s-3-4x3-1-2',
       },
     ],
   },
@@ -259,7 +264,8 @@ function HeroPhoto({ activeIndex }) {
 
 export default function Hero() {
   const { activeIndex, goTo } = useSlideshow()
-  const { navCategories = navCatsJson } = useRouteLoaderData('root') ?? {}
+  const { navCategories: loadedNavCategories = [] } = useRouteLoaderData('root') ?? {}
+  const navCategories = loadedNavCategories.length > 0 ? loadedNavCategories : navCatsJson
   const [searchOpen, setSearchOpen] = useState(false)
   const [selectedResult, setSelectedResult] = useState(null)
   const { query, setQuery, results } = useSiteSearch()
