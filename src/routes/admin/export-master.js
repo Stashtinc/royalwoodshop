@@ -13,6 +13,7 @@ const tick = (v) => AVAIL_TICK[v] ?? ''
 // Column order exactly as the master workbook: Flex sits between PVC and Steel.
 const SPECIES_BEFORE_FLEX = SPECIES.slice(0, SPECIES.indexOf('Steel'))
 const SPECIES_AFTER_FLEX  = SPECIES.slice(SPECIES.indexOf('Steel'))
+const KNOWN_SPECIES = new Set(SPECIES)
 
 // Header labels exactly as the original workbook
 const HEADERS = [
@@ -160,7 +161,7 @@ export async function loader({ request }) {
       ...SPECIES_BEFORE_FLEX.map((s) => tick(sp.get(s))),
       tick(p.flexAvailability),
       ...SPECIES_AFTER_FLEX.map((s) => tick(sp.get(s))),
-      '',
+      [...sp.keys()].filter((s) => !KNOWN_SPECIES.has(s)).join('|'),
     ])
     row.getCell(UOM_COL).dataValidation = {
       type: 'list',
