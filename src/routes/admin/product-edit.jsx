@@ -326,10 +326,7 @@ export default function ProductEdit() {
   const saving = nav.state === 'submitting'
   const [toast, setToast] = useState(null)
   const [isDirty, setIsDirty] = useState(false)
-  // Ref so the blocker function sees the latest value synchronously,
-  // without waiting for a re-render (state updates are async).
   const isDirtyRef = useRef(false)
-  const savingRef = useRef(false)
 
   function markDirty() { isDirtyRef.current = true; setIsDirty(true) }
   function clearDirty() { isDirtyRef.current = false; setIsDirty(false) }
@@ -342,10 +339,13 @@ export default function ProductEdit() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [isDirty])
 
-  // Intercept navigation AWAY from this page only — not same-page form
-  // submissions (image, category, delete forms) which share the same pathname.
+  // Only block navigation away to a different page AND only when idle —
+  // nav.state is 'submitting' during any form save (categories, images, etc.)
+  // so those are never intercepted.
   const blocker = useBlocker(({ currentLocation, nextLocation }) =>
-    isDirtyRef.current && !savingRef.current && currentLocation.pathname !== nextLocation.pathname
+    isDirtyRef.current &&
+    nav.state === 'idle' &&
+    currentLocation.pathname !== nextLocation.pathname
   )
 
   useEffect(() => {
@@ -353,7 +353,7 @@ export default function ProductEdit() {
   }, [data])
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 pb-20">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-baseline gap-3">
           <Link to="/admin/products" className="text-sm text-royal-blue hover:underline">← Products</Link>
@@ -381,7 +381,7 @@ export default function ProductEdit() {
       <ImagesSection />
       <CategoriesSection />
 
-      <Form id="details-form" method="post" className="flex flex-col gap-6" onChange={markDirty} onSubmit={() => { savingRef.current = true }}>
+      <Form id="details-form" method="post" className="flex flex-col gap-6" onChange={markDirty} onSubmit={clearDirty}>
         <input type="hidden" name="intent" value="details" />
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Details</h2>
@@ -485,7 +485,7 @@ export default function ProductEdit() {
       </Form>
 
       {/* Sticky save bar */}
-      <div className="sticky bottom-0 z-20 -mx-6 mt-2 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+      <div className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:left-60">
         <div className="flex items-center gap-3">
           <button
             type="submit"
@@ -518,7 +518,7 @@ export default function ProductEdit() {
             <div className="mt-5 flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => { savingRef.current = false; blocker.reset() }}
+                onClick={() => blocker.reset()}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400"
               >
                 Stay
