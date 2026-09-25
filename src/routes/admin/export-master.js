@@ -3,7 +3,7 @@ import { requireUser } from '../../lib/auth.server'
 import { getDb } from '../../lib/db.server.js'
 import {
   products, categories, productCategories,
-  attributes, attributeValues, productAttributes,
+  attributes, attributeValues, productAttributes, productImages,
 } from '../../db/schema.js'
 import { SPECIES } from '../../lib/catalogue-constants.js'
 
@@ -94,6 +94,20 @@ export async function loader({ request }) {
     speciesByProduct.get(productId).set(speciesName, availability)
   }
 
+  const imageRows = await db
+    .select({ productId: productImages.productId, storageKey: productImages.storageKey })
+    .from(productImages)
+    .where(inArray(productImages.productId, ids))
+    .orderBy(asc(productImages.sortOrder))
+
+  // Keep only the first (lowest sortOrder) image per product
+  const imageByProduct = new Map()
+  for (const { productId, storageKey } of imageRows) {
+    if (!imageByProduct.has(productId)) {
+      imageByProduct.set(productId, storageKey.split('/').pop())
+    }
+  }
+
   const ExcelJS = (await import('exceljs')).default
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('Master Product List')
@@ -133,7 +147,7 @@ export async function loader({ request }) {
     const subs = subsByProduct.get(p.id) ?? []
     const sp   = speciesByProduct.get(p.id) ?? new Map()
     const row = ws.addRow([
-      '',
+      imageByProduct.get(p.id) ?? '',
       p.productCode ?? '',
       p.name ?? '',
       p.categoryName ?? '',
