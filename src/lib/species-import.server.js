@@ -516,7 +516,12 @@ export async function analyse(rows, { layout = 'species' } = {}) {
 
     // Resolved before the match check: a row that creates a product needs its
     // images just as much as one that updates an existing product.
-    p.imageFiles = (p.images ?? []).filter((f) => uploads.files.has(f))
+    // Only replace images if EVERY named file is present on disk.
+    // A partial match (some files missing) means the disk is out of sync with
+    // the DB — skip image updates entirely rather than deleting images that
+    // exist in the DB but aren't on this server's filesystem.
+    const allImagesPresent = (p.images ?? []).every((f) => uploads.files.has(f))
+    p.imageFiles = allImagesPresent ? (p.images ?? []).filter((f) => f) : []
     for (const f of (p.images ?? [])) {
       if (!uploads.files.has(f) && summary.missingImages.length < 40) {
         summary.missingImages.push(`${p.code}: ${f}`)
