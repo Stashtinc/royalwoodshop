@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router'
+import { useRef, useState } from 'react'
+import { Form, useActionData, useLoaderData, useNavigation, useFetcher } from 'react-router'
 import Toast from '../../components/admin/Toast'
 import { requireUser } from '../../lib/auth.server'
 import {
@@ -93,9 +93,50 @@ function SubRow({ sub }) {
   const nav = useNavigation()
   const busy = nav.state !== 'idle'
   const [editing, setEditing] = useState(false)
+  const [showPopover, setShowPopover] = useState(false)
+  const fetcher = useFetcher()
+  const timerRef = useRef(null)
+
+  function handleMouseEnter() {
+    timerRef.current = setTimeout(() => {
+      setShowPopover(true)
+      if (sub.productCount > 0 && !fetcher.data) {
+        fetcher.load(`/admin/category-products?id=${sub.id}`)
+      }
+    }, 300)
+  }
+
+  function handleMouseLeave() {
+    clearTimeout(timerRef.current)
+    setShowPopover(false)
+  }
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs">
+    <div
+      className="relative flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {showPopover && sub.productCount > 0 && (
+        <div className="absolute bottom-full left-0 z-30 mb-2 w-56 rounded-xl border border-gray-200 bg-white p-3 shadow-xl">
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">{sub.name}</p>
+          {fetcher.data ? (
+            <ul className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
+              {fetcher.data.map((p) => (
+                <li key={p.productCode} className="truncate text-xs text-gray-700">
+                  {p.name}
+                  {p.productCode && <span className="ml-1 text-[10px] text-gray-400">{p.productCode}</span>}
+                </li>
+              ))}
+              {fetcher.data.length === 50 && (
+                <li className="text-[10px] text-gray-400 pt-1">+ more…</li>
+              )}
+            </ul>
+          ) : (
+            <p className="text-xs text-gray-400">Loading…</p>
+          )}
+        </div>
+      )}
       {editing ? (
         <Form method="post" className="flex items-center gap-2" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="intent" value="rename" />
