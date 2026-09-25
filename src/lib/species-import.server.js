@@ -284,9 +284,7 @@ async function findRemoved(db, previous, current, { layout = 'species' } = {}) {
  * `<stem>-<10 hex>-<width>.webp`. The largest width present becomes the image's
  * width, so srcset never offers a variant that was never generated.
  */
-let uploadIndex = null
 async function readUploads() {
-  if (uploadIndex) return uploadIndex
   const { readdir } = await import('node:fs/promises')
   const widths = new Map()
   let names = []
@@ -297,8 +295,7 @@ async function readUploads() {
     const base = `${m[1]}.webp`
     widths.set(base, Math.max(widths.get(base) ?? 0, Number(m[2])))
   }
-  uploadIndex = { files: new Set(names), widths }
-  return uploadIndex
+  return { files: new Set(names), widths }
 }
 
 const imageRole = (name) =>
