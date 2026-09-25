@@ -5,7 +5,7 @@ import { requireUser } from '../../lib/auth.server'
 import {
   getProduct, saveProduct, diffProduct, listImages, addImage, updateImage,
   removeImage, moveImage, listCategoriesWithSubs, listProductCategories,
-  saveProductCategories, deleteProduct,
+  saveProductCategories, deleteProduct, archiveProductsByIds,
 } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
 import { saveUpload, deleteUpload, describeLimits } from '../../lib/uploads.server'
@@ -107,7 +107,7 @@ export async function action({ request, params }) {
 
   if (intent === 'archive') {
     const product = await getProduct(params.id)
-    await saveProduct(params.id, { ...product, status: 'archived' })
+    await archiveProductsByIds([Number(params.id)])
     await log(user, 'product.status', {
       entityType: 'product', entityId: params.id, entityLabel: product?.name,
       details: { from: product?.status, to: 'archived' },
@@ -199,7 +199,7 @@ export async function action({ request, params }) {
   }
 
   await syncProductsJson()
-  return { saved: 'Changes saved.' }
+  return redirect(`/admin/products?saved=${params.id}&sortBy=updated&sortDir=desc`)
 }
 
 const field = 'rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue'
