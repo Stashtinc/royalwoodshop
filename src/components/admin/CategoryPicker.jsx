@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function CategoryPicker({ tree, initialLinkedIds = [], initialPrimaryId = null }) {
+export default function CategoryPicker({ tree, initialLinkedIds = [], initialPrimaryId = null, formId }) {
   const initIds = initialLinkedIds.map(String)
 
   const [checked, setChecked] = useState(() => new Set(initIds))
@@ -70,9 +70,9 @@ export default function CategoryPicker({ tree, initialLinkedIds = [], initialPri
 
   return (
     <>
-      <input type="hidden" name="primaryCategoryId" value={primaryId} />
+      <input type="hidden" name="primaryCategoryId" value={primaryId} form={formId} />
       {[...checked].map((id) => (
-        <input key={id} type="hidden" name="categoryId" value={id} />
+        <input key={id} type="hidden" name="categoryId" value={id} form={formId} />
       ))}
 
       <div className="flex flex-col divide-y divide-gray-100">

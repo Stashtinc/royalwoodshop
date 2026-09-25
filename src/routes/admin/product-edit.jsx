@@ -164,8 +164,6 @@ export async function action({ request, params }) {
   await saveProduct(params.id, payload)
 
   if (changed.length) {
-    // Whether a product is visible to customers is a milestone; everything
-    // else about it is detail.
     const statusChange = changed.find((c) => c.field === 'status')
     if (statusChange) {
       await log(user, 'product.status', {
@@ -182,8 +180,15 @@ export async function action({ request, params }) {
     }
   }
 
+  // Save categories if included (CategoryPicker targets this form via formId)
+  const primaryCategoryId = f.get('primaryCategoryId') || null
+  const categoryIds = f.getAll('categoryId').map(Number).filter(Boolean)
+  if (categoryIds.length) {
+    await saveProductCategories(params.id, { primaryCategoryId, categoryIds })
+  }
+
   await syncProductsJson()
-  return redirect(`/admin/products?saved=${params.id}&sortBy=updated&sortDir=desc`)
+  return { saved: 'Changes saved.' }
 }
 
 const field = 'rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue'
@@ -294,26 +299,16 @@ function ImagesSection() {
 
 function CategoriesSection() {
   const { product, categoryTree, linkedCategoryIds } = useLoaderData()
-  const nav = useNavigation()
-  const busy = nav.state === 'submitting' && nav.formData?.get('intent') === 'categories'
 
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
       <h2 className="font-serif font-bold text-tundora">Categories</h2>
-      <Form method="post" className="flex flex-col gap-4">
-        <input type="hidden" name="intent" value="categories" />
-        <CategoryPicker
-          tree={categoryTree}
-          initialLinkedIds={linkedCategoryIds}
-          initialPrimaryId={product.primaryCategoryId}
-        />
-        <div>
-          <button disabled={busy}
-            className="rounded-lg bg-royal-blue px-5 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
-            {busy ? 'Saving…' : 'Save categories'}
-          </button>
-        </div>
-      </Form>
+      <CategoryPicker
+        tree={categoryTree}
+        initialLinkedIds={linkedCategoryIds}
+        initialPrimaryId={product.primaryCategoryId}
+        formId="details-form"
+      />
     </section>
   )
 }
