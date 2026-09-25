@@ -369,7 +369,9 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   const speciesOptions = useMemo(() => speciesFacet(allProducts), [allProducts])
   const availabilityOptions = useMemo(() => availabilityFacet(allProducts), [allProducts])
   const [searchParams] = useSearchParams()
-  const [search, setSearch] = useState(() => searchParams.get('code') || '')
+  const [search, setSearch] = useState('')
+  const [productCode, setProductCode] = useState(() => searchParams.get('code') || '')
+  const [sizeCategory, setSizeCategory] = useState('All')
   const [species, setSpecies] = useState('All')
   const [availability, setAvailability] = useState('All')
   // Seeded from initialCategory only — never from the query string. /products
@@ -380,6 +382,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
     subsFromUrl({ initialCategory, categoryParam: null, tree: categoryTree(allProducts, dbCategories) }),
   )
   const [expandedCats, setExpandedCats] = useState(new Set())
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const [filterOpen, setFilterOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [view, setView] = useState('grid')
@@ -409,7 +412,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   useEffect(() => {
     const code = searchParams.get('code')
     if (code) {
-      setSearch(code)
+      setProductCode(code)
       setPage(1)
     }
   }, [searchParams])
@@ -477,6 +480,8 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
 
   function clearFilters() {
     setSearch('')
+    setProductCode('')
+    setSizeCategory('All')
     setSpecies('All')
     setAvailability('All')
     setSelectedSubs(allSubKeys(catalogueCategoryOrder))
@@ -490,22 +495,26 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
 
   const hasActiveFilters =
     Boolean(search.trim()) ||
+    Boolean(productCode.trim()) ||
+    sizeCategory !== 'All' ||
     species !== 'All' ||
     availability !== 'All' ||
     selectedSubs.size < totalSubCount
 
   const filtered = useMemo(() => {
     const searchTerm = search.trim().toLowerCase()
+    const codeTerm = productCode.trim().toLowerCase()
 
     return allProducts.filter((product) => {
       if (
         searchTerm &&
         !product.name.toLowerCase().includes(searchTerm) &&
-        !(product.productCode ?? '').toLowerCase().includes(searchTerm) &&
-        !(product.slug ?? '').toLowerCase().includes(searchTerm)
+        !product.productCode.toLowerCase().includes(searchTerm)
       ) {
         return false
       }
+      if (codeTerm && !product.productCode.toLowerCase().includes(codeTerm)) return false
+      if (sizeCategory !== 'All' && product.sizeCategory !== sizeCategory) return false
       if (species !== 'All' && !(product.species ?? []).includes(species) && !(species === 'Flex' && product.flexAvailability)) return false
       // Availability is per species, so a profile in stock in poplar and made
       // to order in walnut answers to both filters.
@@ -520,7 +529,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
       }
       return true
     })
-  }, [allProducts, search, species, availability, selectedSubs])
+  }, [allProducts, search, productCode, sizeCategory, species, availability, selectedSubs])
 
   const sorted = useMemo(() => {
     const catIndex = Object.fromEntries(catalogueCategoryOrder.map((c, i) => [c.name, i]))
@@ -596,7 +605,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                   type="text"
                   value={search}
                   onChange={(e) => withPageReset(setSearch)(e.target.value)}
-                  placeholder="Search by name or product code…"
+                  placeholder="Search..."
                   className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-8 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
                 />
                 {search && (
@@ -612,6 +621,75 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                   </button>
                 )}
               </div>
+              <button
+                type="button"
+                onClick={() => setAdvancedOpen((o) => !o)}
+                className="flex w-fit items-center gap-1 font-sans text-sm text-royal-blue hover:underline"
+              >
+                <svg
+                  width="12" height="12" viewBox="0 0 12 12" fill="none"
+                  className={`transition-transform duration-200 ${advancedOpen ? 'rotate-90' : ''}`}
+                >
+                  <path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Advanced search
+              </button>
+              {advancedOpen && (
+                <div className="flex flex-col gap-4 pt-1">
+                  <div className="flex flex-col gap-2">
+                    <p className="font-serif text-base font-bold text-tundora">Product Code</p>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={productCode}
+                        onChange={(e) => withPageReset(setProductCode)(e.target.value)}
+                        placeholder="e.g. BB-5014"
+                        className="w-full rounded-lg border border-gray-300 py-2.5 pl-3 pr-8 font-sans text-sm text-gray-900 outline-none focus:border-royal-blue"
+                      />
+                      {productCode && (
+                        <button
+                          type="button"
+                          onClick={() => withPageReset(setProductCode)('')}
+                          className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          aria-label="Clear product code"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <p className="font-serif text-base font-bold text-tundora">Width</p>
+                    <CustomSelect
+                      value={sizeCategory}
+                      onChange={withPageReset(setSizeCategory)}
+                      options={[
+                        { value: 'All', label: 'All' },
+                        { value: 'Under 2"', label: 'Under 2"' },
+                        { value: '2" – 4"', label: '2" – 4"' },
+                        { value: '4" – 7"', label: '4" – 7"' },
+                        { value: 'Over 7"', label: 'Over 7"' },
+                        { value: 'Made to order', label: 'Made to order' },
+                      ]}
+                    />
+                  </div>
+                  {speciesOptions.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <p className="font-serif text-base font-bold text-tundora">Wood species</p>
+                      <CustomSelect
+                        value={species}
+                        onChange={withPageReset(setSpecies)}
+                        options={[
+                          { value: 'All', label: 'All' },
+                          ...speciesOptions.map((o) => ({ value: o.value, label: `${o.value} (${o.count})` })),
+                        ]}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-4">
