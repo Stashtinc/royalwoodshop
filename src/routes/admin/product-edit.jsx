@@ -344,7 +344,8 @@ export default function ProductEdit() {
   }, [isDirty])
 
   // Intercept client-side navigation away from this page.
-  const blocker = useBlocker(isDirty)
+  // Disabled while any form is submitting so the post-save redirect isn't blocked.
+  const blocker = useBlocker(isDirty && nav.state === 'idle')
 
   useEffect(() => {
     if (data?.saved) setToast(data.saved)
