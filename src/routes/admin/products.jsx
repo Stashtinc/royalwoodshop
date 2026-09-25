@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link, Form, useActionData, useLoaderData, useSearchParams, useSubmit, useNavigation, useNavigate } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { listProducts, listCategories, bulkArchiveProducts, bulkPublishProducts, bulkDeleteProducts, activateProductsByIds, archiveProductsByIds } from '../../lib/admin-queries.server'
@@ -113,6 +113,60 @@ const MISSING_LABEL = {
   species: 'missing species',
   availability: 'missing availability',
   description: 'missing description',
+}
+
+function FilterPill({ label, value, options, onChange, activeClass }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const isActive = !!value
+
+  const close = useCallback(() => setOpen(false), [])
+
+  useEffect(() => {
+    if (!open) return
+    function onDown(e) { if (ref.current && !ref.current.contains(e.target)) close() }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open, close])
+
+  const activeStyle = activeClass ?? 'border-royal-blue bg-royal-blue text-white'
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-none ${
+          isActive ? activeStyle : 'border-gray-300 text-gray-600 hover:border-royal-blue'
+        }`}
+      >
+        {value ? options.find((o) => o.value === value)?.label ?? label : label}
+        <svg
+          width="10" height="10" viewBox="0 0 10 6" fill="none"
+          className={`transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+        >
+          <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 z-20 mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); close() }}
+              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors hover:bg-gray-50 ${
+                value === opt.value ? 'font-semibold text-royal-blue' : 'text-gray-700'
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${value === opt.value ? 'bg-royal-blue' : 'bg-transparent'}`} />
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function Products() {
@@ -336,11 +390,15 @@ export default function Products() {
             </svg>
           )}
         </div>
-        <select
-          {...(statusFilter !== 'archived' ? { name: 'category' } : {})}
+        <FilterPill
+          label="All types"
           value={statusFilter === 'archived' ? '__archived__' : category}
-          onChange={(e) => {
-            const val = e.currentTarget.value
+          options={[
+            { value: '', label: 'All types' },
+            ...categoryOptions.map((c) => ({ value: c.name, label: c.name })),
+            { value: '__archived__', label: 'Archived' },
+          ]}
+          onChange={(val) => {
             if (val === '__archived__') {
               navigate('?status=archived', { replace: true })
             } else if (statusFilter === 'archived') {
@@ -348,30 +406,29 @@ export default function Products() {
               if (val) next.set('category', val)
               navigate(`?${next.toString()}`, { replace: true })
             } else {
-              submit(e.currentTarget.form, { replace: true })
+              const next = new URLSearchParams(params)
+              val ? next.set('category', val) : next.delete('category')
+              next.delete('page')
+              navigate(`?${next.toString()}`, { replace: true })
             }
           }}
-          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-none ${category && statusFilter !== 'archived' ? 'border-royal-blue bg-royal-blue text-white' : statusFilter === 'archived' ? 'border-amber-500 bg-amber-500 text-white' : 'border-gray-300 text-gray-600 hover:border-royal-blue'}`}
-        >
-          <option value="">All types</option>
-          {categoryOptions.map((c) => (
-            <option key={c.id} value={c.name}>{c.name}</option>
-          ))}
-          <option disabled>──────────</option>
-          <option value="__archived__">Archived</option>
-        </select>
+          activeClass={statusFilter === 'archived' ? 'border-amber-500 bg-amber-500 text-white' : 'border-royal-blue bg-royal-blue text-white'}
+        />
         {statusFilter === 'archived' && <input type="hidden" name="status" value="archived" />}
-        <select
-          name="species"
-          defaultValue={species}
-          onChange={(e) => submit(e.currentTarget.form, { replace: true })}
-          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-none ${species ? 'border-royal-blue bg-royal-blue text-white' : 'border-gray-300 text-gray-600 hover:border-royal-blue'}`}
-        >
-          <option value="">All species</option>
-          {SPECIES.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+        <FilterPill
+          label="All species"
+          value={species}
+          options={[
+            { value: '', label: 'All species' },
+            ...SPECIES.map((s) => ({ value: s, label: s })),
+          ]}
+          onChange={(val) => {
+            const next = new URLSearchParams(params)
+            val ? next.set('species', val) : next.delete('species')
+            next.delete('page')
+            navigate(`?${next.toString()}`, { replace: true })
+          }}
+        />
         <noscript>
           <button className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm hover:border-gray-400">Search</button>
         </noscript>
