@@ -8,6 +8,7 @@ import Footer from './components/Footer'
 import NewsletterSignup from './components/NewsletterSignup'
 import royalEdgeHero from './assets/images/royal-edge-hero.jpg'
 import servicesHero from './assets/images/services-hero.jpg'
+import navCatsJson from './data/navCategories.json'
 export async function loader({ request }) {
   const { getUser } = await import('./lib/auth.server.js')
   const [navResult, user] = await Promise.all([
@@ -73,7 +74,8 @@ export function Layout({ children }) {
 }
 
 export default function Root() {
-  const { navCategories = [] } = useLoaderData() ?? {}
+  const { navCategories: loadedNavCategories = [] } = useLoaderData() ?? {}
+  const navCategories = loadedNavCategories.length > 0 ? loadedNavCategories : navCatsJson
   const { pathname } = useLocation()
   const isHome = pathname === '/'
 

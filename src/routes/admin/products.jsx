@@ -351,7 +351,7 @@ export default function Products() {
               submit(e.currentTarget.form, { replace: true })
             }
           }}
-          className="rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-royal-blue"
+          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-none ${category && statusFilter !== 'archived' ? 'border-royal-blue bg-royal-blue text-white' : statusFilter === 'archived' ? 'border-amber-500 bg-amber-500 text-white' : 'border-gray-300 text-gray-600 hover:border-royal-blue'}`}
         >
           <option value="">All types</option>
           {categoryOptions.map((c) => (
@@ -365,7 +365,7 @@ export default function Products() {
           name="species"
           defaultValue={species}
           onChange={(e) => submit(e.currentTarget.form, { replace: true })}
-          className="rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-royal-blue"
+          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-none ${species ? 'border-royal-blue bg-royal-blue text-white' : 'border-gray-300 text-gray-600 hover:border-royal-blue'}`}
         >
           <option value="">All species</option>
           {SPECIES.map((s) => (
