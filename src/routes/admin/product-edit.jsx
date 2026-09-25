@@ -342,9 +342,11 @@ export default function ProductEdit() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [isDirty])
 
-  // Intercept client-side navigation. The function is evaluated synchronously
-  // at the moment of navigation, so we use refs instead of state.
-  const blocker = useBlocker(() => isDirtyRef.current && !savingRef.current)
+  // Intercept navigation AWAY from this page only — not same-page form
+  // submissions (image, category, delete forms) which share the same pathname.
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    isDirtyRef.current && !savingRef.current && currentLocation.pathname !== nextLocation.pathname
+  )
 
   useEffect(() => {
     if (data?.saved) setToast(data.saved)
