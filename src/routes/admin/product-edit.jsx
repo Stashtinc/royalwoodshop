@@ -105,6 +105,17 @@ export async function action({ request, params }) {
     return { saved: 'Image removed.' }
   }
 
+  if (intent === 'archive') {
+    const product = await getProduct(params.id)
+    await saveProduct(params.id, { ...product, status: 'archived' })
+    await log(user, 'product.status', {
+      entityType: 'product', entityId: params.id, entityLabel: product?.name,
+      details: { from: product?.status, to: 'archived' },
+    })
+    await syncProductsJson()
+    return redirect('/admin/products')
+  }
+
   if (intent === 'delete') {
     const product = await getProduct(params.id)
     const storageKeys = await deleteProduct(params.id)
@@ -492,15 +503,26 @@ export default function ProductEdit() {
           </button>
           <Link to="/admin/products" className="text-sm text-gray-600 hover:underline">Cancel</Link>
         </div>
-        <Form method="post" onSubmit={(e) => {
-          if (!confirm(`Are you sure you want to delete "${product.name}"? This cannot be undone.`)) e.preventDefault()
-        }}>
-          <input type="hidden" name="intent" value="delete" />
-          <button type="submit"
-            className="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 hover:border-red-400 hover:bg-red-50">
-            Delete product
-          </button>
-        </Form>
+        <div className="flex items-center gap-3">
+          <Form method="post" onSubmit={(e) => {
+            if (!confirm(`Are you sure you want to archive "${product.name}"? It will be hidden from the site.`)) e.preventDefault()
+          }}>
+            <input type="hidden" name="intent" value="archive" />
+            <button type="submit"
+              className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50">
+              Archive
+            </button>
+          </Form>
+          <Form method="post" onSubmit={(e) => {
+            if (!confirm(`Are you sure you want to delete "${product.name}"? This cannot be undone.`)) e.preventDefault()
+          }}>
+            <input type="hidden" name="intent" value="delete" />
+            <button type="submit"
+              className="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 hover:border-red-400 hover:bg-red-50">
+              Delete product
+            </button>
+          </Form>
+        </div>
       </div>
 
       {blocker.state === 'blocked' && (
