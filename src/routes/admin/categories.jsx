@@ -95,10 +95,12 @@ function SubRow({ sub }) {
   const [editing, setEditing] = useState(false)
   const [showPopover, setShowPopover] = useState(false)
   const fetcher = useFetcher()
-  const timerRef = useRef(null)
+  const showTimer = useRef(null)
+  const hideTimer = useRef(null)
 
-  function handleMouseEnter() {
-    timerRef.current = setTimeout(() => {
+  function scheduleShow() {
+    clearTimeout(hideTimer.current)
+    showTimer.current = setTimeout(() => {
       setShowPopover(true)
       if (sub.productCount > 0 && !fetcher.data) {
         fetcher.load(`/admin/category-products?id=${sub.id}`)
@@ -106,19 +108,27 @@ function SubRow({ sub }) {
     }, 300)
   }
 
-  function handleMouseLeave() {
-    clearTimeout(timerRef.current)
-    setShowPopover(false)
+  function scheduleHide() {
+    clearTimeout(showTimer.current)
+    hideTimer.current = setTimeout(() => setShowPopover(false), 150)
+  }
+
+  function cancelHide() {
+    clearTimeout(hideTimer.current)
   }
 
   return (
     <div
       className="relative flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={scheduleShow}
+      onMouseLeave={scheduleHide}
     >
       {showPopover && sub.productCount > 0 && (
-        <div className="absolute top-full left-0 z-30 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-3 shadow-xl">
+        <div
+          className="absolute top-full left-0 z-30 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-3 shadow-xl"
+          onMouseEnter={cancelHide}
+          onMouseLeave={scheduleHide}
+        >
           <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">{sub.name}</p>
           {fetcher.data ? (
             <ul className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
