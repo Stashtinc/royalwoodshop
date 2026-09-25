@@ -18,19 +18,26 @@ export async function loader({ params }) {
   } catch {}
 
   let product = all.find((p) => p.slug === params.slug)
-  if (!product || product.categorySlug !== params.category) {
-    throw new Response('Not found', { status: 404 })
-  }
 
-  // On SSR (Railway), look up the DB row to attach dbId so the admin edit bar works.
-  if (!product.dbId) {
+  // Product not in the JSON snapshot — may have been added via admin after the
+  // last sync. Fall back to the DB so newly-created products are always reachable.
+  // Also used to attach dbId for the admin edit bar on SSR (Railway).
+  if (!product || product.categorySlug !== params.category || !product.dbId) {
     try {
       const { getDb } = await import('../lib/db.server.js')
-      const { getProductBySlug } = await import('../db/queries.js')
+      const { getAllProducts } = await import('../db/queries.js')
       const db = await getDb()
-      const dbProduct = await getProductBySlug(db, params.slug)
-      if (dbProduct?.dbId) product = { ...product, dbId: dbProduct.dbId }
+      const dbAll = await getAllProducts(db)
+      const dbProduct = dbAll.find((p) => p.slug === params.slug)
+      if (dbProduct) {
+        // DB rows use `id`; the rest of the app expects `dbId`.
+        product = { ...product, ...dbProduct, dbId: dbProduct.id }
+      }
     } catch {}
+  }
+
+  if (!product || product.categorySlug !== params.category) {
+    throw new Response('Not found', { status: 404 })
   }
 
   const related = all
