@@ -101,12 +101,13 @@ export async function loader({ request }) {
     .where(inArray(productImages.productId, ids))
     .orderBy(asc(productImages.sortOrder))
 
-  // Keep only the first (lowest sortOrder) image per product
+  // All images per product pipe-separated (sorted by sortOrder) so the
+  // import round-trip preserves every image, not just the first.
   const imageByProduct = new Map()
   for (const { productId, storageKey } of imageRows) {
-    if (!imageByProduct.has(productId)) {
-      imageByProduct.set(productId, storageKey.split('/').pop())
-    }
+    const filename = storageKey.split('/').pop()
+    const existing = imageByProduct.get(productId)
+    imageByProduct.set(productId, existing ? `${existing}|${filename}` : filename)
   }
 
   const ExcelJS = (await import('exceljs')).default
