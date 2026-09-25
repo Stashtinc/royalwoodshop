@@ -521,10 +521,16 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     // the DB — skip image updates entirely rather than deleting images that
     // exist in the DB but aren't on this server's filesystem.
     const allImagesPresent = (p.images ?? []).every((f) => uploads.files.has(f))
+    const someImagesPresent = (p.images ?? []).some((f) => uploads.files.has(f))
     p.imageFiles = allImagesPresent ? (p.images ?? []).filter((f) => f) : []
-    for (const f of (p.images ?? [])) {
-      if (!uploads.files.has(f) && summary.missingImages.length < 40) {
-        summary.missingImages.push(`${p.code}: ${f}`)
+    // Only warn about missing files when SOME (not all) are missing — that's a
+    // genuine partial-match problem. When none are on disk it just means the DB
+    // is ahead of the filesystem (e.g. Railway ephemeral disk), which is safe.
+    if (someImagesPresent && !allImagesPresent) {
+      for (const f of (p.images ?? [])) {
+        if (!uploads.files.has(f) && summary.missingImages.length < 40) {
+          summary.missingImages.push(`${p.code}: ${f}`)
+        }
       }
     }
     const sheetHasContent = layout === 'master'
