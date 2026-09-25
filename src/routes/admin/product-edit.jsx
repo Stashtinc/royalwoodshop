@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Toast from '../../components/admin/Toast'
 import { Form, Link, redirect, useActionData, useLoaderData, useNavigation, useBlocker } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
@@ -326,14 +326,13 @@ export default function ProductEdit() {
   const saving = nav.state === 'submitting'
   const [toast, setToast] = useState(null)
   const [isDirty, setIsDirty] = useState(false)
+  // Ref so the blocker function sees the latest value synchronously,
+  // without waiting for a re-render (state updates are async).
+  const isDirtyRef = useRef(false)
+  const savingRef = useRef(false)
 
-  // Clear dirty flag the moment the details form is submitted so the
-  // redirect that follows isn't intercepted by the blocker.
-  useEffect(() => {
-    if (nav.state === 'submitting' && nav.formData?.get('intent') === 'details') {
-      setIsDirty(false)
-    }
-  }, [nav.state, nav.formData])
+  function markDirty() { isDirtyRef.current = true; setIsDirty(true) }
+  function clearDirty() { isDirtyRef.current = false; setIsDirty(false) }
 
   // Warn on browser tab close / hard refresh.
   useEffect(() => {
@@ -343,9 +342,9 @@ export default function ProductEdit() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [isDirty])
 
-  // Intercept client-side navigation away from this page.
-  // Disabled while any form is submitting so the post-save redirect isn't blocked.
-  const blocker = useBlocker(isDirty && nav.state === 'idle')
+  // Intercept client-side navigation. The function is evaluated synchronously
+  // at the moment of navigation, so we use refs instead of state.
+  const blocker = useBlocker(() => isDirtyRef.current && !savingRef.current)
 
   useEffect(() => {
     if (data?.saved) setToast(data.saved)
@@ -380,7 +379,7 @@ export default function ProductEdit() {
       <ImagesSection />
       <CategoriesSection />
 
-      <Form method="post" className="flex flex-col gap-6" onChange={() => setIsDirty(true)}>
+      <Form method="post" className="flex flex-col gap-6" onChange={markDirty} onSubmit={() => { savingRef.current = true }}>
         <input type="hidden" name="intent" value="details" />
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Details</h2>
@@ -511,14 +510,14 @@ export default function ProductEdit() {
             <div className="mt-5 flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => blocker.reset()}
+                onClick={() => { savingRef.current = false; blocker.reset() }}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400"
               >
                 Stay
               </button>
               <button
                 type="button"
-                onClick={() => blocker.proceed()}
+                onClick={() => { clearDirty(); blocker.proceed() }}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
                 Leave without saving
