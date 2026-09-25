@@ -136,7 +136,7 @@ function FilterPill({ label, value, options, onChange, activeClass }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors focus:outline-none ${
+        className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors focus:outline-none ${
           isActive ? activeStyle : 'border-gray-300 text-gray-600 hover:border-royal-blue'
         }`}
       >
@@ -155,7 +155,7 @@ function FilterPill({ label, value, options, onChange, activeClass }) {
               key={opt.value}
               type="button"
               onClick={() => { onChange(opt.value); close() }}
-              className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors hover:bg-gray-50 ${
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50 ${
                 value === opt.value ? 'font-semibold text-royal-blue' : 'text-gray-700'
               }`}
             >
