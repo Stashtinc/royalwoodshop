@@ -9,7 +9,7 @@ export async function loader({ request }) {
   if (!id) return Response.json([])
   const db = await getDb()
   const rows = await db
-    .select({ name: products.name, productCode: products.productCode })
+    .select({ id: products.id, name: products.name, productCode: products.productCode })
     .from(products)
     .innerJoin(productCategories, eq(productCategories.productId, products.id))
     .innerJoin(categories, eq(categories.id, productCategories.categoryId))

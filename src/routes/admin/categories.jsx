@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Form, useActionData, useLoaderData, useNavigation, useFetcher } from 'react-router'
+import { Form, Link, useActionData, useLoaderData, useNavigation, useFetcher } from 'react-router'
 import Toast from '../../components/admin/Toast'
 import { requireUser } from '../../lib/auth.server'
 import {
@@ -123,9 +123,14 @@ function SubRow({ sub }) {
           {fetcher.data ? (
             <ul className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
               {fetcher.data.map((p) => (
-                <li key={p.productCode} className="truncate text-xs text-gray-700">
-                  {p.name}
-                  {p.productCode && <span className="ml-1 text-[10px] text-gray-400">{p.productCode}</span>}
+                <li key={p.id}>
+                  <Link
+                    to={`/admin/products/${p.id}`}
+                    className="flex items-baseline gap-1 truncate rounded px-1 py-0.5 text-xs text-gray-700 hover:bg-royal-blue/5 hover:text-royal-blue"
+                  >
+                    <span className="truncate">{p.name}</span>
+                    {p.productCode && <span className="shrink-0 text-[10px] text-gray-400">{p.productCode}</span>}
+                  </Link>
                 </li>
               ))}
               {fetcher.data.length === 50 && (
