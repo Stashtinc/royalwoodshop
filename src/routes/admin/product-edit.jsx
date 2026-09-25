@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Toast from '../../components/admin/Toast'
-import { Form, Link, redirect, useActionData, useLoaderData, useNavigation } from 'react-router'
+import { Form, Link, redirect, useActionData, useLoaderData, useNavigation, useBlocker } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import {
   getProduct, saveProduct, diffProduct, listImages, addImage, updateImage,
@@ -325,6 +325,26 @@ export default function ProductEdit() {
   const nav = useNavigation()
   const saving = nav.state === 'submitting'
   const [toast, setToast] = useState(null)
+  const [isDirty, setIsDirty] = useState(false)
+
+  // Clear dirty flag the moment the details form is submitted so the
+  // redirect that follows isn't intercepted by the blocker.
+  useEffect(() => {
+    if (nav.state === 'submitting' && nav.formData?.get('intent') === 'details') {
+      setIsDirty(false)
+    }
+  }, [nav.state, nav.formData])
+
+  // Warn on browser tab close / hard refresh.
+  useEffect(() => {
+    if (!isDirty) return
+    function handler(e) { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
+
+  // Intercept client-side navigation away from this page.
+  const blocker = useBlocker(isDirty)
 
   useEffect(() => {
     if (data?.saved) setToast(data.saved)
@@ -359,7 +379,7 @@ export default function ProductEdit() {
       <ImagesSection />
       <CategoriesSection />
 
-      <Form method="post" className="flex flex-col gap-6">
+      <Form method="post" className="flex flex-col gap-6" onChange={() => setIsDirty(true)}>
         <input type="hidden" name="intent" value="details" />
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Details</h2>
@@ -479,6 +499,33 @@ export default function ProductEdit() {
           </Form>
         </div>
       </Form>
+
+      {blocker.state === 'blocked' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="font-serif text-lg font-bold text-tundora">Unsaved changes</h2>
+            <p className="mt-2 font-sans text-sm text-gray-600">
+              You have unsaved changes. If you leave now, they will be lost.
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => blocker.reset()}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400"
+              >
+                Stay
+              </button>
+              <button
+                type="button"
+                onClick={() => blocker.proceed()}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                Leave without saving
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
