@@ -381,7 +381,7 @@ export default function ProductEdit() {
       <ImagesSection />
       <CategoriesSection />
 
-      <Form method="post" className="flex flex-col gap-6" onChange={markDirty} onSubmit={() => { savingRef.current = true }}>
+      <Form id="details-form" method="post" className="flex flex-col gap-6" onChange={markDirty} onSubmit={() => { savingRef.current = true }}>
         <input type="hidden" name="intent" value="details" />
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Details</h2>
@@ -482,25 +482,31 @@ export default function ProductEdit() {
             <textarea name="seoDescription" rows={2} defaultValue={product.seoDescription ?? ''} className={field} /></label>
         </section>
 
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button disabled={saving}
-              className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
-              {saving ? 'Saving…' : 'Save changes'}
-            </button>
-            <Link to="/admin/products" className="text-sm text-gray-600 hover:underline">Cancel</Link>
-          </div>
-          <Form method="post" onSubmit={(e) => {
-            if (!confirm(`Are you sure you want to delete "${product.name}"? This cannot be undone.`)) e.preventDefault()
-          }}>
-            <input type="hidden" name="intent" value="delete" />
-            <button type="submit"
-              className="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 hover:border-red-400 hover:bg-red-50">
-              Delete product
-            </button>
-          </Form>
-        </div>
       </Form>
+
+      {/* Sticky save bar */}
+      <div className="sticky bottom-0 z-20 -mx-6 mt-2 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            form="details-form"
+            disabled={saving}
+            className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60"
+          >
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+          <Link to="/admin/products" className="text-sm text-gray-600 hover:underline">Cancel</Link>
+        </div>
+        <Form method="post" onSubmit={(e) => {
+          if (!confirm(`Are you sure you want to delete "${product.name}"? This cannot be undone.`)) e.preventDefault()
+        }}>
+          <input type="hidden" name="intent" value="delete" />
+          <button type="submit"
+            className="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 hover:border-red-400 hover:bg-red-50">
+            Delete product
+          </button>
+        </Form>
+      </div>
 
       {blocker.state === 'blocked' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
