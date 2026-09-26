@@ -1,9 +1,8 @@
-import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router'
+import { Link, useLoaderData } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { dashboardStats, ensureSpecies } from '../../lib/admin-queries.server'
 import { getSearchConsole, refresh as refreshSearchConsole } from '../../lib/search-console.server'
 import { getAnalytics, refresh as refreshAnalytics } from '../../lib/analytics.server'
-import { syncProductsJson } from '../../lib/sync.server'
 import SearchConsolePanel from '../../components/admin/SearchConsolePanel'
 import AnalyticsPanel from '../../components/admin/AnalyticsPanel'
 import { INDEXING_ENABLED } from '../../seo'
@@ -36,10 +35,6 @@ export async function action({ request }) {
   // for new numbers, so returning before they land would be a lie.
   if (intent === 'refresh-search-console') await refreshSearchConsole({ force: true })
   if (intent === 'refresh-analytics') await refreshAnalytics({ force: true })
-  if (intent === 'sync') {
-    await syncProductsJson()
-    return { synced: true }
-  }
   return { ok: true }
 }
 
@@ -61,10 +56,6 @@ function Card({ label, value, tone = 'default', to, hint }) {
 
 export default function Dashboard() {
   const { stats, search, analytics } = useLoaderData()
-  const actionData = useActionData()
-  const nav = useNavigation()
-  const syncing = nav.state === 'submitting' && nav.formData?.get('intent') === 'sync'
-  const synced = actionData?.synced && !syncing
   return (
     <div className="flex flex-col gap-8">
       {!INDEXING_ENABLED && (
@@ -100,33 +91,6 @@ export default function Dashboard() {
           to="/admin/products?missing=availability" hint="In stock / quick ship / made-to-order" />
         <Card label="No description" value={stats.noDescription} tone={stats.noDescription ? 'warn' : 'good'}
           to="/admin/products?missing=description" hint="Blank pages cannot rank" />
-      </div>
-
-      <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-5 py-4">
-        <div>
-          <p className="text-sm font-medium text-tundora">Sync to public site</p>
-          <p className="text-xs text-gray-500">Rebuilds the product catalogue from the database — run this after uploading images or making bulk changes.</p>
-        </div>
-        <Form method="post">
-          <input type="hidden" name="intent" value="sync" />
-          <button disabled={syncing || synced}
-            className="rounded-lg bg-royal-blue px-5 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
-            {syncing ? 'Syncing…' : synced ? 'Synced ✓' : 'Sync now'}
-          </button>
-        </Form>
-      </div>
-
-      <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-5 py-4">
-        <div>
-          <p className="text-sm font-medium text-tundora">Download all images</p>
-          <p className="text-xs text-gray-500">Exports every uploaded product image as a ZIP file — original full-size files only.</p>
-        </div>
-        <a
-          href="/admin/export-images"
-          className="rounded-lg border border-gray-300 bg-white px-5 py-2 text-sm font-medium text-gray-700 hover:border-gray-400"
-        >
-          Download ZIP
-        </a>
       </div>
 
       <SearchConsolePanel search={search} />
