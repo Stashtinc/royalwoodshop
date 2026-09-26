@@ -89,7 +89,7 @@ export default function Root() {
   return (
     <div className="flex min-h-screen flex-col">
       <div data-print="hide"><Header navCategories={navCategories} /></div>
-      {!isHome && <div data-print="hide"><PageHeader {...pageHeaderImages[pathname]} /></div>}
+      {!isHome && <div data-print="hide"><PageHeader {...pageHeaderImages[pathname]} navCategories={navCategories} /></div>}
       <Outlet />
       <div data-print="hide"><NewsletterSignup /></div>
       <div data-print="hide"><Footer /></div>
