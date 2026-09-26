@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import logo from '../assets/images/logo.svg'
+import { productCategories } from '../data/productCategories'
 
 const quickLinks = [
   { label: 'Products', to: '/#products' },
@@ -10,13 +11,14 @@ const quickLinks = [
   { label: 'Resources', to: '/resources' },
 ]
 
+// Same destinations as the homepage product cards.
 const productLinks = [
   'Interior Trim & Mouldings',
   'Interior Doors – Stock & Custom',
   'Custom Millwork',
   'Wall & Ceiling Panelling',
   'Stairs & Railings',
-]
+].map((label) => ({ label, to: productCategories.find((c) => c.name === label).path }))
 
 function FacebookIcon() {
   return (
@@ -75,10 +77,10 @@ export default function Footer() {
           <div className="flex flex-col gap-4">
             <h3 className="font-serif text-lg font-bold text-white">Products</h3>
             <nav className="flex flex-col gap-3">
-              {productLinks.map((label) => (
+              {productLinks.map(({ label, to }) => (
                 <Link
                   key={label}
-                  to="/#products"
+                  to={to}
                   className="font-sans text-sm text-white/70 transition-colors hover:text-white"
                 >
                   {label}
