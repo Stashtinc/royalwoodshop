@@ -26,7 +26,7 @@ function SearchIcon() {
 // Compact hero-style banner used at the top of interior pages (Contact, Services, Resources) —
 // same texture/blue-panel/photo language as the homepage Hero, just shorter, with the logo only
 // (no headline). Desktop only; mobile keeps Header's plain sticky bar.
-export default function PageHeader({ image = heroRight, imageAlt = 'Interior staircase showcasing The Royal Wood Shop’s millwork' }) {
+export default function PageHeader({ image = heroRight, imageAlt = 'Interior staircase showcasing The Royal Wood Shop’s millwork', navCategories }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [selectedResult, setSelectedResult] = useState(null)
   const { query, setQuery, results } = useSiteSearch()
@@ -216,7 +216,7 @@ export default function PageHeader({ image = heroRight, imageAlt = 'Interior sta
                   )}
                   {link.menu && (
                     <div className="invisible absolute top-full left-0 z-30 opacity-0 transition-all duration-150 group-hover/item:visible group-hover/item:opacity-100">
-                      <NavDropdownPanel menu={link.menu} />
+                      <NavDropdownPanel menu={link.menu} navCategories={navCategories} />
                     </div>
                   )}
                 </div>
