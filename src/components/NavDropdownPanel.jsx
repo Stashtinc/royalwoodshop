@@ -108,7 +108,7 @@ function ResourcesPanel() {
         title="Latest tips & product guides"
         description="Buying guides, trend pieces, and how-tos to help you plan your next project."
         ctaLabel="View All Posts"
-        ctaTo="/#products"
+        ctaTo="/blog"
       />
     </div>
   )
