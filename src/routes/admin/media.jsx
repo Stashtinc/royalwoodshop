@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Form, useLoaderData, useActionData, useNavigation, useSearchParams, useFetcher } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
+import { UPLOAD_DIR, UPLOAD_DIRS } from '../../lib/uploads.server'
 
-const UPLOADS_DIR = 'public/uploads'
+/** The upload folder a stored path lives in, or null if it is outside all of
+ *  them. Paths come back from the browser, so only these folders are allowed. */
+const dirOf = (p) => UPLOAD_DIRS.find((d) => typeof p === 'string' && p.startsWith(`${d}/`)) ?? null
 const PAGE_SIZE = 60
 const VARIANT_RE = /-(320|400|640|800)\.(webp|jpe?g|png)$/i
 
@@ -22,13 +25,18 @@ export async function loader({ request }) {
   const filterUsage   = url.searchParams.get('usage') ?? ''   // 'used' | 'unused'
   const filterType    = url.searchParams.get('type') ?? ''    // 'webp' | 'jpg' | 'png'
 
-  const dirs = [UPLOADS_DIR, `${UPLOADS_DIR}/panelling`].filter(existsSync)
+  // Every upload folder (Railway volume + images committed to git), each with
+  // its panelling/ subfolder. A name in two folders is listed once, from the
+  // newest — the same one /uploads serves.
+  const dirs = UPLOAD_DIRS.flatMap((d) => [[d, ''], [`${d}/panelling`, 'panelling/']])
+    .filter(([d]) => existsSync(d))
   const allFiles = []
-  for (const dir of dirs) {
+  const seen = new Set()
+  for (const [dir, prefix] of dirs) {
     const files = await readdir(dir)
-    const prefix = dir === UPLOADS_DIR ? '' : 'panelling/'
     for (const f of files) {
-      if (!VARIANT_RE.test(f) && /\.(webp|jpe?g|jpg|png)$/i.test(f)) {
+      if (!VARIANT_RE.test(f) && /\.(webp|jpe?g|jpg|png)$/i.test(f) && !seen.has(prefix + f)) {
+        seen.add(prefix + f)
         allFiles.push({ name: f, path: `/uploads/${prefix}${f}`, dir })
       }
     }
@@ -107,17 +115,19 @@ export async function action({ request }) {
   await requireUser(request)
   const form = await request.formData()
   const intent = form.get('intent')
-  const { rename, unlink, writeFile } = await import('node:fs/promises')
+  const { rename, unlink, writeFile, mkdir } = await import('node:fs/promises')
   const { existsSync } = await import('node:fs')
 
   if (intent === 'upload') {
     const files = form.getAll('files')
     if (!files.length) return { error: 'No files selected.' }
     const saved = []
+    // New files always go to the persistent folder, never into the deploy.
+    await mkdir(UPLOAD_DIR, { recursive: true })
     for (const file of files) {
       if (typeof file === 'string' || file.size === 0) continue
       if (file.size > 10 * 1024 * 1024) return { error: `${file.name} exceeds 10 MB limit.` }
-      await writeFile(`${UPLOADS_DIR}/${file.name}`, Buffer.from(await file.arrayBuffer()))
+      await writeFile(`${UPLOAD_DIR}/${file.name}`, Buffer.from(await file.arrayBuffer()))
       saved.push(file.name)
     }
     return { ok: `Uploaded ${saved.length} file${saved.length !== 1 ? 's' : ''}.` }
@@ -125,7 +135,7 @@ export async function action({ request }) {
 
   if (intent === 'delete') {
     const filePath = form.get('path')
-    if (!filePath?.startsWith(UPLOADS_DIR)) return { error: 'Invalid path.' }
+    if (!dirOf(filePath)) return { error: 'Invalid path.' }
     const base = filePath.replace(/\.(webp|jpe?g|jpg|png)$/i, '')
     const ext = filePath.match(/\.(webp|jpe?g|jpg|png)$/i)?.[0] ?? ''
     for (const p of [filePath, ...[320, 400, 640, 800].map(s => `${base}-${s}${ext}`)]) {
@@ -137,7 +147,8 @@ export async function action({ request }) {
   if (intent === 'rename') {
     const oldPath = form.get('oldPath')
     const newName = form.get('newName')?.trim()
-    if (!oldPath?.startsWith(UPLOADS_DIR) || !newName) return { error: 'Invalid rename.' }
+    const baseDir = dirOf(oldPath)
+    if (!baseDir || !newName) return { error: 'Invalid rename.' }
     if (!/^[\w\-.]+\.(webp|jpe?g|jpg|png)$/i.test(newName)) {
       return { error: 'Name may only contain letters, numbers, hyphens, and dots.' }
     }
@@ -154,8 +165,8 @@ export async function action({ request }) {
     const { readFile, writeFile: wf } = await import('node:fs/promises')
     const { resolve } = await import('node:path')
     const jsonPath = resolve('src/data/products.json')
-    const oldUrl = `/uploads/${oldPath.replace(`${UPLOADS_DIR}/`, '')}`
-    const newUrl = `/uploads/${newBase.replace(`${UPLOADS_DIR}/`, '')}${newExt}`
+    const oldUrl = `/uploads/${oldPath.slice(baseDir.length + 1)}`
+    const newUrl = `/uploads/${newBase.slice(baseDir.length + 1)}${newExt}`
     const raw = await readFile(jsonPath, 'utf8')
     if (raw.includes(oldUrl)) await wf(jsonPath, raw.replaceAll(oldUrl, newUrl))
     return { ok: `Renamed to ${newName}.` }
