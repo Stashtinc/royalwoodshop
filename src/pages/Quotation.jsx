@@ -213,7 +213,7 @@ export default function Quotation() {
               </div>
               <div className="text-right text-gray-700 space-y-1">
                 <p className="font-semibold text-royal-blue">RWS-2026-001</p>
-                <p>28 August 2026</p>
+                <p>29 September 2026</p>
                 <p>In Progress</p>
                 <p>USD / CAD</p>
               </div>
