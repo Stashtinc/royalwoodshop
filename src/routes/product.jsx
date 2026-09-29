@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { Link, useLoaderData, useRouteLoaderData } from 'react-router'
+import { Link, redirect, useLoaderData, useRouteLoaderData } from 'react-router'
 import ProductDetail from '../pages/ProductDetail'
 import { catalogueProducts } from '../data/catalogue'
 import { pageMeta, truncate, BASE, SITE } from '../seo'
@@ -12,32 +12,32 @@ const AVAIL_SCHEMA = {
 }
 
 export async function loader({ params }) {
-  let all = catalogueProducts
+  // 1. Live database — the source of truth on Railway. Reading the committed
+  //    products.json first meant every deploy put back an old snapshot, so
+  //    admin edits and archived products reverted on this page.
+  let all = null
   try {
-    all = JSON.parse(readFileSync(resolve('src/data/products.json'), 'utf8'))
+    const { getDb } = await import('../lib/db.server.js')
+    const { getAllProducts } = await import('../db/queries.js')
+    all = await getAllProducts(await getDb())
   } catch {}
 
-  let product = all.find((p) => p.slug === params.slug)
-
-  // Product not in the JSON snapshot — may have been added via admin after the
-  // last sync. Fall back to the DB so newly-created products are always reachable.
-  // Also used to attach dbId for the admin edit bar on SSR (Railway).
-  if (!product || product.categorySlug !== params.category || !product.dbId) {
+  // 2. Snapshot, only when there is no database (static prerender builds).
+  if (!all?.length) {
     try {
-      const { getDb } = await import('../lib/db.server.js')
-      const { getAllProducts } = await import('../db/queries.js')
-      const db = await getDb()
-      const dbAll = await getAllProducts(db)
-      const dbProduct = dbAll.find((p) => p.slug === params.slug)
-      if (dbProduct) {
-        // DB rows use `id`; the rest of the app expects `dbId`.
-        product = { ...product, ...dbProduct, dbId: dbProduct.id }
-      }
-    } catch {}
+      all = JSON.parse(readFileSync(resolve('src/data/products.json'), 'utf8'))
+    } catch {
+      all = catalogueProducts
+    }
   }
 
-  if (!product || product.categorySlug !== params.category) {
-    throw new Response('Not found', { status: 404 })
+  const product = all.find((p) => p.slug === params.slug)
+  if (!product) throw new Response('Not found', { status: 404 })
+
+  // Moved to another category in the admin: send the old address to the new
+  // one instead of a 404, so links and rankings follow the product.
+  if (product.categorySlug !== params.category) {
+    throw redirect(`/products/${product.categorySlug}/${product.slug}`, 301)
   }
 
   const related = all
