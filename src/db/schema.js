@@ -239,6 +239,25 @@ export const notFoundLog = pgTable('not_found_log', {
   pathIdx: uniqueIndex('not_found_log_path_idx').on(t.path),
 }))
 
+/* -------------------------------------------------------- contact messages */
+
+/** Enquiries from the public contact form. Saved first, emailed second, so a
+ *  mail outage never loses a customer. `emailedAt` stays null until the
+ *  notification actually went out; `emailError` says why it did not. */
+export const contactMessages = pgTable('contact_messages', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 160 }).notNull(),
+  email: varchar('email', { length: 254 }).notNull(),
+  phone: varchar('phone', { length: 40 }),
+  message: text('message').notNull(),
+  ip: varchar('ip', { length: 64 }),
+  emailedAt: timestamp('emailed_at', { withTimezone: true }),
+  emailError: text('email_error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  createdIdx: index('contact_messages_created_idx').on(t.createdAt),
+}))
+
 /* ------------------------------------------------------------------ users */
 
 export const users = pgTable('users', {
