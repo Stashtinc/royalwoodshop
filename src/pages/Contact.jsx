@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { Form, useActionData, useNavigation } from 'react-router'
 import MapEmbed from '../components/MapEmbedClient'
 
-export default function Contact() {
-  const [submitted, setSubmitted] = useState(false)
+const FieldError = ({ children }) =>
+  children ? <p className="font-sans text-sm text-red-700">{children}</p> : null
 
-  function handleSubmit(event) {
-    event.preventDefault()
-    setSubmitted(true)
-  }
+export default function Contact() {
+  const data = useActionData()
+  const sending = useNavigation().state === 'submitting'
+  const submitted = data?.ok
+  const errors = data?.errors ?? {}
+  const values = data?.values ?? {}
 
   return (
     <div className="w-full bg-[#fbfbfb]">
@@ -52,7 +54,12 @@ export default function Contact() {
               </p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <Form method="post" className="flex flex-col gap-5">
+              {/* Honeypot: hidden from people, irresistible to bots. */}
+              <div aria-hidden="true" className="absolute -left-[9999px]">
+                <label>Company<input type="text" name="company" tabIndex={-1} autoComplete="off" /></label>
+              </div>
+
               <div className="flex flex-col gap-2">
                 <label htmlFor="name" className="font-sans text-sm font-medium text-tundora">
                   Name
@@ -60,10 +67,12 @@ export default function Contact() {
                 <input
                   id="name"
                   name="name"
+                  defaultValue={values.name}
                   type="text"
                   required
                   className="rounded-lg border border-gray-300 px-4 py-3 font-sans focus:border-royal-blue focus:outline-none"
                 />
+                <FieldError>{errors.name}</FieldError>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -73,10 +82,12 @@ export default function Contact() {
                 <input
                   id="email"
                   name="email"
+                  defaultValue={values.email}
                   type="email"
                   required
                   className="rounded-lg border border-gray-300 px-4 py-3 font-sans focus:border-royal-blue focus:outline-none"
                 />
+                <FieldError>{errors.email}</FieldError>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -86,6 +97,7 @@ export default function Contact() {
                 <input
                   id="phone"
                   name="phone"
+                  defaultValue={values.phone}
                   type="tel"
                   className="rounded-lg border border-gray-300 px-4 py-3 font-sans focus:border-royal-blue focus:outline-none"
                 />
@@ -98,19 +110,28 @@ export default function Contact() {
                 <textarea
                   id="message"
                   name="message"
+                  defaultValue={values.message}
                   rows={5}
                   required
                   className="rounded-lg border border-gray-300 px-4 py-3 font-sans focus:border-royal-blue focus:outline-none"
                 />
+                <FieldError>{errors.message}</FieldError>
               </div>
+
+              {data?.formError && (
+                <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 font-sans text-sm text-red-800">
+                  {data.formError}
+                </p>
+              )}
 
               <button
                 type="submit"
-                className="mt-2 w-fit rounded-lg border border-royal-blue bg-royal-blue px-6 py-4 font-sans text-base text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark"
+                disabled={sending}
+                className="mt-2 w-fit rounded-lg border border-royal-blue bg-royal-blue px-6 py-4 font-sans text-base text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark disabled:opacity-60"
               >
-                Send Message
+                {sending ? 'Sending…' : 'Send Message'}
               </button>
-            </form>
+            </Form>
           )}
         </div>
       </div>
