@@ -137,7 +137,7 @@ const paymentRows = [
   { milestone: 'On acceptance', trigger: 'Development begins', pct: 0.3, paid: true },
   { milestone: 'Public website and catalogue delivered for review', trigger: 'End of Step 2', pct: 0.3, paid: true },
   { milestone: 'Admin screen delivered for review', trigger: 'End of Step 3', pct: 0.2, paid: true },
-  { milestone: 'On launch', trigger: 'Site live, redirects verified', pct: 0.2 },
+  { milestone: 'On launch', trigger: 'Site live, redirects verified', pct: 0.2, due: true },
 ]
 
 const hourlyPeriods = [
@@ -161,6 +161,12 @@ const hourlyPeriods = [
     rate: 65,
     paid: true,
     timesheetUrl: 'https://drive.google.com/file/d/1lg9PSl7E7xKgEwaCOP1XAiz2XxxsvtEL/view?usp=sharing',
+  },
+  {
+    label: 'Sep 17 – Sep 29',
+    hours: 40.27,
+    rate: 65,
+    paid: false,
   },
 ]
 
@@ -207,7 +213,7 @@ export default function Quotation() {
               </div>
               <div className="text-right text-gray-700 space-y-1">
                 <p className="font-semibold text-royal-blue">RWS-2026-001</p>
-                <p>28 August 2026</p>
+                <p>29 September 2026</p>
                 <p>In Progress</p>
                 <p>USD / CAD</p>
               </div>
