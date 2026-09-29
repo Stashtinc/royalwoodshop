@@ -13,7 +13,17 @@ import { WIDTHS, variantPath } from './images.js'
  * On a server, this directory must survive deploys and be included in whatever
  * copies the built site to the public host.
  */
-const UPLOAD_DIR = process.env.UPLOAD_DIR || 'public/uploads'
+/** Where new uploads are written. On Railway this is the persistent volume;
+ *  locally it is public/uploads. */
+export const UPLOAD_DIR = process.env.UPLOAD_DIR || 'public/uploads'
+
+/** Every folder served at /uploads, newest first. On Railway there are two:
+ *  the volume (UPLOAD_DIR) for anything uploaded through the admin, and the
+ *  3,700+ migrated images committed to git in public/uploads, which ship with
+ *  each deploy. Anything that lists or looks up images must read both, or it
+ *  sees only half the library. Locally they are the same folder. */
+export const UPLOAD_DIRS = [...new Set([UPLOAD_DIR, 'public/uploads'])]
+
 const PUBLIC_PREFIX = '/uploads'
 
 const ALLOWED = {

@@ -1,23 +1,25 @@
 import { createReadStream, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { requireUser } from '../../lib/auth.server'
-
-const UPLOAD_DIR = process.env.UPLOAD_DIR || 'public/uploads'
+import { UPLOAD_DIRS } from '../../lib/uploads.server'
 
 export async function loader({ request }) {
   await requireUser(request)
 
-  let files
-  try {
-    files = readdirSync(UPLOAD_DIR).filter((f) => {
-      // Only include the full-size originals, not the responsive variants (-320, -640, etc.)
-      return /\.(webp|jpg|jpeg|png|svg|avif)$/i.test(f) && !/-\d+\.(webp|jpg|jpeg|png|svg|avif)$/i.test(f)
-    })
-  } catch {
-    return new Response('Upload directory not found.', { status: 404 })
+  // Full-size originals only, not the responsive variants (-320, -640, etc.),
+  // from every upload folder. A name in more than one folder is taken once,
+  // from the first (newest) folder.
+  const files = new Map()
+  for (const dir of UPLOAD_DIRS) {
+    let names = []
+    try { names = readdirSync(dir) } catch { continue }
+    for (const f of names) {
+      if (!/\.(webp|jpg|jpeg|png|svg|avif)$/i.test(f) || /-\d+\.(webp|jpg|jpeg|png|svg|avif)$/i.test(f)) continue
+      if (!files.has(f)) files.set(f, join(dir, f))
+    }
   }
 
-  if (!files.length) {
+  if (!files.size) {
     return new Response('No images found.', { status: 404 })
   }
 
@@ -30,8 +32,7 @@ export async function loader({ request }) {
   archive.on('error', (err) => { pass.destroy(err) })
   archive.pipe(pass)
 
-  for (const file of files) {
-    const fullPath = join(UPLOAD_DIR, file)
+  for (const [file, fullPath] of files) {
     try {
       statSync(fullPath)
       archive.append(createReadStream(fullPath), { name: file })

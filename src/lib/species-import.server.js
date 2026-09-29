@@ -276,7 +276,7 @@ async function findRemoved(db, previous, current, { layout = 'species' } = {}) {
  * Brad sees this before committing to it.
  */
 /**
- * What is actually in public/uploads, so a sheet can be imported without
+ * What is actually in the upload folders, so a sheet can be imported without
  * fetching anything: the Master Product List names real files, and this is how
  * we check they are there and how wide they are.
  *
@@ -286,9 +286,13 @@ async function findRemoved(db, previous, current, { layout = 'species' } = {}) {
  */
 async function readUploads() {
   const { readdir } = await import('node:fs/promises')
+  const { UPLOAD_DIRS } = await import('./uploads.server.js')
   const widths = new Map()
-  let names = []
-  try { names = await readdir('public/uploads') } catch { /* nothing to attach */ }
+  // Both the Railway volume and the images committed to git.
+  const names = []
+  for (const dir of UPLOAD_DIRS) {
+    try { names.push(...await readdir(dir)) } catch { /* nothing to attach */ }
+  }
   for (const f of names) {
     const m = f.match(/^(.*-[0-9a-f]{10})-(\d+)\.webp$/)
     if (!m) continue
