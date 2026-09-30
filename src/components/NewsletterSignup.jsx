@@ -8,6 +8,7 @@ export default function NewsletterSignup() {
   async function handleSubmit(e) {
     e.preventDefault()
     const email = inputRef.current?.value?.trim()
+    const company = e.currentTarget.elements.company?.value ?? ''
     if (!email) return
     setStatus('loading')
     setError(null)
@@ -18,7 +19,7 @@ export default function NewsletterSignup() {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ email }),
+        body: new URLSearchParams({ email, company }),
       })
       const data = await res.json().catch(() => ({}))
       if (data.ok) {
@@ -86,11 +87,15 @@ export default function NewsletterSignup() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <p className="font-serif text-xl font-bold text-white">You're in!</p>
-                <p className="font-sans text-sm text-white/60">Watch for the next issue of Around the Mill.</p>
+                <p className="font-serif text-xl font-bold text-white">Almost there!</p>
+                <p className="font-sans text-sm text-white/60">Check your inbox and click the link to confirm your subscription to Around the Mill.</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              <form onSubmit={handleSubmit} className="relative flex flex-col gap-3">
+                {/* Honeypot: hidden from people, irresistible to bots. */}
+                <div aria-hidden="true" className="absolute -left-[9999px]">
+                  <label>Company<input type="text" name="company" tabIndex={-1} autoComplete="off" /></label>
+                </div>
                 <div className="flex overflow-hidden rounded-xl border border-white/10" style={{ background: 'rgba(255,255,255,0.06)' }}>
                   <input
                     ref={inputRef}
