@@ -7,7 +7,10 @@ import { UPLOAD_DIR, UPLOAD_DIRS } from '../../lib/uploads.server'
  *  them. Paths come back from the browser, so only these folders are allowed. */
 const dirOf = (p) => UPLOAD_DIRS.find((d) => typeof p === 'string' && p.startsWith(`${d}/`)) ?? null
 const PAGE_SIZE = 60
-const VARIANT_RE = /-(320|400|640|800)\.(webp|jpe?g|png)$/i
+/** Responsive copies saved next to each image: the current widths (see
+ *  lib/images.js) plus 400 and 800 from the original migration. */
+const VARIANT_WIDTHS = [320, 400, 640, 800, 960, 1440]
+const VARIANT_RE = new RegExp(`-(${VARIANT_WIDTHS.join('|')})\\.(webp|jpe?g|png)$`, 'i')
 
 /* ---------------------------------------------------------------- loader -- */
 
@@ -73,7 +76,7 @@ export async function loader({ request }) {
     const s = await stat(fullPath)
     const ext = item.name.match(/\.(webp|jpe?g|jpg|png)$/i)?.[0] ?? ''
     const base = fullPath.replace(ext, '')
-    const variants = [320, 400, 640, 800].filter(size => existsSync(`${base}-${size}${ext}`))
+    const variants = VARIANT_WIDTHS.filter(size => existsSync(`${base}-${size}${ext}`))
     const stem = item.name.replace(/\.(webp|jpe?g|jpg|png)$/i, '')
     const usedIn = (imageMap.get(stem) ?? []).map(p => ({ name: p.name, slug: p.slug, categorySlug: p.categorySlug })).slice(0, 10)
     return { detail: { ...item, size: s.size, mtime: s.mtime.toISOString(), variants, usedIn } }
@@ -138,7 +141,7 @@ export async function action({ request }) {
     if (!dirOf(filePath)) return { error: 'Invalid path.' }
     const base = filePath.replace(/\.(webp|jpe?g|jpg|png)$/i, '')
     const ext = filePath.match(/\.(webp|jpe?g|jpg|png)$/i)?.[0] ?? ''
-    for (const p of [filePath, ...[320, 400, 640, 800].map(s => `${base}-${s}${ext}`)]) {
+    for (const p of [filePath, ...VARIANT_WIDTHS.map(s => `${base}-${s}${ext}`)]) {
       try { if (existsSync(p)) await unlink(p) } catch {}
     }
     return { ok: 'Deleted.' }
@@ -152,24 +155,76 @@ export async function action({ request }) {
     if (!/^[\w\-.]+\.(webp|jpe?g|jpg|png)$/i.test(newName)) {
       return { error: 'Name may only contain letters, numbers, hyphens, and dots.' }
     }
-    const dir = oldPath.substring(0, oldPath.lastIndexOf('/'))
-    const oldBase = oldPath.replace(/\.(webp|jpe?g|jpg|png)$/i, '')
-    const oldExt = oldPath.match(/\.(webp|jpe?g|jpg|png)$/i)?.[0] ?? ''
-    const newBase = `${dir}/${newName.replace(/\.(webp|jpe?g|jpg|png)$/i, '')}`
-    const newExt = newName.match(/\.(webp|jpe?g|jpg|png)$/i)?.[0] ?? oldExt
-    if (existsSync(oldPath)) await rename(oldPath, `${newBase}${newExt}`)
-    for (const s of [320, 400, 640, 800]) {
-      const v = `${oldBase}-${s}${oldExt}`
-      if (existsSync(v)) await rename(v, `${newBase}-${s}${newExt}`)
+    const EXT = /\.(webp|jpe?g|jpg|png)$/i
+    const oldName = oldPath.slice(oldPath.lastIndexOf('/') + 1)
+    const sub = oldPath.slice(baseDir.length, oldPath.lastIndexOf('/'))   // '' or '/panelling'
+    const oldExt = oldName.match(EXT)?.[0] ?? ''
+    const newExt = newName.match(EXT)?.[0] ?? oldExt
+    const oldStem = oldName.replace(EXT, '')
+    const newStem = newName.replace(EXT, '')
+    if (`${newStem}${newExt}` === oldName) return { error: 'That is already its name.' }
+
+    // Never overwrite another image. /uploads serves every folder, so a clash
+    // in any of them would silently swap one picture for another.
+    if (UPLOAD_DIRS.some((d) => existsSync(`${d}${sub}/${newStem}${newExt}`))) {
+      return { error: `${newStem}${newExt} already exists — choose another name.` }
     }
+
+    // Images committed to git come back under their old name on every deploy,
+    // so renaming them in place would not stick. Copy them into the
+    // persistent folder under the new name instead; the original stays behind
+    // unused.
+    const { copyFile } = await import('node:fs/promises')
+    const inPlace = baseDir === UPLOAD_DIR
+    const move = inPlace ? rename : copyFile
+    const fromDir = `${baseDir}${sub}`
+    const toDir = `${UPLOAD_DIR}${sub}`
+    await mkdir(toDir, { recursive: true })
+    for (const suffix of ['', ...VARIANT_WIDTHS.map((w) => `-${w}`)]) {
+      const from = `${fromDir}/${oldStem}${suffix}${oldExt}`
+      if (existsSync(from)) await move(from, `${toDir}/${newStem}${suffix}${newExt}`)
+    }
+
+    // Point everything that shows the image at its new address. Products are
+    // what broke before: only products.json was rewritten, and the next sync
+    // from the database put the old, now missing, address back.
+    const oldUrl = `/uploads${sub}/${oldName}`
+    const newUrl = `/uploads${sub}/${newStem}${newExt}`
+    const { getDb } = await import('../../lib/db.server.js')
+    const { productImages, posts } = await import('../../db/schema.js')
+    const { eq, like, sql } = await import('drizzle-orm')
+    const { syncProductsJson } = await import('../../lib/sync.server.js')
+    const db = await getDb()
+    const updated = await db.update(productImages)
+      .set({ storageKey: newUrl })
+      .where(eq(productImages.storageKey, oldUrl))
+      .returning({ id: productImages.id })
+    await db.update(posts).set({ featuredImage: newUrl }).where(eq(posts.featuredImage, oldUrl))
+    // Article bodies also reference the responsive widths (-320, -640…), so
+    // swap the stem wherever it is followed by "." or "-".
+    for (const [from, to] of [[`/uploads${sub}/${oldStem}.`, `/uploads${sub}/${newStem}.`],
+                              [`/uploads${sub}/${oldStem}-`, `/uploads${sub}/${newStem}-`]]) {
+      await db.update(posts)
+        .set({ contentHtml: sql`replace(${posts.contentHtml}, ${from}, ${to})` })
+        .where(like(posts.contentHtml, `%${from}%`))
+    }
+    await syncProductsJson()
+
+    // Alt text is keyed by file name.
     const { readFile, writeFile: wf } = await import('node:fs/promises')
     const { resolve } = await import('node:path')
-    const jsonPath = resolve('src/data/products.json')
-    const oldUrl = `/uploads/${oldPath.slice(baseDir.length + 1)}`
-    const newUrl = `/uploads/${newBase.slice(baseDir.length + 1)}${newExt}`
-    const raw = await readFile(jsonPath, 'utf8')
-    if (raw.includes(oldUrl)) await wf(jsonPath, raw.replaceAll(oldUrl, newUrl))
-    return { ok: `Renamed to ${newName}.` }
+    const altPath = resolve('src/data/mediaAlt.json')
+    try {
+      const alts = JSON.parse(await readFile(altPath, 'utf8'))
+      if (alts[oldName]) {
+        alts[`${newStem}${newExt}`] = alts[oldName]
+        delete alts[oldName]
+        await wf(altPath, JSON.stringify(alts, null, 2))
+      }
+    } catch { /* no alt text saved */ }
+
+    const n = updated.length
+    return { ok: `Renamed to ${newStem}${newExt}${n ? ` — updated ${n} product image${n === 1 ? '' : 's'}` : ''}.` }
   }
 
   if (intent === 'alt') {
