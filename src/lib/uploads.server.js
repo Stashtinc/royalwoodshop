@@ -1,5 +1,5 @@
 import { mkdir, writeFile, unlink } from 'node:fs/promises'
-import { join, extname } from 'node:path'
+import { join, extname, resolve, relative } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import sharp from 'sharp'
 import { WIDTHS, variantPath } from './images.js'
@@ -118,6 +118,67 @@ export async function saveImageBuffer(buffer, { slug = 'image' } = {}) {
   const safeSlug = String(slug).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'image'
   const stem = `${safeSlug}-${randomBytes(5).toString('hex')}`
   return writeImage(buffer, stem)
+}
+
+/* ------------------------------------------------------- Media library -- */
+
+/** What the Media library lists, uploads and renames. */
+const MEDIA_EXT = /\.(webp|jpe?g|png)$/i
+const MEDIA_FORMATS = new Set(['webp', 'jpeg', 'png'])
+const MEDIA_MAX_BYTES = 10 * 1024 * 1024
+
+/**
+ * The file a path sent back by the browser points at, or null unless it is an
+ * image directly in an upload folder or its panelling/ subfolder — all the
+ * library ever lists. The path is resolved before it is compared, so one that
+ * starts in an upload folder and climbs out (public/uploads/../../.env) is
+ * refused.
+ *
+ * Returns { dir, sub, name }: the upload folder, '' or '/panelling', the name.
+ */
+export function mediaFile(path) {
+  if (typeof path !== 'string') return null
+  for (const dir of UPLOAD_DIRS) {
+    const m = relative(resolve(dir), resolve(path)).match(/^(?:(panelling)\/)?([^/]+)$/)
+    if (m && MEDIA_EXT.test(m[2])) return { dir, sub: m[1] ? '/panelling' : '', name: m[2] }
+  }
+  return null
+}
+
+/** The name an upload is saved under: the last segment of what the browser
+ *  sent, reduced to the characters a rename allows. Null unless it is named as
+ *  a WebP, JPEG or PNG. */
+export function mediaUploadName(name) {
+  const base = String(name ?? '').split(/[/\\]/).pop()
+  const ext = base.match(MEDIA_EXT)?.[0]
+  if (!ext) return null
+  const stem = base.slice(0, -ext.length).replace(/[^\w\-.]+/g, '-').replace(/^[-.]+|[-.]+$/g, '')
+  return stem ? `${stem}${ext}` : null
+}
+
+/**
+ * Saves a file uploaded through the Media library under its own name.
+ *
+ * Unlike saveUpload the name is kept, because the Master Product List refers
+ * to images by file name. But the name and the bytes both come from the
+ * browser, so the name loses any folder part and the file must really be a
+ * WebP, JPEG or PNG — a script called photo.png is refused.
+ *
+ * Returns { name } or { error }.
+ */
+export async function saveMediaUpload(file) {
+  if (!file || typeof file === 'string' || file.size === 0) return { error: 'No file received.' }
+  const name = mediaUploadName(file.name)
+  if (!name) return { error: `${file.name}: only WebP, JPG and PNG images can be uploaded here.` }
+  if (file.size > MEDIA_MAX_BYTES) return { error: `${file.name} exceeds 10 MB limit.` }
+
+  const buffer = Buffer.from(await file.arrayBuffer())
+  const format = await sharp(buffer).metadata().then((m) => m.format, () => null)
+  if (!MEDIA_FORMATS.has(format)) return { error: `${file.name} is not a readable WebP, JPG or PNG image.` }
+
+  await mkdir(UPLOAD_DIR, { recursive: true })
+  await writeFile(join(UPLOAD_DIR, name), buffer)
+  return { name }
 }
 
 /** Only removes files this app wrote — never anything carried over from the

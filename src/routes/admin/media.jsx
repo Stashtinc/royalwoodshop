@@ -1,11 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Form, useLoaderData, useActionData, useNavigation, useSearchParams, useFetcher } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { UPLOAD_DIR, UPLOAD_DIRS } from '../../lib/uploads.server'
+import { UPLOAD_DIR, UPLOAD_DIRS, mediaFile, saveMediaUpload } from '../../lib/uploads.server'
 
-/** The upload folder a stored path lives in, or null if it is outside all of
- *  them. Paths come back from the browser, so only these folders are allowed. */
-const dirOf = (p) => UPLOAD_DIRS.find((d) => typeof p === 'string' && p.startsWith(`${d}/`)) ?? null
 const PAGE_SIZE = 60
 /** Responsive copies saved next to each image: the current widths (see
  *  lib/images.js) plus 400 and 800 from the original migration. */
@@ -118,46 +115,46 @@ export async function action({ request }) {
   await requireUser(request)
   const form = await request.formData()
   const intent = form.get('intent')
-  const { rename, unlink, writeFile, mkdir } = await import('node:fs/promises')
+  const { rename, unlink, mkdir } = await import('node:fs/promises')
   const { existsSync } = await import('node:fs')
 
   if (intent === 'upload') {
     const files = form.getAll('files')
     if (!files.length) return { error: 'No files selected.' }
-    const saved = []
     // New files always go to the persistent folder, never into the deploy.
-    await mkdir(UPLOAD_DIR, { recursive: true })
+    const saved = [], errors = []
     for (const file of files) {
       if (typeof file === 'string' || file.size === 0) continue
-      if (file.size > 10 * 1024 * 1024) return { error: `${file.name} exceeds 10 MB limit.` }
-      await writeFile(`${UPLOAD_DIR}/${file.name}`, Buffer.from(await file.arrayBuffer()))
-      saved.push(file.name)
+      const result = await saveMediaUpload(file)
+      if (result.error) errors.push(result.error)
+      else saved.push(result.name)
     }
-    return { ok: `Uploaded ${saved.length} file${saved.length !== 1 ? 's' : ''}.` }
+    return {
+      ok: saved.length ? `Uploaded ${saved.length} file${saved.length !== 1 ? 's' : ''}.` : undefined,
+      error: errors.length ? errors.join(' ') : undefined,
+    }
   }
 
   if (intent === 'delete') {
-    const filePath = form.get('path')
-    if (!dirOf(filePath)) return { error: 'Invalid path.' }
-    const base = filePath.replace(/\.(webp|jpe?g|jpg|png)$/i, '')
-    const ext = filePath.match(/\.(webp|jpe?g|jpg|png)$/i)?.[0] ?? ''
-    for (const p of [filePath, ...VARIANT_WIDTHS.map(s => `${base}-${s}${ext}`)]) {
+    const file = mediaFile(form.get('path'))
+    if (!file) return { error: 'Invalid path.' }
+    const ext = file.name.match(/\.(webp|jpe?g|jpg|png)$/i)[0]
+    const base = `${file.dir}${file.sub}/${file.name.slice(0, -ext.length)}`
+    for (const p of [`${base}${ext}`, ...VARIANT_WIDTHS.map(s => `${base}-${s}${ext}`)]) {
       try { if (existsSync(p)) await unlink(p) } catch {}
     }
     return { ok: 'Deleted.' }
   }
 
   if (intent === 'rename') {
-    const oldPath = form.get('oldPath')
+    const file = mediaFile(form.get('oldPath'))
     const newName = form.get('newName')?.trim()
-    const baseDir = dirOf(oldPath)
-    if (!baseDir || !newName) return { error: 'Invalid rename.' }
+    if (!file || !newName) return { error: 'Invalid rename.' }
     if (!/^[\w\-.]+\.(webp|jpe?g|jpg|png)$/i.test(newName)) {
       return { error: 'Name may only contain letters, numbers, hyphens, and dots.' }
     }
     const EXT = /\.(webp|jpe?g|jpg|png)$/i
-    const oldName = oldPath.slice(oldPath.lastIndexOf('/') + 1)
-    const sub = oldPath.slice(baseDir.length, oldPath.lastIndexOf('/'))   // '' or '/panelling'
+    const { dir: baseDir, sub, name: oldName } = file   // sub: '' or '/panelling'
     const oldExt = oldName.match(EXT)?.[0] ?? ''
     const newExt = newName.match(EXT)?.[0] ?? oldExt
     const oldStem = oldName.replace(EXT, '')
