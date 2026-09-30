@@ -77,26 +77,30 @@ const order = [
 const isValidCategory = (name) => name && !/uncategor/i.test(name)
 
 export function categoryTree(rows = products, dbTree = []) {
-  // Categories hidden in the admin never reach the sidebar, so their products
-  // drop out of the grid unless they are also filed under a visible category.
-  const hidden = new Set(dbTree.filter((c) => c.hidden).map((c) => c.name))
-  // Pre-seed every known category so empty ones still appear in the sidebar
-  const map = new Map(order.filter((name) => !hidden.has(name)).map((name) => [name, new Set()]))
+  // With the database, the admin's Categories list is the whole sidebar, in
+  // the admin's order: a hidden category, or a name the admin doesn't have,
+  // never appears, and products filed only under one drop out of the grid.
+  // The static order is only for builds with no database behind them.
+  const fromDb = dbTree.length > 0
+  const names = fromDb ? dbTree.filter((c) => !c.hidden).map((c) => c.name) : order
+  const map = new Map(names.filter(isValidCategory).map((name) => [name, new Set()]))
   // Pre-seed sub-categories from DB so newly-created subs appear even with no products yet
   for (const cat of dbTree) {
-    if (!isValidCategory(cat.name) || cat.hidden) continue
-    if (!map.has(cat.name)) map.set(cat.name, new Set())
-    for (const sub of cat.subcategories) map.get(cat.name).add(sub)
+    for (const sub of cat.subcategories) map.get(cat.name)?.add(sub)
   }
   for (const p of rows) {
     for (const { category, sub } of placementsOf(p)) {
-      if (!isValidCategory(category) || hidden.has(category)) continue
-      if (!map.has(category)) map.set(category, new Set())
+      if (!isValidCategory(category)) continue
+      if (!map.has(category)) {
+        if (fromDb) continue
+        map.set(category, new Set())
+      }
       map.get(category).add(sub)
     }
   }
+  const rank = (name) => (names.indexOf(name) + 1) || 99
   return [...map.entries()]
-    .sort((a, b) => (order.indexOf(a[0]) + 1 || 99) - (order.indexOf(b[0]) + 1 || 99))
+    .sort((a, b) => rank(a[0]) - rank(b[0]))
     .map(([name, subs]) => ({ name, subcategories: [...subs].sort() }))
 }
 
