@@ -43,4 +43,21 @@ const onListen = (err) => {
   console.log(`Listening on http://${HOST ?? 'localhost'}:${PORT}`)
 }
 
-HOST ? app.listen(PORT, HOST, onListen) : app.listen(PORT, onListen)
+const server = HOST ? app.listen(PORT, HOST, onListen) : app.listen(PORT, onListen)
+
+// Railway stops the old container with SIGTERM once a new deploy is live.
+// Without a handler Node dies from the signal with a non-zero exit code, and
+// Railway reports that as "Deploy Crashed" on every deploy. Stop taking new
+// connections, let requests in flight finish, then exit cleanly. The timer
+// is a backstop for keep-alive connections that never close on their own.
+let stopping = false
+for (const signal of ['SIGTERM', 'SIGINT']) {
+  process.on(signal, () => {
+    if (stopping) return
+    stopping = true
+    console.log(`${signal} received — finishing in-flight requests and shutting down`)
+    server.close(() => process.exit(0))
+    server.closeIdleConnections?.()
+    setTimeout(() => process.exit(0), 10_000).unref()
+  })
+}
