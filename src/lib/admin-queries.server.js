@@ -321,13 +321,16 @@ export async function createProduct(data) {
         .values({ productId: row.id, attributeValueId: v.id, availability: speciesAvail[v.value] ?? null })
         .onConflictDoNothing()
     }
-    const speciesAvailValues = chosen.map((s) => speciesAvail[s]).filter(Boolean)
-    if (speciesAvailValues.length) {
-      const { bestAvailability } = await import('./catalogue-constants.js')
-      await db.update(products)
-        .set({ availability: bestAvailability(speciesAvailValues) })
-        .where(eq(products.id, row.id))
-    }
+  }
+
+  // Overall availability is the best of the species' — Flex included, as on
+  // the Master Product List — so a Flex-only product still gets one.
+  const speciesAvailValues = [...chosen.map((s) => data.speciesAvail?.[s]), data.flexAvailability].filter(Boolean)
+  if (speciesAvailValues.length) {
+    const { bestAvailability } = await import('./catalogue-constants.js')
+    await db.update(products)
+      .set({ availability: bestAvailability(speciesAvailValues) })
+      .where(eq(products.id, row.id))
   }
 
   return row.id
@@ -378,7 +381,8 @@ export async function saveProduct(id, data) {
   }
 
   // Derive the product-level availability from species if any are set, otherwise keep manual value
-  const speciesAvailValues = chosen.map((s) => speciesAvail[s]).filter(Boolean)
+  // Flex counts as a species here, as it does on the Master Product List.
+  const speciesAvailValues = [...chosen.map((s) => speciesAvail[s]), data.flexAvailability].filter(Boolean)
   if (speciesAvailValues.length) {
     const { bestAvailability } = await import('./catalogue-constants.js')
     await db.update(products)

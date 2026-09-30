@@ -23,7 +23,7 @@ export async function action({ request }) {
     return t === '' || Number.isNaN(Number(t)) ? null : t
   }
 
-  const { species, speciesAvail } = readSpeciesAvail(f)
+  const { species, speciesAvail, flexAvailability } = readSpeciesAvail(f)
 
   const id = await createProduct({
     name,
@@ -34,7 +34,7 @@ export async function action({ request }) {
     widthIn: num(f.get('widthIn')),
     availability: null,  // derived from species in createProduct
     leadTime: String(f.get('leadTime') ?? '').trim(),
-    flexAvailable: f.get('flexAvailable') === 'on',
+    flexAvailability,
     price: num(f.get('price')),
     salePrice: num(f.get('salePrice')),
     status: ['draft', 'published', 'archived'].includes(String(f.get('status'))) ? String(f.get('status')) : 'draft',
@@ -121,10 +121,6 @@ export default function ProductNew() {
             Set how each wood ships. The product's overall availability is derived automatically from these.
           </p>
           <SpeciesPicker />
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="flexAvailable" className="h-4 w-4 rounded border-gray-300" />
-            Also available as a flexible moulding
-          </label>
           <label className="flex flex-col gap-1.5"><Label>Lead time</Label>
             <input name="leadTime" placeholder="e.g. approximately 1 week" className={field} /></label>
         </section>

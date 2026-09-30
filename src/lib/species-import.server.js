@@ -157,8 +157,9 @@ function readRow(r, layout = 'species') {
   }
 
   const flexCell = cell(r, canon(FLEX))
-  // Flex now accepts availability codes (S/QS/MO) as well as legacy X/x tick
-  const flexAvailability = CODE.get(flexCell?.toUpperCase?.() ?? '') ?? null
+  // Flex takes the same codes as a species (S/QS/MO, and legacy X/MTO).
+  const flexAvailability = flexCell ? readCode(flexCell) : null
+  if (flexCell && !flexAvailability) badCodes.push(`${FLEX}: ${flexCell}`)
   const row = {
     code,
     name,
@@ -166,7 +167,8 @@ function readRow(r, layout = 'species') {
     other: pipes(r.other),
     flex: !!flexAvailability,
     flexAvailability,
-    availability: bestAvailability(species.map((x) => x.availability).filter(Boolean)),
+    // Flex counts as a species for the product's overall availability.
+    availability: bestAvailability([...species.map((x) => x.availability), flexAvailability].filter(Boolean)),
     badCodes,
     notes: cell(r, 'notes'),
   }
