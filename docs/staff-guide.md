@@ -71,8 +71,8 @@ open it again to add images and publish.
 
 ## Categories
 
-Add, rename, reorder (▲/▼), and show or hide them (*Hide category* /
-*Show category*). A hidden category is left out of the top menu and the
+Add, rename, reorder (▲/▼), and show or hide them with the eye button
+(*Shown* / *Hidden*; click to switch). A hidden category is left out of the top menu and the
 catalogue sidebar, and its own page is taken down. Its products stay live but
 are only listed in the catalogue if they are also filed under a visible
 category.
