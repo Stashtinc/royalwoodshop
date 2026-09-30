@@ -23,7 +23,8 @@
     "gsc:connect": "node scripts/gsc-connect.mjs",
     "admin:rename": "node scripts/rename-admin.mjs",
     "ai:check": "node scripts/ai-check.mjs",
-    "log:build": "node scripts/log-build.mjs"
+    "log:build": "node scripts/log-build.mjs",
+    "db:migrate": "node scripts/db-migrate.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",
