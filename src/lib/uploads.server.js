@@ -31,7 +31,8 @@ const ALLOWED = {
   'image/png': '.png',
   'image/webp': '.webp',
   'image/avif': '.avif',
-  'image/svg+xml': '.svg',
+  // Not SVG: an SVG can carry a script, and uploads are served from the site's
+  // own domain, so one opened directly would run as royalwoodshop.com.
 }
 const MAX_BYTES = 12 * 1024 * 1024   // staff will upload phone photos
 
@@ -42,10 +43,9 @@ export function describeLimits() {
 /**
  * Saves an upload and generates the responsive set.
  *
- * Everything raster is converted to WebP — typically 25–35% smaller than JPEG
- * at the same quality — and written at each width up to the original. Nothing
- * is ever upscaled. SVGs are stored as-is; they are already resolution
- * independent and re-encoding them would only make them worse.
+ * Everything is converted to WebP — typically 25–35% smaller than JPEG at the
+ * same quality — and written at each width up to the original. Nothing is ever
+ * upscaled.
  *
  * Returns { storageKey, width, height } or { error }.
  */
@@ -62,13 +62,6 @@ export async function saveUpload(file, { slug = 'product' } = {}) {
   const safeSlug = String(slug).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'image'
   const stem = `${safeSlug}-${randomBytes(5).toString('hex')}`
   const buffer = Buffer.from(await file.arrayBuffer())
-
-  // SVG: store untouched.
-  if (file.type === 'image/svg+xml') {
-    await writeFile(join(UPLOAD_DIR, `${stem}.svg`), buffer)
-    return { storageKey: `${PUBLIC_PREFIX}/${stem}.svg`, width: null, height: null }
-  }
-
   return writeImage(buffer, stem, file.name)
 }
 
