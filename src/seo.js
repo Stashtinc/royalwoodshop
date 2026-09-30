@@ -14,6 +14,12 @@ export const BASE =
  */
 export const INDEXING_ENABLED = import.meta.env.VITE_SEARCH_INDEXING === 'on'
 
+/** Titles carried over from WordPress often already end in the business
+ *  name, in one form or another. Appending it again reads badly and wastes
+ *  characters Google will truncate. */
+export const withSiteName = (title) =>
+  /royal\s*wood\s*shop/i.test(title) ? title : `${title} | ${SITE}`
+
 /** Every page gets a unique title, a description and a self-referencing
  *  canonical. The absence of these on the old site is why several hundred
  *  product pages could not rank. */
@@ -23,7 +29,7 @@ export function pageMeta({ title, description, path, image, jsonLd }) {
     // Titles carried over from WordPress often already end in the business
     // name, in one form or another. Appending it again reads badly and wastes
     // characters Google will truncate.
-    { title: /royal\s*wood\s*shop/i.test(title) ? title : `${title} | ${SITE}` },
+    { title: withSiteName(title) },
     { name: 'description', content: description },
     // Off unless explicitly enabled, so no temporary host gets indexed.
     ...(INDEXING_ENABLED ? [] : [{ name: 'robots', content: 'noindex, nofollow' }]),
@@ -49,3 +55,15 @@ export const truncate = (s, n = 155) => {
   const t = (s || '').replace(/\s+/g, ' ').trim()
   return t.length <= n ? t : `${t.slice(0, n - 1).replace(/[,;:\s]+\S*$/, '')}…`
 }
+
+/**
+ * A product's search listing when no SEO title or description is entered.
+ * One definition, used by the product page and shown as the placeholder in
+ * the admin so the blank field shows exactly what Google will get.
+ */
+export const productSeoTitle = ({ name = '', productCode = '' }) =>
+  `${name}${productCode ? ` ${productCode}` : ''}`
+
+export const productSeoDescription = ({ name = '', description = '', size = '', species = [] }) =>
+  truncate(description)
+  || truncate(`${name}. ${size ? `Size ${size}. ` : ''}${species.length ? `Available in ${species.join(', ')}. ` : ''}From The Royal Wood Shop, Toronto and the GTA.`)

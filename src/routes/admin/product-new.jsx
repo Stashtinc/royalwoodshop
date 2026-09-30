@@ -5,6 +5,7 @@ import { log } from '../../lib/activity.server'
 import { AVAILABILITY } from '../../lib/catalogue-constants'
 import CategoryPicker from '../../components/admin/CategoryPicker'
 import SpeciesPicker, { readSpeciesAvail } from '../../components/admin/SpeciesPicker'
+import SeoFields from '../../components/admin/SeoFields'
 
 export async function loader({ request }) {
   await requireUser(request)
@@ -78,7 +79,7 @@ export default function ProductNew() {
         <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-800">{data.error}</p>
       )}
 
-      <Form method="post" className="flex flex-col gap-6">
+      <Form id="new-product-form" method="post" className="flex flex-col gap-6">
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Details</h2>
@@ -147,12 +148,8 @@ export default function ProductNew() {
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Search listing</h2>
-          <label className="flex flex-col gap-1.5">
-            <Label hint="leave blank to generate from the product name">Page title</Label>
-            <input name="seoTitle" maxLength={200} className={field} /></label>
-          <label className="flex flex-col gap-1.5">
-            <Label hint="leave blank to use the description">Meta description</Label>
-            <textarea name="seoDescription" rows={2} className={field} /></label>
+          <SeoFields formId="new-product-form" Label={Label} field={field}
+            initial={{ name: '', productCode: '', description: '', size: '', species: [] }} />
         </section>
 
         <div className="flex items-center gap-3">
