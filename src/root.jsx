@@ -6,6 +6,7 @@ import Header from './components/Header'
 import PageHeader from './components/PageHeader'
 import Footer from './components/Footer'
 import NewsletterSignup from './components/NewsletterSignup'
+import GoogleTagManager from './components/GoogleTagManager'
 import royalEdgeHero from './assets/images/royal-edge-hero.jpg'
 import servicesHero from './assets/images/services-hero.jpg'
 import navCatsJson from './data/navCategories.json'
@@ -88,6 +89,7 @@ export default function Root() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <GoogleTagManager />
       <div data-print="hide"><Header navCategories={navCategories} /></div>
       {!isHome && <div data-print="hide"><PageHeader {...pageHeaderImages[pathname]} navCategories={navCategories} /></div>}
       <Outlet />
