@@ -77,17 +77,20 @@ const order = [
 const isValidCategory = (name) => name && !/uncategor/i.test(name)
 
 export function categoryTree(rows = products, dbTree = []) {
+  // Categories hidden in the admin never reach the sidebar, so their products
+  // drop out of the grid unless they are also filed under a visible category.
+  const hidden = new Set(dbTree.filter((c) => c.hidden).map((c) => c.name))
   // Pre-seed every known category so empty ones still appear in the sidebar
-  const map = new Map(order.map((name) => [name, new Set()]))
+  const map = new Map(order.filter((name) => !hidden.has(name)).map((name) => [name, new Set()]))
   // Pre-seed sub-categories from DB so newly-created subs appear even with no products yet
   for (const cat of dbTree) {
-    if (!isValidCategory(cat.name)) continue
+    if (!isValidCategory(cat.name) || cat.hidden) continue
     if (!map.has(cat.name)) map.set(cat.name, new Set())
     for (const sub of cat.subcategories) map.get(cat.name).add(sub)
   }
   for (const p of rows) {
     for (const { category, sub } of placementsOf(p)) {
-      if (!isValidCategory(category)) continue
+      if (!isValidCategory(category) || hidden.has(category)) continue
       if (!map.has(category)) map.set(category, new Set())
       map.get(category).add(sub)
     }

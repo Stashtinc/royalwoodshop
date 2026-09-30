@@ -216,7 +216,7 @@ export async function getProductBySlug(db, slug) {
 /** All top-level categories with their sub-category names, ordered for the sidebar. */
 export async function listCategoryTree(db) {
   const rows = await db
-    .select({ id: categories.id, name: categories.name, parentId: categories.parentId })
+    .select({ id: categories.id, name: categories.name, slug: categories.slug, parentId: categories.parentId, inNav: categories.inNav })
     .from(categories)
     .orderBy(asc(categories.sortOrder), asc(categories.name))
 
@@ -227,5 +227,7 @@ export async function listCategoryTree(db) {
   }
   return rows
     .filter((c) => !c.parentId)
-    .map((c) => ({ name: c.name, subcategories: subsByParent.get(c.id) ?? [] }))
+    // in_nav is the admin's Show/Hide switch: a hidden category is left out of
+    // the top menu, the catalogue sidebar and the sitemap, and its page 404s.
+    .map((c) => ({ name: c.name, slug: c.slug, hidden: !c.inNav, subcategories: subsByParent.get(c.id) ?? [] }))
 }

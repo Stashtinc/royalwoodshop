@@ -44,7 +44,7 @@ export async function action({ request }) {
     const inNav = f.get('inNav') === 'true'
     await updateCategory(id, { inNav })
     await writeNavCategoriesJson()
-    return { saved: inNav ? 'Added to nav.' : 'Removed from nav.' }
+    return { saved: inNav ? 'Category shown.' : 'Category hidden from the menu and catalogue.' }
   }
 
   if (intent === 'move') {
@@ -249,7 +249,10 @@ function CategoryRow({ cat, isFirst, isLast }) {
             </Form>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="font-medium text-tundora text-sm">{cat.name}</span>
+              <span className={`font-medium text-sm ${cat.inNav ? 'text-tundora' : 'text-gray-400'}`}>{cat.name}</span>
+              {!cat.inNav && (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">Hidden</span>
+              )}
               {cat.productCount > 0 && (
                 <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500">{cat.productCount} products</span>
               )}
@@ -257,7 +260,7 @@ function CategoryRow({ cat, isFirst, isLast }) {
           )}
         </div>
 
-        {/* In nav toggle */}
+        {/* Show / hide — in_nav drives the top menu and the catalogue sidebar */}
         <Form method="post" className="shrink-0">
           <input type="hidden" name="intent" value="toggle-nav" />
           <input type="hidden" name="id" value={cat.id} />
@@ -265,17 +268,14 @@ function CategoryRow({ cat, isFirst, isLast }) {
           <button
             type="submit"
             disabled={busy}
-            title={cat.inNav ? 'Remove from top nav' : 'Add to top nav'}
+            title={cat.inNav ? 'Hide from the menu and catalogue sidebar' : 'Show in the menu and catalogue sidebar'}
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
               cat.inNav
-                ? 'bg-royal-blue text-white'
-                : 'border border-gray-300 text-gray-500 hover:border-gray-400'
+                ? 'border border-gray-300 text-gray-500 hover:border-gray-400'
+                : 'bg-royal-blue text-white hover:bg-royal-blue-dark'
             }`}
           >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M1 5h8M5 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            {cat.inNav ? 'In nav' : 'Add to nav'}
+            {cat.inNav ? 'Hide category' : 'Show category'}
           </button>
         </Form>
 
@@ -405,7 +405,7 @@ export default function CategoriesAdmin() {
                 onChange={(e) => setNewTopNav(e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 accent-royal-blue"
               />
-              Add to top nav
+              Show on site
             </label>
             <div className="flex items-center gap-2 pb-2">
               <button
