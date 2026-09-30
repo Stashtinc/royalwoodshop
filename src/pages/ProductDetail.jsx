@@ -306,6 +306,19 @@ export default function ProductDetail({ product: productProp = null, related: re
             {/* Details */}
             <div className="flex flex-1 flex-col gap-6">
               <div className="flex flex-col gap-2">
+                {/* Back to wherever they browsed from, filters intact; a visitor
+                    who landed here directly goes to the product's category. */}
+                <Link
+                  to={`/products/${product.categorySlug}`}
+                  onClick={(e) => {
+                    // idx is React Router's own count of in-app history entries;
+                    // 0 means this is the first page of the visit.
+                    if (window.history.state?.idx > 0) { e.preventDefault(); navigate(-1) }
+                  }}
+                  className="mb-2 inline-flex w-fit items-center gap-1.5 font-sans text-sm text-gray-500 transition-colors hover:text-royal-blue print:hidden"
+                >
+                  <span aria-hidden="true">←</span> Back to catalogue
+                </Link>
                 <p className="font-sans text-xs font-bold tracking-widest text-royal-blue uppercase">
                   {product.subcategory} · {product.category}
                 </p>
@@ -362,13 +375,6 @@ export default function ProductDetail({ product: productProp = null, related: re
                   <PrintIcon />
                   Print
                 </a>
-                <button
-                  type="button"
-                  onClick={() => navigate(-1)}
-                  className="rounded-lg border border-gray-300 bg-white px-6 py-3 font-sans text-sm font-medium text-tundora transition-colors hover:border-royal-blue hover:text-royal-blue"
-                >
-                  Back to Catalogue
-                </button>
               </div>
 
               <p className="font-sans text-xs text-gray-400">
