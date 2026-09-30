@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { Link, redirect, useLoaderData, useRouteLoaderData } from 'react-router'
 import ProductDetail from '../pages/ProductDetail'
 import { catalogueProducts } from '../data/catalogue'
-import { pageMeta, truncate, BASE, SITE } from '../seo'
+import { pageMeta, BASE, SITE, productSeoTitle, productSeoDescription } from '../seo'
 
 const AVAIL_SCHEMA = {
   in_stock: 'https://schema.org/InStock',
@@ -52,10 +52,9 @@ export const meta = ({ data }) => {
   if (!data) return pageMeta({ title: 'Product not found', description: '', path: '/products' })
   const p = data.product
   const path = `/products/${p.categorySlug}/${p.slug}`
-  const title = p.seoTitle || `${p.name}${p.productCode ? ` ${p.productCode}` : ''}`
+  const title = p.seoTitle || productSeoTitle(p)
   const description = p.seoDescription
-    || truncate(p.description)
-    || truncate(`${p.name}. ${p.size ? `Size ${p.size}. ` : ''}${p.species?.length ? `Available in ${p.species.join(', ')}. ` : ''}From The Royal Wood Shop, Toronto and the GTA.`)
+    || productSeoDescription({ ...p, species: p.species ?? [] })
 
   return pageMeta({
     title, description, path,

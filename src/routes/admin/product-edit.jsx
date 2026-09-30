@@ -14,6 +14,7 @@ import ImageDropZone from '../../components/admin/ImageDropZone'
 import CategoryPicker from '../../components/admin/CategoryPicker'
 import SpeciesPicker, { readSpeciesAvail } from '../../components/admin/SpeciesPicker'
 import { thumbSrc } from '../../lib/images'
+import SeoFields from '../../components/admin/SeoFields'
 
 export async function loader({ request, params }) {
   await requireUser(request)
@@ -471,12 +472,10 @@ export default function ProductEdit() {
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Search listing</h2>
-          <label className="flex flex-col gap-1.5">
-            <Label hint="leave blank to generate from the product name">Page title</Label>
-            <input name="seoTitle" defaultValue={product.seoTitle ?? ''} maxLength={200} className={field} /></label>
-          <label className="flex flex-col gap-1.5">
-            <Label hint="leave blank to use the description">Meta description</Label>
-            <textarea name="seoDescription" rows={2} defaultValue={product.seoDescription ?? ''} className={field} /></label>
+          <SeoFields formId="details-form" Label={Label} field={field}
+            seoTitle={product.seoTitle ?? ''} seoDescription={product.seoDescription ?? ''}
+            initial={{ name: product.name ?? '', productCode: product.productCode ?? '', description: product.description ?? '',
+              size: product.sizeDisplay ?? '', species: product.species ?? [] }} />
         </section>
 
       </Form>
