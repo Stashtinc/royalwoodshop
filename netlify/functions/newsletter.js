@@ -4,6 +4,12 @@ export const handler = async (event) => {
   }
 
   const params = new URLSearchParams(event.body || '')
+
+  // Honeypot — see src/routes/api.newsletter.js.
+  if (params.get('company')?.trim()) {
+    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: true }) }
+  }
+
   const email = params.get('email')?.trim() ?? ''
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -37,7 +43,8 @@ export const handler = async (event) => {
         Authorization: `Basic ${credentials}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email_address: email, status: 'subscribed' }),
+      // Double opt-in: Mailchimp sends a confirmation link first (CASL).
+      body: JSON.stringify({ email_address: email, status: 'pending' }),
       signal: AbortSignal.timeout(10000),
     })
   } catch {

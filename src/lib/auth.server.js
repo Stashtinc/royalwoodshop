@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { users } from '../db/schema.js'
+import { createLimiter } from './rate-limit.server.js'
 
 const DEV_SECRET = 'dev-only-insecure-secret-change-me'
 
@@ -42,13 +43,34 @@ function sessionStorage() {
 export const hashPassword = (plain) => bcrypt.hash(plain, 12)
 export const verifyPassword = (plain, hash) => bcrypt.compare(plain, hash)
 
-export async function login(email, password) {
+/**
+ * Five wrong passwords in 15 minutes, counted per connection and per email
+ * address, and sign-in is refused until the window has passed. That makes
+ * guessing impractical without holding up someone who mistypes a few times.
+ * The per-email count is the firm one: a connection's address is only as
+ * honest as the proxy header it is read from.
+ */
+const failedLogins = createLimiter({ limit: 5, windowMs: 15 * 60_000 })
+
+/**
+ * Checks an email and password. Returns { user } when they match; otherwise
+ * { user: null, retryAfter }, where retryAfter is the seconds to wait after
+ * too many failures (0 for a plain wrong password).
+ */
+export async function login(email, password, { ip = 'unknown' } = {}) {
+  const address = email.trim().toLowerCase()
+  const keys = [`ip:${ip}`, `email:${address}`]
+  const retryAfter = Math.max(...keys.map((k) => failedLogins.retryAfter(k)))
+  if (retryAfter) return { user: null, retryAfter }
+
   const db = await getDb()
-  const [user] = await db.select().from(users)
-    .where(eq(users.email, email.trim().toLowerCase())).limit(1)
-  if (!user) return null
-  const ok = await verifyPassword(password, user.passwordHash)
-  return ok ? user : null
+  const [user] = await db.select().from(users).where(eq(users.email, address)).limit(1)
+  if (user && await verifyPassword(password, user.passwordHash)) {
+    for (const k of keys) failedLogins.reset(k)
+    return { user }
+  }
+  for (const k of keys) failedLogins.hit(k)
+  return { user: null, retryAfter: 0 }
 }
 
 export async function createSession(userId, redirectTo = '/admin') {
@@ -68,6 +90,20 @@ export async function getUser(request) {
     id: users.id, email: users.email, name: users.name, role: users.role,
   }).from(users).where(eq(users.id, userId)).limit(1)
   return user ?? null
+}
+
+/**
+ * Where to go after signing in: the admin page that sent you to the login
+ * (requireUser adds it as ?next=), or the dashboard. Only admin pages on this
+ * site qualify. Anything else would turn the login into an open redirect
+ * (/admin/login?next=https://evil.example), and the login and logout pages
+ * themselves would go nowhere useful.
+ */
+export function afterLogin(next) {
+  if (typeof next !== 'string' || /[\\\s]/.test(next)) return '/admin'
+  if (!/^\/admin(?:[/?#]|$)/.test(next)) return '/admin'
+  if (/^\/admin\/log(?:in|out)(?:[/?#]|$)/.test(next)) return '/admin'
+  return next
 }
 
 /** Use at the top of every protected loader and action. */

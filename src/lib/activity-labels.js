@@ -18,6 +18,7 @@ export const ACTION_LABEL = {
   'image.deleted': 'Image removed',
   'image.reordered': 'Images reordered',
   'auth.login': 'Signed in',
+  'auth.login_failed': 'Sign-in failed',
   'post.created': 'Article added',
   'post.updated': 'Article edited',
   'post.published': 'Article published',

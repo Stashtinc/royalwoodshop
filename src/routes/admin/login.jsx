@@ -1,10 +1,14 @@
 import { Form, useActionData } from 'react-router'
-import { login, createSession, getUser } from '../../lib/auth.server'
+import { login, createSession, getUser, afterLogin } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
+import { clientIp } from '../../lib/rate-limit.server'
+
+/** The page to return to, from ?next= — see afterLogin. */
+const nextOf = (request) => afterLogin(new URL(request.url).searchParams.get('next'))
 
 export async function loader({ request }) {
   const user = await getUser(request)
-  if (user) throw new Response(null, { status: 302, headers: { Location: '/admin' } })
+  if (user) throw new Response(null, { status: 302, headers: { Location: nextOf(request) } })
   return null
 }
 
@@ -13,10 +17,20 @@ export async function action({ request }) {
   const email = String(form.get('email') ?? '')
   const password = String(form.get('password') ?? '')
   if (!email || !password) return { error: 'Enter your email and password.' }
-  const user = await login(email, password)
-  if (!user) return { error: 'Those details were not recognised.' }
+  const ip = clientIp(request)
+  const { user, retryAfter } = await login(email, password, { ip })
+  if (retryAfter) {
+    const minutes = Math.ceil(retryAfter / 60)
+    return { error: `Too many sign-in attempts. Please try again in ${minutes} minute${minutes === 1 ? '' : 's'}.` }
+  }
+  if (!user) {
+    // Recorded so that someone guessing passwords shows up in the log.
+    const address = email.trim().toLowerCase().slice(0, 254)
+    await log({ email: address }, 'auth.login_failed', { entityType: 'user', entityLabel: address, details: { ip } })
+    return { error: 'Those details were not recognised.' }
+  }
   await log(user, 'auth.login', { entityType: 'user', entityId: user.id, entityLabel: user.name || user.email })
-  return createSession(user.id, '/admin')
+  return createSession(user.id, nextOf(request))
 }
 
 export const meta = () => [

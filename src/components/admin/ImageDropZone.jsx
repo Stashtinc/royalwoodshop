@@ -42,7 +42,7 @@ export default function ImageDropZone({ name = 'images', hint }) {
         type="file"
         name={name}
         multiple
-        accept="image/jpeg,image/png,image/webp,image/avif,image/svg+xml"
+        accept="image/jpeg,image/png,image/webp,image/avif"
         onChange={(e) => submit(e.target.files)}
         className="hidden"
       />

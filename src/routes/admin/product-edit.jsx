@@ -302,7 +302,7 @@ function ImagesSection() {
       <Form method="post" encType="multipart/form-data" className="flex flex-col gap-3">
         <input type="hidden" name="intent" value="upload" />
         <ImageDropZone
-          hint={`JPG, PNG, WebP, AVIF or SVG · up to ${limits.maxMb} MB each · several at once`}
+          hint={`JPG, PNG, WebP or AVIF · up to ${limits.maxMb} MB each · several at once`}
         />
       </Form>
     </section>

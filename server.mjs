@@ -17,6 +17,21 @@ const app = express()
 app.disable('x-powered-by')
 app.use(compression())
 
+// Uploads are served from the site's own domain, so a file that can carry a
+// script (an SVG stored before uploads refused them, or anything else that
+// reached the volume) would run as royalwoodshop.com if opened directly.
+// Raster images are served as normal; anything else gets a policy that runs
+// nothing. Registered before every static handler, because the build copies
+// public/uploads too. Pictures shown with <img> are unaffected either way.
+const RASTER = /\.(webp|jpe?g|png|avif|gif)$/i
+app.use('/uploads', (req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff')
+  if (!RASTER.test(req.path)) {
+    res.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+  }
+  next()
+})
+
 // Hashed static assets — long cache
 app.use(
   '/assets',

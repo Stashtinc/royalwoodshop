@@ -1,14 +1,31 @@
+/** Five signups an hour from one connection: more than any household or
+ *  office needs, far fewer than a bot wants. */
+let limiter
+
 export async function action({ request }) {
   if (request.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
   }
 
   const params = new URLSearchParams(await request.text())
+
+  // Honeypot: a field people never see. Pretend it worked so the bot learns
+  // nothing, but send nothing.
+  if (params.get('company')?.trim()) return Response.json({ ok: true })
+
   const email = params.get('email')?.trim() ?? ''
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return Response.json({ error: 'Please enter a valid email address.' }, { status: 400 })
   }
+
+  const { createLimiter, clientIp } = await import('../lib/rate-limit.server.js')
+  limiter ??= createLimiter({ limit: 5, windowMs: 60 * 60_000 })
+  const ip = clientIp(request)
+  if (limiter.retryAfter(ip)) {
+    return Response.json({ error: 'Too many signups from your connection. Please try again later.' }, { status: 429 })
+  }
+  limiter.hit(ip)
 
   const apiKey = process.env.MAILCHIMP_API_KEY?.trim()
   const audienceId = process.env.MAILCHIMP_AUDIENCE_ID?.trim()
@@ -29,7 +46,11 @@ export async function action({ request }) {
         Authorization: `Basic ${credentials}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email_address: email, status: 'subscribed' }),
+      // 'pending': Mailchimp emails a confirmation link and subscribes the
+      // address only once it is clicked. That double opt-in is the proof of
+      // consent Canada's anti-spam law (CASL) expects, and a bot cannot
+      // confirm a mailbox it does not own.
+      body: JSON.stringify({ email_address: email, status: 'pending' }),
       signal: AbortSignal.timeout(10000),
     })
   } catch {
