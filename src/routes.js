@@ -9,6 +9,7 @@ export default [
   route('products', 'routes/catalogue.jsx'),
   route('products/:category', 'routes/category.jsx'),
   route('products/:category/:slug', 'routes/product.jsx'),
+  route('products/:category/:slug/spec-sheet.pdf', 'routes/spec-sheet.js'),
 
   route('contact', 'routes/contact.jsx'),
   route('the-royal-edge', 'routes/royal-edge.jsx'),

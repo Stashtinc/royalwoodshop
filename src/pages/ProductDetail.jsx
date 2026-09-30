@@ -20,8 +20,19 @@ function DownloadIcon() {
   )
 }
 
+function PrintIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 6V1.5h8V6M4 12H2.5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H12M4 9.5h8v5H4v-5Z"
+        stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 /**
- * Print-only specification sheet.
+ * Print-only specification sheet, for the browser's own Ctrl+P. The Download
+ * and Print buttons use the PDF built from the same layout in
+ * lib/spec-sheet.server.js.
  *
  * A purpose-built one-page layout rather than a restyled web page — the site
  * layout uses min-h-screen and multi-column grids that do not translate to
@@ -333,14 +344,24 @@ export default function ProductDetail({ product: productProp = null, related: re
                 >
                   Get a Quote
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
+                {/* Plain <a>, not <Link>: these are PDF files, not app routes */}
+                <a
+                  href={`${productPath(product)}/spec-sheet.pdf?download=1`}
+                  download
                   className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 font-sans text-sm font-medium text-tundora transition-colors hover:border-royal-blue hover:text-royal-blue print:hidden"
                 >
                   <DownloadIcon />
-                  Spec sheet (PDF)
-                </button>
+                  Download Spec Sheet
+                </a>
+                <a
+                  href={`${productPath(product)}/spec-sheet.pdf`}
+                  target="_blank"
+                  rel="noopener"
+                  className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 font-sans text-sm font-medium text-tundora transition-colors hover:border-royal-blue hover:text-royal-blue print:hidden"
+                >
+                  <PrintIcon />
+                  Print
+                </a>
                 <button
                   type="button"
                   onClick={() => navigate(-1)}
@@ -349,10 +370,6 @@ export default function ProductDetail({ product: productProp = null, related: re
                   Back to Catalogue
                 </button>
               </div>
-
-              <p className="font-sans text-xs text-gray-400 print:hidden">
-                Spec sheet opens your print dialog — choose <span className="font-medium">Save as PDF</span> as the destination.
-              </p>
 
               <p className="font-sans text-xs text-gray-400">
                 Pricing is available upon request. Contact us for stock availability and delivery options across Toronto and the GTA.

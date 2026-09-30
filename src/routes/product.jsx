@@ -1,8 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { Link, redirect, useLoaderData, useRouteLoaderData } from 'react-router'
 import ProductDetail from '../pages/ProductDetail'
-import { catalogueProducts } from '../data/catalogue'
 import { pageMeta, BASE, SITE, productSeoTitle, productSeoDescription } from '../seo'
 
 const AVAIL_SCHEMA = {
@@ -12,24 +9,8 @@ const AVAIL_SCHEMA = {
 }
 
 export async function loader({ params }) {
-  // 1. Live database — the source of truth on Railway. Reading the committed
-  //    products.json first meant every deploy put back an old snapshot, so
-  //    admin edits and archived products reverted on this page.
-  let all = null
-  try {
-    const { getDb } = await import('../lib/db.server.js')
-    const { getAllProducts } = await import('../db/queries.js')
-    all = await getAllProducts(await getDb())
-  } catch {}
-
-  // 2. Snapshot, only when there is no database (static prerender builds).
-  if (!all?.length) {
-    try {
-      all = JSON.parse(readFileSync(resolve('src/data/products.json'), 'utf8'))
-    } catch {
-      all = catalogueProducts
-    }
-  }
+  const { loadAllProducts } = await import('../lib/products.server.js')
+  const all = await loadAllProducts()
 
   const product = all.find((p) => p.slug === params.slug)
   if (!product) throw new Response('Not found', { status: 404 })
