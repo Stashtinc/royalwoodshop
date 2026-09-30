@@ -1,11 +1,14 @@
 import { useRef, useState } from 'react'
 import { SPECIES, AVAILABILITY } from '../../lib/catalogue-constants'
 
-const AvailSelect = ({ name, defaultValue }) => (
+// `large` matches the page's standard fields (Lead time etc.), for the Other row.
+const AvailSelect = ({ name, defaultValue, large = false }) => (
   <select
     name={name}
     defaultValue={defaultValue ?? ''}
-    className="rounded border border-gray-300 py-0.5 pl-2 pr-6 text-xs text-gray-700 outline-none focus:border-royal-blue"
+    className={large
+      ? 'rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm text-gray-700 outline-none focus:border-royal-blue'
+      : 'rounded border border-gray-300 py-0.5 pl-2 pr-6 text-xs text-gray-700 outline-none focus:border-royal-blue'}
   >
     <option value="">— not milled —</option>
     <option value="none_set">milled, no code</option>
@@ -99,9 +102,9 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
               name="other_species_name"
               defaultValue={initialOther[idx]?.name ?? ''}
               placeholder="Species name"
-              className="flex-1 rounded border border-gray-300 py-0.5 px-2 text-xs text-gray-700 outline-none focus:border-royal-blue"
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-royal-blue"
             />
-            <AvailSelect name="other_species_avail" defaultValue={initialOther[idx]?.avail ?? ''} />
+            <AvailSelect name="other_species_avail" defaultValue={initialOther[idx]?.avail ?? ''} large />
             {rows.length > 1 && (
               <button
                 type="button"
