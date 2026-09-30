@@ -145,7 +145,10 @@ const heroSlides = [
         top: '10%',
         name: '1X6 V-Groove Pre-Finished Irish Cream',
         partNo: 'T&G-500-IRISHCREAM',
-        to: '/products/wall-ceiling-panelling/t-g-500-irishcream',
+        // The catalogue no longer lists this product (the only Irish Cream
+        // panelling is the 1x7 shiplap, T&G-727). Its category rather than a
+        // 404 until the hotspot is pointed at a current product.
+        to: '/products/wall-ceiling-panelling',
         popoverSide: 'bottom',
       },
       {
@@ -153,7 +156,8 @@ const heroSlides = [
         top: '38%',
         name: '2 Panel Shaker Interior Door',
         partNo: '8402',
-        to: '/products/interior-doors/two-panel-shaker-door-8402',
+        // Now listed per size; the standard 80" × 1-3/8" door.
+        to: '/products/interior-doors/8402-1-3-8x80',
       },
       {
         left: '42%',

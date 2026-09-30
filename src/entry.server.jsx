@@ -18,6 +18,19 @@ export function handleError(error, { request }) {
 export default async function handleRequest(
   request, responseStatusCode, responseHeaders, routerContext,
 ) {
+  // One address per page. WordPress ended every address with a slash, so the
+  // old site's links and Google's index are full of them; the canonical form
+  // has none. (A 404 with a slash is handled by the redirect lookup below,
+  // which ignores it, so an old address still takes a single hop.)
+  const { pathname, search } = new URL(request.url)
+  if (responseStatusCode < 400 && pathname.length > 1 && pathname.endsWith('/')
+      && (request.method === 'GET' || request.method === 'HEAD')) {
+    // Leading slashes collapsed too, so //example.com/ cannot become a
+    // redirect to another site.
+    const location = '/' + pathname.replace(/^\/+|\/+$/g, '') + search
+    return new Response(null, { status: 301, headers: { Location: location } })
+  }
+
   // A 404 may be an address from the old WordPress site: send it to the new
   // one, or record it so the gap in the redirect map shows up.
   if (responseStatusCode === 404) {

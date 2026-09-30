@@ -31,7 +31,7 @@ export const CATEGORY_BY_SLUG = Object.fromEntries(
 )
 
 export const getProduct = (slug) => products.find((p) => p.slug === slug) ?? null
-export const productPath = (p) => `/products/${p.categorySlug}/${p.slug}/`
+export const productPath = (p) => `/products/${p.categorySlug}/${p.slug}`
 
 /**
  * Where a product sits, as {category, sub} pairs.

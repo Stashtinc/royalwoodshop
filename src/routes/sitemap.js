@@ -12,6 +12,7 @@ const MORE_PAGES = [
   '/material-estimate-and-quotation',
   '/services/delivery',
   '/saw-blade-sharpening',
+  '/resources',
   '/resources/downloads',
   '/glossary',
   '/faq',
