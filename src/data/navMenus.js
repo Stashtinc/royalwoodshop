@@ -53,5 +53,4 @@ export const resourcesMenu = [
   { label: 'Glossary of Terms', path: '/glossary' },
   { label: 'FAQ', path: '/faq' },
   { label: 'Installation Tips', path: '/installation-tips' },
-  'Royal Wood Shop LTD on "Made to Renovate"',
 ]
