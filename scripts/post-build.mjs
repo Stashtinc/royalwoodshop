@@ -11,20 +11,13 @@
  */
 import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs'
 import { parse } from 'csv-parse/sync'
+import { PAGE_REDIRECTS } from '../src/lib/redirect-rules.js'
 
 const OUT = 'build/client'
 
 /* ---- page-level redirects (hand-mapped, from the audit spec §3.2) ---- */
-const PAGES = [
-  ['/trim-doors-catalogue', '/products'],
-  ['/mouldings', '/products/trim-mouldings'],
-  ['/interior-doors', '/products/interior-doors'],
-  ['/doors', '/products/interior-doors'],
-  ['/door-hardware', '/products/door-hardware'],
-  ['/staircase-parts-accessories', '/products/stair-railing'],
-  ['/products-new', '/products'],
-  ['/upcp_product', '/products'],
-]
+// Shared with the server, which answers the same addresses on Railway.
+const PAGES = PAGE_REDIRECTS
 
 const rows = parse(readFileSync('data/redirects.csv', 'utf8'), {
   columns: true, skip_empty_lines: true, trim: true, bom: true,

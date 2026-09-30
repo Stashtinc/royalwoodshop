@@ -46,6 +46,7 @@ export default [
   ]),
 
   route('blog', 'routes/journal.jsx'),
+  route('resources', 'routes/resources.jsx'),
   route('resources/downloads', 'routes/downloads.jsx'),
   route('glossary', 'routes/glossary.jsx'),
   route('faq', 'routes/faq.jsx'),

@@ -1,9 +1,10 @@
 /**
  * Loads data/redirects.csv into the redirects table.
  *
- * The table backs the admin redirect manager. Netlify's _redirects file is
- * generated separately at build time from the same CSV, so the two never
- * disagree.
+ * The server answers old addresses from the same CSV whether or not this has
+ * run (lib/redirects.server.js); the table adds a hit count per redirect, and
+ * a row added or changed here wins over the CSV. Netlify's _redirects file is
+ * generated separately at build time from the same CSV.
  *
  *   npm run import:redirects
  */

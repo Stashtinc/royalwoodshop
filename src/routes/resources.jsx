@@ -1,4 +1,4 @@
-import Placeholder from '../pages/Placeholder'
+import Page from '../pages/Resources'
 import { pageMeta } from '../seo'
 
 export const meta = () => pageMeta({
@@ -7,4 +7,4 @@ export const meta = () => pageMeta({
   path: '/resources',
 })
 
-export default function Route() { return <Placeholder title="Resources" /> }
+export default function Route() { return <Page /> }

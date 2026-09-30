@@ -62,9 +62,13 @@ export async function loader({ params }) {
 
 export const meta = ({ data }) => {
   if (!data) return pageMeta({ title: 'Not found', description: '', path: '/products' })
+  // The loader returns the whole catalogue (the page filters it), so count
+  // this category's products rather than quoting the total on every page.
+  const count = data.products.filter((p) => catsOf(p).includes(data.name)).length
+  const lead = BLURB[data.category] ?? `${data.name} from The Royal Wood Shop.`
   return pageMeta({
     title: `${data.name} | Toronto & GTA`,
-    description: truncate(`${BLURB[data.category] ?? ''} ${data.products.length} products available across the GTA.`),
+    description: truncate(count ? `${lead} ${count} products available across the GTA.` : `${lead} Delivered across the GTA.`),
     path: `/products/${data.category}`,
   })
 }

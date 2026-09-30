@@ -234,7 +234,7 @@ export default function InstallationTips() {
               Visit the Showroom
             </Link>
             <Link
-              to="/resources/faq"
+              to="/faq"
               className="rounded-lg border border-royal-blue px-6 py-3 font-sans text-base font-medium text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
             >
               Browse FAQ

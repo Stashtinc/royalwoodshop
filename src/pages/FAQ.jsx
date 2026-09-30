@@ -165,7 +165,7 @@ export default function FAQ() {
                   Not sure what a term means? Our glossary covers the most common millwork vocabulary.
                 </p>
                 <Link
-                  to="/resources/glossary"
+                  to="/glossary"
                   className="mt-4 inline-block rounded-lg border border-gray-300 px-5 py-2.5 font-sans text-sm font-medium text-gray-700 transition-colors hover:border-royal-blue hover:text-royal-blue"
                 >
                   Glossary of Terms
