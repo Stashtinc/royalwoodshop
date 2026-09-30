@@ -3,6 +3,7 @@ import {
   products, categories, attributes, attributeValues, productAttributes, productImages,
 } from './schema.js'
 
+/** Fallback names only — used when a product has no primary category. */
 const CATEGORY_NAMES = {
   'trim-mouldings':          'Trim & Moulding',
   'flat-stock-lumber':       'Flat Stock Lumber',
@@ -59,7 +60,14 @@ export async function getAllProducts(db) {
       seoTitle: products.seoTitle,
       seoDescription: products.seoDescription,
       legacyViews: products.legacyViews,
-      categorySlug: categories.slug,
+      // The primary category, lifted to its top-level parent when the
+      // primary is a sub-category — the address uses the top level.
+      categorySlug: sql`coalesce(
+        (select c5.slug from ${categories} c5 where c5.id = ${categories.parentId}),
+        ${categories.slug})`.as('categorySlug'),
+      categoryName: sql`coalesce(
+        (select c5.name from ${categories} c5 where c5.id = ${categories.parentId}),
+        ${categories.name})`.as('categoryName'),
       species: sql`coalesce(
         (select array_agg(av.value order by av.sort_order)
          from ${productAttributes} pa
@@ -128,7 +136,13 @@ export async function getAllProducts(db) {
 
 function shape(r) {
   const width = r.widthIn == null ? null : Number(r.widthIn)
-  const catSlug = r.categorySlug && CATEGORY_NAMES[r.categorySlug] ? r.categorySlug : 'trim-mouldings'
+  // The category comes from the database, so one created in the admin works
+  // like the original ten. The fixed list only covers a product with no
+  // primary category, which still needs an address.
+  // 'UNASSIGNED' is the import's placeholder for "no category yet".
+  const real = r.categorySlug && r.categorySlug !== 'UNASSIGNED'
+  const catSlug = real ? r.categorySlug : 'trim-mouldings'
+  const catName = (real && r.categoryName) || CATEGORY_NAMES[catSlug] || CATEGORY_NAMES['trim-mouldings']
   const species = Array.isArray(r.species) ? r.species : []
   const placements = (Array.isArray(r.placements) ? r.placements : JSON.parse(r.placements ?? '[]'))
     .filter((x) => x && x.sub)
@@ -146,9 +160,9 @@ function shape(r) {
     description: r.description ?? '',
     // `category` and `categorySlug` are the canonical one — the address the
     // product lives at. `categories` is every heading it browses under.
-    category: CATEGORY_NAMES[catSlug],
+    category: catName,
     categorySlug: catSlug,
-    categories: categoryNames.length ? categoryNames : [CATEGORY_NAMES[catSlug]],
+    categories: categoryNames.length ? categoryNames : [catName],
     /** {category, sub} pairs — a sub always carries its own parent. */
     placements,
     // `subcategory` stays as the single label for a breadcrumb or a card;

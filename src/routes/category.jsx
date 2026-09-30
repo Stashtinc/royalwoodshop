@@ -14,7 +14,7 @@ const BLURB = {
 }
 
 export async function loader({ params }) {
-  // Static lookup first — covers all pre-existing categories
+  // Static name as a fallback; replaced by the database name below
   let name = NAMES[params.category]
   let products = null
   let dbCategories = []
@@ -26,15 +26,14 @@ export async function loader({ params }) {
     const { eq } = await import('drizzle-orm')
     const db = await getDb()
 
-    // Resolve category name from DB for categories not in the static map
-    if (!name) {
-      const rows = await db
-        .select({ name: catsTable.name })
-        .from(catsTable)
-        .where(eq(catsTable.slug, params.category))
-        .limit(1)
-      if (rows.length) name = rows[0].name
-    }
+    // The database name wins, so a category renamed or created in the admin
+    // shows its current name; the static map only covers a missing database.
+    const rows = await db
+      .select({ name: catsTable.name })
+      .from(catsTable)
+      .where(eq(catsTable.slug, params.category))
+      .limit(1)
+    if (rows.length) name = rows[0].name
 
     if (name) {
       const [all, tree] = await Promise.all([getAllProducts(db), listCategoryTree(db)])
