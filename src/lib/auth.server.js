@@ -4,22 +4,40 @@ import { eq } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { users } from '../db/schema.js'
 
-const secret = process.env.SESSION_SECRET || 'dev-only-insecure-secret-change-me'
-if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
-  console.warn('SESSION_SECRET is not set — sessions are not secure in production')
-}
+const DEV_SECRET = 'dev-only-insecure-secret-change-me'
 
-const storage = createCookieSessionStorage({
-  cookie: {
-    name: 'rws_admin',
-    httpOnly: true,          // not readable by JavaScript
-    sameSite: 'lax',
-    path: '/',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24 * 14,
-    secrets: [secret],
-  },
-})
+/**
+ * Cookie storage, created on first use.
+ *
+ * In production a missing (or placeholder) SESSION_SECRET fails closed: the
+ * admin answers 503 instead of signing cookies with a secret that is in the
+ * repository, which would let anyone forge an admin session. Public pages are
+ * unaffected — the root loader already treats a session error as "not signed
+ * in". Created lazily so builds and scripts that never touch a session do not
+ * need the secret.
+ */
+let storage = null
+function sessionStorage() {
+  if (storage) return storage
+  const secret = process.env.SESSION_SECRET?.trim()
+  const production = process.env.NODE_ENV === 'production'
+  if (production && (!secret || secret === DEV_SECRET)) {
+    console.error('SESSION_SECRET is not set — admin sign-in is disabled until it is')
+    throw new Response('Admin is unavailable: SESSION_SECRET is not configured on the server.', { status: 503 })
+  }
+  storage = createCookieSessionStorage({
+    cookie: {
+      name: 'rws_admin',
+      httpOnly: true,          // not readable by JavaScript
+      sameSite: 'lax',
+      path: '/',
+      secure: production,
+      maxAge: 60 * 60 * 24 * 14,
+      secrets: [secret || DEV_SECRET],
+    },
+  })
+  return storage
+}
 
 export const hashPassword = (plain) => bcrypt.hash(plain, 12)
 export const verifyPassword = (plain, hash) => bcrypt.compare(plain, hash)
@@ -34,15 +52,15 @@ export async function login(email, password) {
 }
 
 export async function createSession(userId, redirectTo = '/admin') {
-  const session = await storage.getSession()
+  const session = await sessionStorage().getSession()
   session.set('userId', userId)
   return redirect(redirectTo, {
-    headers: { 'Set-Cookie': await storage.commitSession(session) },
+    headers: { 'Set-Cookie': await sessionStorage().commitSession(session) },
   })
 }
 
 export async function getUser(request) {
-  const session = await storage.getSession(request.headers.get('Cookie'))
+  const session = await sessionStorage().getSession(request.headers.get('Cookie'))
   const userId = session.get('userId')
   if (!userId) return null
   const db = await getDb()
@@ -63,8 +81,8 @@ export async function requireUser(request) {
 }
 
 export async function logout(request) {
-  const session = await storage.getSession(request.headers.get('Cookie'))
+  const session = await sessionStorage().getSession(request.headers.get('Cookie'))
   return redirect('/admin/login', {
-    headers: { 'Set-Cookie': await storage.destroySession(session) },
+    headers: { 'Set-Cookie': await sessionStorage().destroySession(session) },
   })
 }
