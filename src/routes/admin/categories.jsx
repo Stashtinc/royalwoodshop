@@ -250,9 +250,6 @@ function CategoryRow({ cat, isFirst, isLast }) {
           ) : (
             <div className="flex items-center gap-2">
               <span className={`font-medium text-sm ${cat.inNav ? 'text-tundora' : 'text-gray-400'}`}>{cat.name}</span>
-              {!cat.inNav && (
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">Hidden</span>
-              )}
               {cat.productCount > 0 && (
                 <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500">{cat.productCount} products</span>
               )}
@@ -268,14 +265,19 @@ function CategoryRow({ cat, isFirst, isLast }) {
           <button
             type="submit"
             disabled={busy}
-            title={cat.inNav ? 'Hide from the menu and catalogue sidebar' : 'Show in the menu and catalogue sidebar'}
+            title={cat.inNav ? 'Shown in the menu and catalogue sidebar. Click to hide.' : 'Hidden from the menu and catalogue sidebar. Click to show.'}
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
               cat.inNav
-                ? 'border border-gray-300 text-gray-500 hover:border-gray-400'
-                : 'bg-royal-blue text-white hover:bg-royal-blue-dark'
+                ? 'bg-royal-blue text-white hover:bg-royal-blue-dark'
+                : 'border border-gray-300 text-gray-500 hover:border-gray-400'
             }`}
           >
-            {cat.inNav ? 'Hide category' : 'Show category'}
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" />
+              <circle cx="10" cy="10" r="2.5" />
+              {!cat.inNav && <path d="M3 3l14 14" />}
+            </svg>
+            {cat.inNav ? 'Shown' : 'Hidden'}
           </button>
         </Form>
 
