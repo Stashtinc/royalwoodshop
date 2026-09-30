@@ -113,18 +113,26 @@ export async function renderSpecSheet(product) {
     doc.moveTo(left, y).lineTo(left + width, y).lineWidth(0.5).strokeColor(HAIRLINE).stroke()
   }
 
-  if (product.description) {
+  // Footer, pinned to the bottom of the page. Measured rather than assumed:
+  // a long product address wraps, and a wrapped line past the bottom margin
+  // makes pdfkit start a second page.
+  const address = '18237 Woodbine Ave, East Gwillimbury, ON L0G 1V0 · 905-727-1387 · info@royalwoodshop.com'
+  const fine = `royalwoodshop.com/products/${product.categorySlug}/${product.slug} · Sizes and availability subject to change; confirm at time of order.`
+  doc.font('Helvetica').fontSize(8)
+  const addressH = doc.heightOfString(address, { width })
+  const footH = 8 + addressH + 3 + doc.heightOfString(fine, { width })
+  const footY = doc.page.height - MARGIN - footH
+
+  // The description gets whatever room is left, so the sheet stays one page.
+  if (product.description && footY - y > 40) {
     doc.font('Helvetica').fontSize(9).fillColor('#1f2937')
-      .text(product.description, left, y + 12, { width, lineGap: 2 })
+      .text(product.description, left, y + 12, { width, lineGap: 2, height: footY - y - 28, ellipsis: true })
   }
 
-  // Footer, pinned to the bottom of the page
-  const footY = doc.page.height - MARGIN - 30
+  doc.page.margins.bottom = 0
   doc.moveTo(left, footY).lineTo(left + width, footY).lineWidth(0.75).strokeColor(RULE).stroke()
-  doc.font('Helvetica').fontSize(8).fillColor('#374151')
-    .text('18237 Woodbine Ave, East Gwillimbury, ON L0G 1V0 · 905-727-1387 · info@royalwoodshop.com', left, footY + 8, { width, lineBreak: false })
-  doc.fillColor('#6b7280')
-    .text(`royalwoodshop.com/products/${product.categorySlug}/${product.slug} · Sizes and availability subject to change; confirm at time of order.`, left, footY + 19, { width, lineBreak: false, ellipsis: true })
+  doc.font('Helvetica').fontSize(8).fillColor('#374151').text(address, left, footY + 8, { width })
+  doc.fillColor('#6b7280').text(fine, left, footY + 8 + addressH + 3, { width })
 
   doc.end()
   await done
