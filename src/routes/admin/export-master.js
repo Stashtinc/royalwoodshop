@@ -52,7 +52,7 @@ export async function loader({ request }) {
       availability: products.availability,
       price: products.price,
       uom: products.uom,
-      flexAvailable: products.flexAvailable,
+      flexAvailability: products.flexAvailability,
       categoryName: categories.name,
     })
     .from(products)

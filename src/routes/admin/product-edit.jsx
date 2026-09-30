@@ -148,7 +148,7 @@ export async function action({ request, params }) {
     return t === '' || Number.isNaN(Number(t)) ? null : t
   }
 
-  const { species, speciesAvail } = readSpeciesAvail(f)
+  const { species, speciesAvail, flexAvailability } = readSpeciesAvail(f)
 
   const before = await getProduct(params.id)
   const payload = {
@@ -161,7 +161,7 @@ export async function action({ request, params }) {
     uom: String(f.get('uom') ?? '').trim() || null,
     availability: before.availability,  // preserved; overwritten by saveProduct if species set
     leadTime: String(f.get('leadTime') ?? '').trim(),
-    flexAvailability: ['in_stock','quick_ship','made_to_order'].includes(String(f.get('flexAvailability'))) ? String(f.get('flexAvailability')) : null,
+    flexAvailability,
     price: num(f.get('price')),
     salePrice: num(f.get('salePrice')),
     status: ['draft', 'published', 'archived'].includes(String(f.get('status'))) ? String(f.get('status')) : 'draft',
@@ -439,16 +439,7 @@ export default function ProductEdit() {
           <p className="-mt-2 text-xs text-gray-500">
             Set how each wood ships. The product's overall availability is derived automatically from these.
           </p>
-          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} />
-          <label className="flex flex-col gap-1.5"><Label>Flex availability</Label>
-            <select name="flexAvailability" defaultValue={product.flexAvailability ?? ''}
-              className={field}>
-              <option value="">Not available in flex</option>
-              <option value="in_stock">In Stock</option>
-              <option value="quick_ship">Quick Ship</option>
-              <option value="made_to_order">Made-to-Order</option>
-            </select>
-          </label>
+          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} initialFlex={product.flexAvailability} />
           <label className="flex flex-col gap-1.5"><Label>Lead time</Label>
             <input name="leadTime" defaultValue={product.leadTime ?? ''} placeholder="e.g. approximately 1 week" className={field} /></label>
         </section>

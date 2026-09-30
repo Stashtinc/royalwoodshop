@@ -15,6 +15,22 @@ const AvailSelect = ({ name, defaultValue }) => (
   </select>
 )
 
+/** Flex is listed with the species, where the Master Product List puts it
+ *  (between PVC and Steel). It has no "milled, no code" state: on the sheet a
+ *  Flex cell is either a code or blank. Submitted as `flexAvailability`. */
+const FlexSelect = ({ defaultValue }) => (
+  <select
+    name="flexAvailability"
+    defaultValue={defaultValue ?? ''}
+    className="rounded border border-gray-300 py-0.5 pl-2 pr-6 text-xs text-gray-700 outline-none focus:border-royal-blue"
+  >
+    <option value="">— not available —</option>
+    {AVAILABILITY.map(([key, label]) => (
+      <option key={key} value={key}>{label}</option>
+    ))}
+  </select>
+)
+
 /**
  * Per-species availability picker.
  *
@@ -24,8 +40,9 @@ const AvailSelect = ({ name, defaultValue }) => (
  *
  * initialAvail: { [speciesName]: availabilityKey | null }
  * initialOther: [{ name, avail }, ...] for non-standard species
+ * initialFlex:  availability key or null
  */
-export default function SpeciesPicker({ initialAvail = {}, initialOther = [] }) {
+export default function SpeciesPicker({ initialAvail = {}, initialOther = [], initialFlex = null }) {
   const seed = initialOther.length ? initialOther.map((_, i) => i) : [0]
   const [rows, setRows] = useState(seed)
   const nextId = useRef(seed.length)
@@ -40,7 +57,15 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [] }) 
   return (
     <div className="flex flex-col gap-3">
       <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
-        {SPECIES.map((s) => {
+        {SPECIES.flatMap((s) => (s === 'Steel' ? ['Flex', s] : [s])).map((s) => {
+          if (s === 'Flex') {
+            return (
+              <label key="Flex" className="flex items-center justify-between gap-2">
+                <span className={`text-sm ${initialFlex ? 'text-gray-800' : 'text-gray-400'}`}>Flex</span>
+                <FlexSelect defaultValue={initialFlex} />
+              </label>
+            )
+          }
           const current = s in initialAvail ? (initialAvail[s] ?? '') : null
           return (
             <label key={s} className="flex items-center justify-between gap-2">
@@ -120,5 +145,8 @@ export function readSpeciesAvail(f) {
     }
   }
 
-  return { species, speciesAvail }
+  const flex = String(f.get('flexAvailability') ?? '')
+  const flexAvailability = AVAILABILITY.some(([key]) => key === flex) ? flex : null
+
+  return { species, speciesAvail, flexAvailability }
 }
