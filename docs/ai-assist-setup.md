@@ -21,30 +21,38 @@ even though it is not in the editor.
 
 ## Switching it on
 
-One key covers all three. The button stays greyed out until it is set.
+It takes two keys. The writing (article drafts, the search listing and the
+header image's description) is done by Anthropic's Claude; the images themselves
+are rendered by OpenAI. The button stays greyed out until the Anthropic key is
+set; without the OpenAI key everything works except rendering images.
 
-1. Go to <https://platform.openai.com/>, sign in, add a payment method.
-   This is the API platform — a ChatGPT Plus subscription does not include API
-   access, and they are billed separately.
-2. **API keys → Create new secret key**. Copy it; the console will not show it
-   again.
-3. Add it to `.env` on the admin server:
+1. **Anthropic:** go to <https://console.anthropic.com/>, sign in, add a payment
+   method, then **API keys → Create key**.
+2. **OpenAI:** go to <https://platform.openai.com/>, sign in, add a payment
+   method. This is the API platform — a ChatGPT Plus subscription does not
+   include API access, and they are billed separately. **API keys → Create new
+   secret key**. Copy it; the console will not show it again.
+3. Add both to the server's variables (Railway → the service → Variables), or to
+   `.env` locally:
 
 ```sh
+ANTHROPIC_API_KEY="sk-ant-..."
 OPENAI_API_KEY="sk-..."
 ```
 
-Then check it works:
+Then check the OpenAI side works:
 
 ```sh
 npm run ai:check
 ```
 
-That confirms the key, confirms the two models the app defaults to are actually
-available on your account, and makes one real text call. It deliberately does
-not generate an image, since each set costs a few cents.
+That confirms the OpenAI key and that the image model the app defaults to is
+available on your account. It deliberately does not generate an image, since
+each set costs a few cents. It does not check the Anthropic key: open an article
+in the admin and use **Summary & search listing** once, which costs a fraction
+of a cent.
 
-Restart the server.
+Restart the server (on Railway, saving variables redeploys).
 
 ### If a model is rejected
 
@@ -52,13 +60,14 @@ Model names change faster than this codebase. If the app reports that a model
 does not exist, or that your account cannot use it, override the default:
 
 ```sh
-# OPENAI_TEXT_MODEL="gpt-4o-mini"
+# ANTHROPIC_TEXT_MODEL="claude-haiku-4-5-20251001"
 # OPENAI_IMAGE_MODEL="gpt-image-1"
 # OPENAI_IMAGE_SIZE="1536x1024"
 ```
 
-`npm run ai:check` lists the models your account can actually use, so you can
-copy an exact name rather than guess.
+`npm run ai:check` lists the OpenAI models your account can actually use, so
+you can copy an exact name rather than guess. Anthropic's current model names
+are at <https://docs.claude.com/en/docs/about-claude/models>.
 
 The app already retries automatically when a model rejects the requested image
 size or JSON mode, so these variables are only needed for the model names
@@ -162,9 +171,10 @@ mind later.
 
 The dialog shows the reason rather than a generic error:
 
-- *OpenAI rejected the API key* — wrong or revoked key
+- *Anthropic rejected the API key* / *OpenAI rejected the API key* — wrong or
+  revoked key for that provider
 - *Rate limited, or the account is out of credit* — check billing
-- *The model ... does not exist* — set `OPENAI_TEXT_MODEL` or
+- *The model ... does not exist* — set `ANTHROPIC_TEXT_MODEL` or
   `OPENAI_IMAGE_MODEL`
 - *OpenAI refused the prompt* — the content filter rejected it; reword and retry
 - *not enough text to summarise* — write the article first
