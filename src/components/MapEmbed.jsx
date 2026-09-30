@@ -56,7 +56,7 @@ export default function MapEmbed() {
               18237 Woodbine Ave<br />Sharon, ON L0G 1V0
             </p>
             <p style={{ fontSize: '12px', color: '#888', margin: '0 0 10px' }}>
-              Mon – Fri, 8:00am – 5:00pm
+              Mon – Fri, 7:00am – 5:30pm<br />Sat, 9:00am – 4:00pm
             </p>
             <a
               href="https://www.google.com/maps/dir/?api=1&destination=18237+Woodbine+Ave+Sharon+ON+L0G+1V0"

@@ -99,7 +99,8 @@ export default function Footer() {
               <a href="mailto:info@royalwoodshop.com" className="transition-colors hover:text-white">
                 info@royalwoodshop.com
               </a>
-              <p>Monday – Friday, 8:00am – 5:00pm</p>
+              <p>Monday – Friday, 7:00am – 5:30pm</p>
+              <p>Saturday, 9:00am – 4:00pm</p>
             </div>
           </div>
         </div>
