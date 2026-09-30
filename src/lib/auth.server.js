@@ -70,6 +70,20 @@ export async function getUser(request) {
   return user ?? null
 }
 
+/**
+ * Where to go after signing in: the admin page that sent you to the login
+ * (requireUser adds it as ?next=), or the dashboard. Only admin pages on this
+ * site qualify. Anything else would turn the login into an open redirect
+ * (/admin/login?next=https://evil.example), and the login and logout pages
+ * themselves would go nowhere useful.
+ */
+export function afterLogin(next) {
+  if (typeof next !== 'string' || /[\\\s]/.test(next)) return '/admin'
+  if (!/^\/admin(?:[/?#]|$)/.test(next)) return '/admin'
+  if (/^\/admin\/log(?:in|out)(?:[/?#]|$)/.test(next)) return '/admin'
+  return next
+}
+
 /** Use at the top of every protected loader and action. */
 export async function requireUser(request) {
   const user = await getUser(request)

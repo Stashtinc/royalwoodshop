@@ -1,10 +1,13 @@
 import { Form, useActionData } from 'react-router'
-import { login, createSession, getUser } from '../../lib/auth.server'
+import { login, createSession, getUser, afterLogin } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
+
+/** The page to return to, from ?next= — see afterLogin. */
+const nextOf = (request) => afterLogin(new URL(request.url).searchParams.get('next'))
 
 export async function loader({ request }) {
   const user = await getUser(request)
-  if (user) throw new Response(null, { status: 302, headers: { Location: '/admin' } })
+  if (user) throw new Response(null, { status: 302, headers: { Location: nextOf(request) } })
   return null
 }
 
@@ -16,7 +19,7 @@ export async function action({ request }) {
   const user = await login(email, password)
   if (!user) return { error: 'Those details were not recognised.' }
   await log(user, 'auth.login', { entityType: 'user', entityId: user.id, entityLabel: user.name || user.email })
-  return createSession(user.id, '/admin')
+  return createSession(user.id, nextOf(request))
 }
 
 export const meta = () => [
