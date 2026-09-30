@@ -37,14 +37,18 @@ export async function loader() {
   }
 
   let products = null
+  let hidden = new Set()
   try {
     const { getDb } = await import('../lib/db.server.js')
-    const { getAllProducts } = await import('../db/queries.js')
-    products = await getAllProducts(await getDb())
+    const { getAllProducts, listCategoryTree } = await import('../db/queries.js')
+    const db = await getDb()
+    const [rows, tree] = await Promise.all([getAllProducts(db), listCategoryTree(db)])
+    products = rows
+    hidden = new Set(tree.filter((c) => c.hidden).map((c) => c.slug))
   } catch {}
   if (!products?.length) products = catalogueProducts
 
-  const cats = [...new Set(products.map((p) => p.categorySlug))].sort()
+  const cats = [...new Set(products.map((p) => p.categorySlug))].filter((c) => !hidden.has(c)).sort()
   const urls = [
     ...STATIC.map((p) => ({ loc: p, priority: p === '/' ? '1.0' : '0.8' })),
     ...MORE_PAGES.map((p) => ({ loc: p, priority: '0.6' })),

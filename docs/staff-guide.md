@@ -71,7 +71,11 @@ open it again to add images and publish.
 
 ## Categories
 
-Add, rename, reorder (▲/▼) and choose which appear in the top menu (*In nav*).
+Add, rename, reorder (▲/▼), and show or hide them (*Hide category* /
+*Show category*). A hidden category is left out of the top menu and the
+catalogue sidebar, and its own page is taken down. Its products stay live but
+are only listed in the catalogue if they are also filed under a visible
+category.
 Renaming changes only the name shown, not the web address. **Deleting a
 category cannot be undone**: its products lose that category (and, where it was
 their primary, their web address changes), and its sub-categories become

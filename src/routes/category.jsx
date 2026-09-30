@@ -29,11 +29,11 @@ export async function loader({ params }) {
     // The database name wins, so a category renamed or created in the admin
     // shows its current name; the static map only covers a missing database.
     const rows = await db
-      .select({ name: catsTable.name })
+      .select({ name: catsTable.name, inNav: catsTable.inNav })
       .from(catsTable)
       .where(eq(catsTable.slug, params.category))
       .limit(1)
-    if (rows.length) name = rows[0].name
+    if (rows.length) name = rows[0].inNav ? rows[0].name : null
 
     if (name) {
       const [all, tree] = await Promise.all([getAllProducts(db), listCategoryTree(db)])
