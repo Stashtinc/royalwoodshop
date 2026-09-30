@@ -93,6 +93,9 @@ export default function Root() {
       <Outlet />
       <div data-print="hide"><NewsletterSignup /></div>
       <div data-print="hide"><Footer /></div>
+      {/* Contact Us widget (Stasht Studio). Public pages only — the admin and
+          the printable work order are bare layouts above and never load it. */}
+      <script src="https://studio.stasht.com/widget-loader.js" data-widget-id="w_fnhnh3glmq" async />
     </div>
   )
 }
