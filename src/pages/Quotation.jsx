@@ -164,7 +164,7 @@ const hourlyPeriods = [
   },
   {
     label: 'Sep 17 – Sep 29',
-    hours: 40.27,
+    hours: 80.27,
     rate: 65,
     paid: false,
   },
