@@ -65,6 +65,7 @@ const TONE = {
   'image.deleted': 'bg-red-50 text-red-800 ring-red-200',
   'image.reordered': 'bg-gray-100 text-gray-700 ring-gray-200',
   'auth.login': 'bg-purple-50 text-purple-800 ring-purple-200',
+  'auth.login_failed': 'bg-red-50 text-red-800 ring-red-200',
   'post.created': 'bg-blue-50 text-blue-800 ring-blue-200',
   'post.updated': 'bg-blue-50 text-blue-800 ring-blue-200',
   'post.published': 'bg-emerald-50 text-emerald-800 ring-emerald-200',
@@ -121,6 +122,7 @@ function describe(row) {
   if (row.action === 'setup.catalogue') return <p className="mt-1 text-xs text-gray-600">{d.products} products</p>
   if (row.action === 'setup.redirects') return <p className="mt-1 text-xs text-gray-600">{d.redirects} redirects</p>
   if (row.action === 'product.status') return <p className="mt-1 text-xs text-gray-600">{d.from} → {d.to}</p>
+  if (row.action === 'auth.login_failed') return <p className="mt-1 text-xs text-gray-600">from {d.ip}</p>
   if (row.action === 'product.updated' && Array.isArray(d.changed)) {
     return (
       <ul className="mt-1 flex flex-col gap-0.5">
