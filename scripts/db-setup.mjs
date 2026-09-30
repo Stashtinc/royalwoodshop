@@ -6,6 +6,11 @@
  * With no DATABASE_URL this builds an embedded Postgres in .data/pg — nothing
  * to install. Set DATABASE_URL later and run the same command against a real
  * server; the schema is identical.
+ *
+ * FIRST-TIME SETUP ONLY. Do not run against production: after the schema it
+ * re-imports the catalogue, redirects and blog from the original CSVs and
+ * overwrites every edit made in the admin since. To add a new table or column
+ * to a live database use `npm run db:migrate -- <file>.sql`.
  */
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { getDb } from '../src/lib/db.server.js'
