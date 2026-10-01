@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useRouteLoaderData, useSearchParams } from 'react-router'
-import { srcSet, thumbSrc, imageFit } from '../lib/images'
+import { srcSet, thumbSrc, imageFit, showImageFallback, imageFallbackRef } from '../lib/images'
 import {
   productPath, catalogueProducts as snapshotProducts,
   categoryTree, speciesFacet, availabilityFacet, availabilityKeys, subKeysOf, catsOf,
@@ -211,10 +211,8 @@ function ProductCard({ product, query = '', isAdmin = false }) {
             alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
             loading="lazy"
             className={`h-full w-full ${imageFit(product.imageRole).className} transition-transform duration-300 group-hover:scale-105`}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-              e.currentTarget.nextElementSibling.style.display = 'flex'
-            }}
+            ref={imageFallbackRef}
+            onError={(e) => showImageFallback(e.currentTarget)}
           />
         ) : null}
         <div
@@ -298,10 +296,8 @@ function ProductRow({ product, query = '', isAdmin = false }) {
             alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
             loading="lazy"
             className="h-full w-full object-contain"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-              e.currentTarget.nextElementSibling.style.display = 'flex'
-            }}
+            ref={imageFallbackRef}
+            onError={(e) => showImageFallback(e.currentTarget)}
           />
         ) : null}
         <div
