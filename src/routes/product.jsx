@@ -26,7 +26,17 @@ export async function loader({ params }) {
       && (p.subcategories ?? [p.subcategory]).some((s) => (product.subcategories ?? [product.subcategory]).includes(s)))
     .sort((a, b) => b.views - a.views)
     .slice(0, 6)
-  return { product, related }
+  // Per-species Part IDs. A database without the table yet (migration 0015
+  // not applied) simply has none.
+  let partIds = []
+  if (product.dbId) {
+    try {
+      const { partIdsForProduct } = await import('../lib/part-ids.server.js')
+      partIds = await partIdsForProduct(product.dbId)
+    } catch {}
+  }
+
+  return { product: { ...product, partIds }, related }
 }
 
 export const meta = ({ data }) => {
