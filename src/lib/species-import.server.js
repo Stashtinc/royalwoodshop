@@ -14,6 +14,9 @@ const ticked = (v) => String(v ?? '').trim() !== ''
 
 /** 'X' | 'QS' | 'MTO' -> the stored availability value. */
 const CODE = new Map([...TICK_CODES, ...Object.entries(TICK_ALIASES)])
+/** Sold in this wood, availability not known yet (the SKU sheet writes it
+ *  for a blank Availability). A tick, not a typo. */
+const TICK_ONLY = '✓'
 const readCode = (v) => CODE.get(String(v ?? '').trim().toUpperCase()) ?? null
 
 /**
@@ -152,20 +155,22 @@ function readRow(r, layout = 'species') {
     const v = cell(r, canon(s))
     if (!v) continue
     const availability = readCode(v)
-    if (!availability) badCodes.push(`${s}: ${v}`)
+    if (!availability && v !== TICK_ONLY) badCodes.push(`${s}: ${v}`)
     species.push({ name: s, availability })
   }
 
   const flexCell = cell(r, canon(FLEX))
   // Flex takes the same codes as a species (S/QS/MO, and legacy X/MTO).
   const flexAvailability = flexCell ? readCode(flexCell) : null
-  if (flexCell && !flexAvailability) badCodes.push(`${FLEX}: ${flexCell}`)
+  if (flexCell && !flexAvailability && flexCell !== TICK_ONLY) badCodes.push(`${FLEX}: ${flexCell}`)
   const row = {
     code,
     name,
     species,
     other: pipes(r.other),
-    flex: !!flexAvailability,
+    // Any mark means Flex is offered; an export of Flex with no availability
+    // came back blank-coded and used to switch it off.
+    flex: !!flexCell,
     flexAvailability,
     // Flex counts as a species for the product's overall availability.
     availability: bestAvailability([...species.map((x) => x.availability), flexAvailability].filter(Boolean)),
