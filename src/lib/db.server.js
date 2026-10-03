@@ -18,7 +18,8 @@ import * as schema from '../db/schema.js'
 let instance = null
 
 /**
- * Applies any migration in drizzle/ that has not run yet.
+ * Applies any migration in drizzle/ that has not run yet, recording each in
+ * _applied_migrations so it never runs twice.
  *
  * Only in embedded mode. The embedded database allows a single process, so a
  * separate migration command cannot reach it while the server is running —
@@ -30,8 +31,25 @@ async function ensureSchema(db) {
   const { readdirSync, readFileSync, existsSync } = await import('node:fs')
   const { sql } = await import('drizzle-orm')
   if (!existsSync('drizzle')) return
+  const files = readdirSync('drizzle').filter((f) => f.endsWith('.sql')).sort()
 
-  for (const file of readdirSync('drizzle').filter((f) => f.endsWith('.sql')).sort()) {
+  // Each file runs once. Replaying them on every start undid admin edits —
+  // 0011 switches every original category back on, so a hidden category
+  // reappeared after each restart.
+  const { rows: [{ fresh }] } = await db.execute(sql`select to_regclass('_applied_migrations') is null as fresh`)
+  if (fresh) {
+    await db.execute(sql`create table _applied_migrations (file text primary key, applied_at timestamptz not null default now())`)
+    // A database made before this table existed has had every current file
+    // applied already (they all ran on each start), so record them as done.
+    const { rows: [{ existing }] } = await db.execute(sql`select to_regclass('categories') is not null as existing`)
+    if (existing) {
+      for (const file of files) await db.execute(sql`insert into _applied_migrations (file) values (${file})`)
+    }
+  }
+  const { rows } = await db.execute(sql`select file from _applied_migrations`)
+  const done = new Set(rows.map((r) => r.file))
+
+  for (const file of files.filter((f) => !done.has(f))) {
     for (const stmt of readFileSync(`drizzle/${file}`, 'utf8').split('--> statement-breakpoint')) {
       const s = stmt.trim()
       if (!s) continue
@@ -43,6 +61,7 @@ async function ensureSchema(db) {
         }
       }
     }
+    await db.execute(sql`insert into _applied_migrations (file) values (${file})`)
   }
 }
 

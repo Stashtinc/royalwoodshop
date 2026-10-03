@@ -1,6 +1,49 @@
+import 'dotenv/config'
 import products from './src/data/products.json' with { type: 'json' }
 import articles from './src/data/posts.json' with { type: 'json' }
 import { STATIC_PAGES } from './src/data/staticPages.js'
+
+/**
+ * Products and category pages to prerender, from the same database the
+ * loaders read. The committed snapshot drifts from it (archived products,
+ * hidden categories), and every page the loader then 404s failed the build.
+ * The connection is closed before rendering starts: the embedded database
+ * allows one connection at a time. No database → the snapshot.
+ */
+async function catalogue() {
+  const url = process.env.DATABASE_URL
+  const { getAllProducts, listCategoryTree } = await import('./src/db/queries.js')
+  const schema = await import('./src/db/schema.js')
+  let client, db
+  try {
+    if (url) {
+      client = (await import('postgres')).default(url, { prepare: false, max: 1 })
+      db = (await import('drizzle-orm/postgres-js')).drizzle(client, { schema })
+    } else {
+      const { existsSync } = await import('node:fs')
+      if (!existsSync('.data/pg')) return snapshot()
+      const { PGlite } = await import('@electric-sql/pglite')
+      client = new PGlite('.data/pg')
+      db = (await import('drizzle-orm/pglite')).drizzle(client, { schema })
+    }
+    const [rows, tree] = await Promise.all([getAllProducts(db), listCategoryTree(db)])
+    if (!rows.length) return snapshot()
+    const hidden = new Set(tree.filter((c) => c.hidden).map((c) => c.slug))
+    return {
+      products: rows.map((p) => `/products/${p.categorySlug}/${p.slug}`),
+      categories: [...new Set(rows.map((p) => p.categorySlug))].filter((c) => !hidden.has(c)).map((c) => `/products/${c}`),
+    }
+  } catch {
+    return snapshot()
+  } finally {
+    await (url ? client?.end() : client?.close())
+  }
+}
+
+const snapshot = () => ({
+  products: products.map((p) => `/products/${p.categorySlug}/${p.slug}`),
+  categories: [...new Set(products.map((p) => p.categorySlug))].map((c) => `/products/${c}`),
+})
 
 /** Published articles keep the addresses WordPress used. */
 const articleSlugs = () =>
@@ -19,10 +62,11 @@ export default {
   // so skip the expensive step there to keep Railway builds fast.
   async prerender() {
     if (process.env.RAILWAY_ENVIRONMENT) return []
+    const { products: productPages, categories } = await catalogue()
     return [
       ...STATIC_PAGES,
-      ...[...new Set(products.map((p) => p.categorySlug))].map((c) => `/products/${c}`),
-      ...products.map((p) => `/products/${p.categorySlug}/${p.slug}`),
+      ...categories,
+      ...productPages,
       '/blog',
       '/consultation',
       '/material-estimate-and-quotation',
