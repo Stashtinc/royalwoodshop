@@ -50,3 +50,20 @@ export function imageFit(role) {
     ? { className: 'object-contain', pad: true }
     : { className: 'object-cover', pad: false }
 }
+
+/**
+ * Swaps a product image that failed to load for the placeholder right after it.
+ *
+ * As onError it covers failures after the page is interactive; as a ref it
+ * covers the ones before: a server-rendered <img> whose file is missing errors
+ * before React attaches onError, and would otherwise show a broken-image icon
+ * and its alt text.
+ */
+export function showImageFallback(img) {
+  if (!img) return
+  img.style.display = 'none'
+  if (img.nextElementSibling) img.nextElementSibling.style.display = 'flex'
+}
+export const imageFallbackRef = (img) => {
+  if (img && img.complete && img.naturalWidth === 0) showImageFallback(img)
+}

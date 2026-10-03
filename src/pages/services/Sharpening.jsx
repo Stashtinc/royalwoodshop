@@ -101,7 +101,7 @@ export default function Sharpening() {
         heading="Bring your blades to the showroom."
         body={
           <>
-            18237 Woodbine Ave, East Gwillimbury. Open Monday to Friday, and Saturday mornings.
+            18237 Woodbine Ave, East Gwillimbury. Open Monday to Friday 7:00am – 5:30pm, and Saturday 9:00am – 4:00pm.
             Call <a href="tel:9057271387" className="underline hover:opacity-80">905-727-1387</a> if
             you want to check we can take it.
           </>
