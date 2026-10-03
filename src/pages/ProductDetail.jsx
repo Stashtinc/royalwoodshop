@@ -227,6 +227,13 @@ export default function ProductDetail({ product: productProp = null, related: re
     made_to_order: { label: 'Made-to-Order', className: 'bg-gray-100 text-gray-600' },
   }
 
+  // Part IDs sit beside their species; any for a species the product does
+  // not list (Flex, White Pine…) get a row of their own.
+  const partIds = product.partIds ?? []
+  const listed = new Set((product.speciesAvailability ?? []).map((s) => s.name))
+  const partIdsOf = (species) => partIds.filter((p) => p.species === species).map((p) => p.partId)
+  const otherPartIds = partIds.filter((p) => !listed.has(p.species))
+
   const specs = [
     { label: 'Product Code', value: product.productCode },
     { label: 'Size', value: product.size },
@@ -267,12 +274,29 @@ export default function ProductDetail({ product: productProp = null, related: re
                         {badge.label}
                       </span>
                     )}
+                    {partIdsOf(s.name).length > 0 && (
+                      <span className="font-mono text-xs text-gray-500">{partIdsOf(s.name).join(', ')}</span>
+                    )}
                   </span>
                 )
               })}
             </span>
           )
         : null,
+    },
+    {
+      label: otherPartIds.length > 1 ? 'Part IDs' : 'Part ID',
+      value: otherPartIds.length ? otherPartIds.map((p) => p.partId).join(', ') : null,
+      render: () => (
+        <span className="flex flex-col gap-1 pt-0.5">
+          {otherPartIds.map((p) => (
+            <span key={p.partId} className="flex items-center gap-2">
+              <span className="font-sans text-sm text-tundora">{p.species}</span>
+              <span className="font-mono text-xs text-gray-500">{p.partId}</span>
+            </span>
+          ))}
+        </span>
+      ),
     },
     { label: 'Unit of Measure', value: product.uom ?? null },
     { label: 'Category', value: product.category },

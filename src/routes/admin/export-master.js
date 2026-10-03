@@ -3,9 +3,10 @@ import { requireUser } from '../../lib/auth.server'
 import { getDb } from '../../lib/db.server.js'
 import {
   products, categories, productCategories,
-  attributes, attributeValues, productAttributes, productImages,
+  attributes, attributeValues, productAttributes, productImages, productPartIds,
 } from '../../db/schema.js'
 import { SPECIES } from '../../lib/catalogue-constants.js'
+import { PART_ID_SHEET, PART_ID_HEADERS } from '../../lib/part-ids.server.js'
 
 const AVAIL_TICK = { in_stock: 'S', quick_ship: 'QS', made_to_order: 'MO' }
 const tick = (v) => AVAIL_TICK[v] ?? ''
@@ -199,6 +200,28 @@ export async function loader({ request }) {
     from: { row: 1, column: 1 },
     to:   { row: rows.length + 1, column: HEADERS.length },
   }
+
+  // Part IDs: one row per SKU, in the ERP export's column order so a fresh
+  // export can be pasted straight in. Base Code ties each to its product;
+  // importing this workbook replaces the site's Part IDs with this tab.
+  const parts = await db
+    .select({
+      partId: productPartIds.partId, name: productPartIds.name, uom: productPartIds.uom,
+      species: productPartIds.species, code: products.productCode, category: categories.name,
+    })
+    .from(productPartIds)
+    .innerJoin(products, eq(products.id, productPartIds.productId))
+    .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
+    .orderBy(asc(products.productCode), asc(productPartIds.partId))
+  const ps = wb.addWorksheet(PART_ID_SHEET)
+  ps.views = [{ state: 'frozen', ySplit: 1 }]
+  ;[24, 44, 8, 20, 24, 18].forEach((w, i) => { ps.getColumn(i + 1).width = w })
+  const partHdr = ps.addRow(PART_ID_HEADERS)
+  partHdr.eachCell((c) => { c.fill = HDR_FILL_DEFAULT; c.font = HDR_FONT; c.alignment = HDR_ALIGNMENT })
+  for (const p of parts) {
+    ps.addRow([p.partId, p.name ?? '', p.uom ?? '', p.species, p.category ?? '', p.code ?? ''])
+  }
+  ps.autoFilter = { from: { row: 1, column: 1 }, to: { row: parts.length + 1, column: PART_ID_HEADERS.length } }
 
   const buf = await wb.xlsx.writeBuffer()
   const now  = new Date()

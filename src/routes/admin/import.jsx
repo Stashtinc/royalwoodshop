@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Form, Link, useActionData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { parseUpload, analyse, apply } from '../../lib/species-import.server'
+import { readPartIdSheet, analysePartIds, applyPartIds } from '../../lib/part-ids.server'
 import { log } from '../../lib/activity.server'
 import { syncProductsJson } from '../../lib/sync.server'
 import { SPECIES, AVAILABILITY, AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
@@ -30,9 +31,25 @@ export async function action({ request }) {
 
     const buffer = await file.arrayBuffer()
 
+    // Brad's ERP export (Part ID | Name | UOM | Species | Category), or the
+    // Part IDs tab of a master workbook.
+    const partSheet = await readPartIdSheet(buffer, file.name)
+    let partIds = null
+    if (partSheet) {
+      try { partIds = (await analysePartIds(partSheet.rows)).summary }
+      catch (e) { return { error: `Reading the Part IDs failed: ${e.message}` } }
+    }
+
     let parsedSheet
     try { parsedSheet = await parseUpload(buffer, file.name) }
-    catch (e) { return { error: e.message } }
+    catch (e) {
+      if (!partIds) return { error: e.message }
+      // A Part ID list on its own: nothing else in the file to import.
+      await mkdir(STAGING, { recursive: true })
+      const token = randomBytes(8).toString('hex')
+      await writeFile(`${STAGING}/${token}`, Buffer.from(buffer))
+      return { stage: 'partids-preview', token, fileName: file.name, sheetName: partSheet.sheetName, partIds }
+    }
 
     let summary
     try { ({ summary } = await analyse(parsedSheet.rows, { layout: parsedSheet.layout })) }
@@ -55,7 +72,28 @@ export async function action({ request }) {
       sheetName: parsedSheet.sheetName,
       layout: parsedSheet.layout,
       summary,
+      partIds,
     }
+  }
+
+  if (intent === 'apply-partids') {
+    const token = String(form.get('token') ?? '')
+    if (!/^[a-f0-9]{16}$/.test(token)) return { error: 'That upload has expired. Please choose the file again.' }
+    let buffer
+    try { buffer = await readFile(`${STAGING}/${token}`) }
+    catch { return { error: 'That upload has expired. Please choose the file again.' } }
+
+    const fileName = String(form.get('fileName') ?? '')
+    const partSheet = await readPartIdSheet(buffer, fileName)
+    if (!partSheet) return { error: 'No Part ID column found in that file.' }
+    const { matched, summary } = await analysePartIds(partSheet.rows)
+    const result = await applyPartIds(matched)
+    await unlink(`${STAGING}/${token}`).catch(() => {})
+    await log(user, 'import.partids', {
+      entityType: 'import', entityLabel: fileName || 'Part IDs',
+      details: { stored: result.stored, unmatched: summary.unmatched.length, removed: summary.removed.length },
+    })
+    return { stage: 'partids-done', partIds: { ...summary, stored: result.stored } }
   }
 
   if (intent === 'apply') {
@@ -78,6 +116,12 @@ export async function action({ request }) {
       fileName: String(form.get('fileName') ?? ''),
       userEmail: user?.email ?? null,
     })
+    // The master workbook's Part IDs tab travels with it.
+    const partSheet = await readPartIdSheet(buffer, String(form.get('fileName') ?? ''))
+    if (partSheet) {
+      const { matched } = await analysePartIds(partSheet.rows)
+      result.partIdsStored = (await applyPartIds(matched)).stored
+    }
     await unlink(`${STAGING}/${token}`).catch(() => {})
 
     await log(user, 'import.species', {
@@ -113,6 +157,59 @@ function Stat({ label, value, tone = 'default' }) {
     <div className={`rounded-xl border p-4 ${tones[tone]}`}>
       <p className="text-2xl font-bold text-tundora">{value}</p>
       <p className="mt-0.5 text-xs text-gray-600">{label}</p>
+    </div>
+  )
+}
+
+/** A collapsible list: long ones would push the Apply button off screen. */
+function CodeList({ title, items, tone = 'gray', note = null }) {
+  if (!items.length) return null
+  const tones = { gray: 'border-gray-200', warn: 'border-amber-300' }
+  return (
+    <details className={`overflow-hidden rounded-xl border bg-white ${tones[tone]}`}>
+      <summary className="cursor-pointer bg-gray-50 px-4 py-2 text-sm text-gray-800">
+        {title} <span className="text-gray-500">({items.length})</span>
+      </summary>
+      {note && <p className="border-b border-gray-100 px-4 py-2 text-xs text-gray-600">{note}</p>}
+      <ul className="max-h-56 overflow-y-auto px-4 py-2 font-mono text-xs text-gray-700">
+        {items.map((t) => <li key={t} className="py-0.5">{t}</li>)}
+      </ul>
+    </details>
+  )
+}
+
+function PartIdsReport({ p }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm font-medium text-tundora">Part IDs</p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Stat label={`Part IDs matched to ${p.products} products`} value={p.matched} tone="good" />
+        <Stat label="Not matched to any product" value={p.unmatched.length} tone={p.unmatched.length ? 'warn' : 'default'} />
+        <Stat label="New / changed / removed" value={`${p.added} / ${p.changed} / ${p.removed.length}`} />
+      </div>
+      <CodeList
+        title="Not matched — no product with this code"
+        tone="warn"
+        note="These are not stored. Add the product, or fix the code in the sheet, then import again."
+        items={p.unmatched.map((u) => `${u.partId}  ·  ${u.species || '—'}  ·  ${u.name}`)}
+      />
+      <CodeList
+        title="Species not on the site's species list (stored as typed)"
+        items={p.unknownSpecies.map((u) => `${u.species} (${u.count})`)}
+      />
+      <CodeList
+        title="Species not ticked on the product"
+        note="Stored, but the product does not list this species yet. Tick it in the master sheet if it is sold in that wood."
+        items={p.notTicked.map((n) => `${n.partId}  →  ${n.code} · ${n.species}`)}
+      />
+      <CodeList
+        title="Matched to an archived product"
+        note="Stored, but archived products are not shown on the site."
+        items={p.archived.map((a) => `${a.partId}  →  ${a.code}`)}
+      />
+      <CodeList title="Will be removed — no longer in the list" items={p.removed} />
+      <CodeList title="Ignored — species key rows at the end of the sheet" items={p.legend} />
+      <CodeList title="Ignored — listed twice" items={p.duplicates} />
     </div>
   )
 }
@@ -282,8 +379,8 @@ export default function Import() {
           <h1 className="font-serif text-2xl font-bold text-tundora">Import species sheet</h1>
           <p className="mt-1 text-sm text-gray-500">
             Upload the workbook, or a CSV export of the{' '}
-            <span className="font-medium">TO DO — Species</span> tab. You will see what it changes
-            before anything is saved.
+            <span className="font-medium">TO DO — Species</span> tab, or a Part ID list (columns
+            Part ID, Name, UOM, Species). You will see what it changes before anything is saved.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -338,6 +435,8 @@ export default function Import() {
               {data.skipped > 0 && <> (ignored {data.skipped} instruction row{data.skipped === 1 ? '' : 's'} above the headers)</>}
             </p>
           </div>
+
+          {data.partIds && <PartIdsReport p={data.partIds} />}
 
           {data.missingColumns?.length > 0 && (
             <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -664,12 +763,61 @@ export default function Import() {
         </div>
       )}
 
+      {/* Part ID list on its own — preview */}
+      {data?.stage === 'partids-preview' && data.partIds && (
+        <div className="flex flex-col gap-5">
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">{data.fileName}</span>
+              {data.sheetName && <> · sheet <span className="font-medium">{data.sheetName}</span></>}
+              {' '}— a Part ID list ({data.partIds.rows} rows). Applying it replaces every Part ID on the site.
+            </p>
+          </div>
+          <PartIdsReport p={data.partIds} />
+          <div className="flex items-center gap-4">
+            <Form method="post">
+              <input type="hidden" name="intent" value="apply-partids" />
+              <input type="hidden" name="token" value={data.token} />
+              <input type="hidden" name="fileName" value={data.fileName} />
+              <button
+                disabled={busy}
+                className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-40"
+              >
+                {busy ? 'Saving…' : `Save ${data.partIds.matched} Part IDs`}
+              </button>
+            </Form>
+            <Link to="/admin/import" className="text-sm text-gray-600 hover:underline">Choose a different file</Link>
+          </div>
+        </div>
+      )}
+
+      {data?.stage === 'partids-done' && data.partIds && (
+        <div className="flex flex-col gap-5">
+          <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-900">
+            Done. {data.partIds.stored} Part IDs saved across {data.partIds.products} products
+            {data.partIds.removed.length > 0 && `, ${data.partIds.removed.length} removed`}.
+            They show on each product page beside its species.
+          </p>
+          {data.partIds.unmatched.length > 0 && (
+            <CodeList
+              title="Not saved — no product with this code"
+              tone="warn"
+              items={data.partIds.unmatched.map((u) => `${u.partId}  ·  ${u.species || '—'}  ·  ${u.name}`)}
+            />
+          )}
+          <Link to="/admin/import" className="w-fit rounded-lg border border-gray-300 px-5 py-2.5 text-sm hover:border-gray-400">
+            Import another
+          </Link>
+        </div>
+      )}
+
       {/* Step 3 — done */}
       {data?.stage === 'done' && r && (
         <div className="flex flex-col gap-5">
           <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-900">
             Done. {r.written} product{r.written === 1 ? '' : 's'} updated
-            {r.created > 0 && `, ${r.created} new product${r.created === 1 ? '' : 's'} created as drafts`}.
+            {r.created > 0 && `, ${r.created} new product${r.created === 1 ? '' : 's'} created as drafts`}
+            {r.partIdsStored != null && `, ${r.partIdsStored} Part IDs saved`}.
             {!data.syncError && ' Site data synced — changes are live.'}
           </p>
           {data.syncError && (

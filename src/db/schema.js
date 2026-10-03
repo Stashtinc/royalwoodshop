@@ -158,6 +158,24 @@ export const productAttributes = pgTable('product_attributes', {
   availIdx: index('product_attributes_availability_idx').on(t.availability),
 }))
 
+/* ------------------------------------------------------------- part IDs */
+
+/** The supplier/ERP code per species, e.g. CAS-302 in poplar → CAS-302-AP-R.
+ *  Its own table rather than a column on the species tick: Flex comes in
+ *  several lengths, and some species are not on the site's species list. */
+export const productPartIds = pgTable('product_part_ids', {
+  id: serial('id').primaryKey(),
+  productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  species: varchar('species', { length: 60 }).notNull(),
+  partId: varchar('part_id', { length: 80 }).notNull(),
+  name: varchar('name', { length: 200 }),
+  uom: varchar('uom', { length: 20 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  partIdIdx: uniqueIndex('product_part_ids_part_id_idx').on(t.partId),
+  productIdx: index('product_part_ids_product_idx').on(t.productId),
+}))
+
 /* --------------------------------------------------- species import runs */
 
 /** One row per species-sheet import, holding every product code that sheet
