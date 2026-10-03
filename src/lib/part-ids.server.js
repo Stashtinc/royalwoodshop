@@ -89,19 +89,30 @@ function productIndex(rows) {
   return { byCode, codes }
 }
 
+/** Finishes on a species Part ID that are not part of the size (flat stock). */
+const FINISH_SUFFIX = /-(FJ-PRIMED|FJ-RAW|R-PRIMED|PRIMED|RWHITE|SHED-PINE|R)$/
+
 /**
- * The product a Part ID belongs to: the Base Code when the sheet gives one,
- * the code itself (flat stock), else the longest product code it starts with
- * (CAS-302-AP-R → CAS-302). Flex Part IDs carry a FLEX- prefix.
+ * The product a Part ID belongs to. Candidates, in order:
+ *   the Base Code, when the sheet gives one;
+ *   the code itself;
+ *   the longest product code it starts with (CAS-302-AP-R → CAS-302);
+ *   flat stock: the species comes first, and the site's page for the size is
+ *   D4S-…, so AP-1/2X1/2 and RO-1/2X1/2 both belong to D4S-1/2X1/2.
+ * A published product beats an archived one: old species-coded flat stock
+ * (AP-1/2X1/2) is archived beside the D4S page that replaced it.
  */
 function matchProduct(partId, baseCode, { byCode, codes }) {
   if (baseCode) return byCode.get(baseCode.toUpperCase()) ?? null
   const id = partId.toUpperCase()
-  if (byCode.has(id)) return byCode.get(id)
   const bare = id.replace(/^FLEX-/, '')
-  if (byCode.has(bare)) return byCode.get(bare)
-  const hit = codes.find((c) => bare.startsWith(`${c}-`))
-  return hit ? byCode.get(hit) : null
+  const candidates = [id, bare]
+  const prefix = codes.find((c) => bare.startsWith(`${c}-`))
+  if (prefix) candidates.push(prefix)
+  const size = bare.match(/^[A-Z]+-(.+)$/)?.[1]?.replace(FINISH_SUFFIX, '')
+  if (size) candidates.push(`D4S-${size}`)
+  const found = candidates.map((c) => byCode.get(c)).filter(Boolean)
+  return found.find((p) => p.status === 'published') ?? found[0] ?? null
 }
 
 /** Rows parsed and matched against the database, ready to preview or apply. */

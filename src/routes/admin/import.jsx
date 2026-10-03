@@ -3,6 +3,7 @@ import { Form, Link, useActionData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { parseUpload, analyse, apply } from '../../lib/species-import.server'
 import { readPartIdSheet, analysePartIds, applyPartIds } from '../../lib/part-ids.server'
+import { readSkuSheet, skuRowsToMaster } from '../../lib/sku-master.server'
 import { log } from '../../lib/activity.server'
 import { syncProductsJson } from '../../lib/sync.server'
 import { SPECIES, AVAILABILITY, AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
@@ -10,6 +11,23 @@ import { SPECIES, AVAILABILITY, AVAILABILITY_LABEL } from '../../lib/catalogue-c
 export async function loader({ request }) {
   await requireUser(request)
   return null
+}
+
+/**
+ * The rows an upload imports. The one-row-per-SKU master sheet is grouped
+ * back into one row per product for the column-per-species import, and
+ * carries its Part IDs; a column-per-species sheet is read as before.
+ */
+async function readImport(buffer, fileName) {
+  const sku = await readSkuSheet(buffer)
+  if (sku) {
+    const { masterRows, partRows, conflicts, products } = skuRowsToMaster(sku.rows)
+    return {
+      rows: masterRows, layout: 'master', sheetName: sku.sheetName, skipped: 0, missingColumns: [],
+      skuRows: sku.rows.length, skuProducts: products, conflicts, partRows,
+    }
+  }
+  return parseUpload(buffer, fileName)
 }
 
 /** Where an uploaded sheet waits between preview and apply. */
@@ -31,9 +49,10 @@ export async function action({ request }) {
 
     const buffer = await file.arrayBuffer()
 
-    // Brad's ERP export (Part ID | Name | UOM | Species | Category), or the
-    // Part IDs tab of a master workbook.
-    const partSheet = await readPartIdSheet(buffer, file.name)
+    // The SKU master sheet if it is one; otherwise Brad's raw ERP export
+    // (Part ID | Name | UOM | Species | Category) may stand on its own.
+    const skuSheet = await readSkuSheet(buffer)
+    const partSheet = skuSheet ? null : await readPartIdSheet(buffer, file.name)
     let partIds = null
     if (partSheet) {
       try { partIds = (await analysePartIds(partSheet.rows)).summary }
@@ -41,7 +60,7 @@ export async function action({ request }) {
     }
 
     let parsedSheet
-    try { parsedSheet = await parseUpload(buffer, file.name) }
+    try { parsedSheet = await readImport(buffer, file.name) }
     catch (e) {
       if (!partIds) return { error: e.message }
       // A Part ID list on its own: nothing else in the file to import.
@@ -54,6 +73,10 @@ export async function action({ request }) {
     let summary
     try { ({ summary } = await analyse(parsedSheet.rows, { layout: parsedSheet.layout })) }
     catch (e) { return { error: `Analysis failed: ${e.message}` } }
+    if (parsedSheet.partRows?.length) {
+      try { partIds = (await analysePartIds(parsedSheet.partRows)).summary }
+      catch (e) { return { error: `Reading the Part IDs failed: ${e.message}` } }
+    }
     // The code list is only needed server-side, when the import is applied.
     // Sending 473 of them down to the browser buys nothing.
     delete summary.sheetCodes
@@ -73,6 +96,9 @@ export async function action({ request }) {
       layout: parsedSheet.layout,
       summary,
       partIds,
+      sku: parsedSheet.skuRows ? {
+        rows: parsedSheet.skuRows, products: parsedSheet.skuProducts, conflicts: parsedSheet.conflicts,
+      } : null,
     }
   }
 
@@ -104,7 +130,7 @@ export async function action({ request }) {
     try { buffer = await readFile(`${STAGING}/${token}`) }
     catch { return { error: 'That upload has expired. Please choose the file again.' } }
 
-    const { rows, layout } = await parseUpload(buffer, String(form.get('fileName') ?? ''))
+    const { rows, layout, partRows } = await readImport(buffer, String(form.get('fileName') ?? ''))
 
     let overrides = {}
     try { const raw = form.get('overrides'); if (raw) overrides = JSON.parse(raw) } catch { /* ignore malformed */ }
@@ -116,10 +142,10 @@ export async function action({ request }) {
       fileName: String(form.get('fileName') ?? ''),
       userEmail: user?.email ?? null,
     })
-    // The master workbook's Part IDs tab travels with it.
-    const partSheet = await readPartIdSheet(buffer, String(form.get('fileName') ?? ''))
-    if (partSheet) {
-      const { matched } = await analysePartIds(partSheet.rows)
+    // The SKU sheet's Part IDs, matched after the products exist so a product
+    // the sheet just created gets its Part IDs too.
+    if (partRows) {
+      const { matched } = await analysePartIds(partRows)
       result.partIdsStored = (await applyPartIds(matched)).stored
     }
     await unlink(`${STAGING}/${token}`).catch(() => {})
@@ -376,11 +402,11 @@ export default function Import() {
     <div className="flex max-w-3xl flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-bold text-tundora">Import species sheet</h1>
+          <h1 className="font-serif text-2xl font-bold text-tundora">Import Master Product List</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Upload the workbook, or a CSV export of the{' '}
-            <span className="font-medium">TO DO — Species</span> tab, or a Part ID list (columns
-            Part ID, Name, UOM, Species). You will see what it changes before anything is saved.
+            Upload the Master Product List (one row per SKU, as Download Master gives it), or a
+            Part ID list on its own (Part ID, Name, UOM, Species). You will see what it changes
+            before anything is saved.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -436,6 +462,18 @@ export default function Import() {
             </p>
           </div>
 
+          {data.sku && (
+            <p className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-900">
+              One row per SKU: {data.sku.rows} rows grouped by Base Code into {data.sku.products} products.
+            </p>
+          )}
+          {data.sku?.conflicts?.length > 0 && (
+            <CodeList
+              title="Rows of the same product disagree — the first filled-in value is used"
+              tone="warn"
+              items={data.sku.conflicts.map((c) => `${c.code} · ${c.field}: ${c.values.join(' / ')}`)}
+            />
+          )}
           {data.partIds && <PartIdsReport p={data.partIds} />}
 
           {data.missingColumns?.length > 0 && (

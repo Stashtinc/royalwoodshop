@@ -1,232 +1,59 @@
-import { eq, asc, and, inArray, isNotNull, ne } from 'drizzle-orm'
 import { requireUser } from '../../lib/auth.server'
 import { getDb } from '../../lib/db.server.js'
-import {
-  products, categories, productCategories,
-  attributes, attributeValues, productAttributes, productImages, productPartIds,
-} from '../../db/schema.js'
-import { SPECIES } from '../../lib/catalogue-constants.js'
-import { PART_ID_SHEET, PART_ID_HEADERS } from '../../lib/part-ids.server.js'
+import { SKU_SHEET, SKU_HEADERS, skuRows } from '../../lib/sku-master.server.js'
 
-const AVAIL_TICK = { in_stock: 'S', quick_ship: 'QS', made_to_order: 'MO' }
-const tick = (v) => AVAIL_TICK[v] ?? ''
+/**
+ * The Master Product List, one row per SKU (see lib/sku-master.server.js).
+ * Importing it back through Admin → Import round-trips every column.
+ */
 
-// Column order exactly as the master workbook: Flex sits between PVC and Steel.
-const SPECIES_BEFORE_FLEX = SPECIES.slice(0, SPECIES.indexOf('Steel'))
-const SPECIES_AFTER_FLEX  = SPECIES.slice(SPECIES.indexOf('Steel'))
-const KNOWN_SPECIES = new Set(SPECIES)
+const COL_WIDTHS = [24, 18, 22, 34, 19, 18, 16, 58, 18, 11, 9, 8]
+const AVAIL_COL = SKU_HEADERS.indexOf('Availability') + 1
+const UOM_COL = SKU_HEADERS.indexOf('UOM') + 1
 
-// Header labels exactly as the original workbook
-const HEADERS = [
-  'image name', 'Code', 'Product\n Name', '\n Category', 'type\nsub-cat',
-  'Size', 'Description', 'Availability', 'Price',
-  'uom\n (Lft, Ea, SqFt, Kit, Pc)',
-  ...SPECIES_BEFORE_FLEX, 'Flex', ...SPECIES_AFTER_FLEX, 'Other',
-]
-
-// Column widths from the original workbook (in characters)
-const COL_WIDTHS = [
-  22, 16, 34, 19, 18, 20, 58, 12, 9, 12,
-  6.51, 6.51, 6.51, 6.51, 6.51, 6.51, 6.51,
-  6.51, 6.51, 6.51, 6.51, 6.51, 6.51, 6.51,
-  6.51, 6.51, 6.51, 22,
-]
-
-// Cell styles matching the original header row
-const HDR_FILL_DEFAULT = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F3864' } }
-const HDR_FILL_OTHER   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7C7AC' } }
+const HDR_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F3864' } }
 const HDR_FONT = { bold: true, size: 9, color: { argb: 'FFFFFFFF' }, name: 'Arial' }
 const HDR_ALIGNMENT = { horizontal: 'center', vertical: 'bottom', wrapText: true }
+const THIN = { style: 'thin', color: { argb: 'FF000000' } }
 
 export async function loader({ request }) {
   await requireUser(request)
 
-  const db = await getDb()
-
-  const rows = await db
-    .select({
-      id: products.id,
-      productCode: products.productCode,
-      name: products.name,
-      description: products.description,
-      sizeDisplay: products.sizeDisplay,
-      availability: products.availability,
-      price: products.price,
-      uom: products.uom,
-      flexAvailability: products.flexAvailability,
-      categoryName: categories.name,
-    })
-    .from(products)
-    .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
-    .where(ne(products.status, 'archived'))
-    .orderBy(asc(categories.name), asc(products.productCode), asc(products.name))
-
-  if (!rows.length) {
-    return new Response('No products found.', { status: 404 })
-  }
-
-  const ids = rows.map((r) => r.id)
-
-  // Fetch all categories for parent-name lookup
-  const allCats = await db.select({ id: categories.id, name: categories.name, parentId: categories.parentId }).from(categories)
-  const catById = new Map(allCats.map(c => [c.id, c]))
-
-  const subRows = await db
-    .select({ productId: productCategories.productId, subName: categories.name, parentId: categories.parentId })
-    .from(productCategories)
-    .innerJoin(categories, eq(categories.id, productCategories.categoryId))
-    .where(and(isNotNull(categories.parentId), inArray(productCategories.productId, ids)))
-
-  // placementsByProduct: productId → [{parentName, subName}], primary category first
-  const placementsByProduct = new Map()
-  for (const { productId, subName, parentId } of subRows) {
-    if (!placementsByProduct.has(productId)) placementsByProduct.set(productId, [])
-    placementsByProduct.get(productId).push({ parentName: catById.get(parentId)?.name ?? '', subName })
-  }
-
-  const speciesRows = await db
-    .select({
-      productId: productAttributes.productId,
-      speciesName: attributeValues.value,
-      availability: productAttributes.availability,
-    })
-    .from(productAttributes)
-    .innerJoin(attributeValues, eq(attributeValues.id, productAttributes.attributeValueId))
-    .innerJoin(attributes, eq(attributes.id, attributeValues.attributeId))
-    .where(and(eq(attributes.key, 'species'), inArray(productAttributes.productId, ids)))
-
-  const speciesByProduct = new Map()
-  for (const { productId, speciesName, availability } of speciesRows) {
-    if (!speciesByProduct.has(productId)) speciesByProduct.set(productId, new Map())
-    speciesByProduct.get(productId).set(speciesName, availability)
-  }
-
-  const imageRows = await db
-    .select({ productId: productImages.productId, storageKey: productImages.storageKey })
-    .from(productImages)
-    .where(inArray(productImages.productId, ids))
-    .orderBy(asc(productImages.sortOrder))
-
-  // All images per product pipe-separated (sorted by sortOrder) so the
-  // import round-trip preserves every image, not just the first.
-  const imageByProduct = new Map()
-  for (const { productId, storageKey } of imageRows) {
-    const filename = storageKey.split('/').pop()
-    const existing = imageByProduct.get(productId)
-    imageByProduct.set(productId, existing ? `${existing}|${filename}` : filename)
-  }
+  const rows = await skuRows(await getDb())
+  if (!rows.length) return new Response('No products found.', { status: 404 })
 
   const ExcelJS = (await import('exceljs')).default
   const wb = new ExcelJS.Workbook()
-  const ws = wb.addWorksheet('Master Product List')
+  const ws = wb.addWorksheet(SKU_SHEET)
 
-  // Freeze columns A-B and row 1 (matches the original view settings)
-  ws.views = [{
-    state: 'frozen',
-    xSplit: 2,
-    ySplit: 1,
-    topLeftCell: 'C2',
-    activeCell: 'A1',
-  }]
-
-  // Column widths
+  // Part ID and Base Code stay in view while scrolling across.
+  ws.views = [{ state: 'frozen', xSplit: 2, ySplit: 1, topLeftCell: 'C2', activeCell: 'A1' }]
   COL_WIDTHS.forEach((width, i) => { ws.getColumn(i + 1).width = width })
 
-  // Header row with full original styling
-  const hdrRow = ws.addRow(HEADERS)
-  hdrRow.height = 45.75
-  hdrRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
-    cell.fill      = colNum === HEADERS.length ? HDR_FILL_OTHER : HDR_FILL_DEFAULT
-    cell.font      = { ...HDR_FONT, ...(colNum === HEADERS.length ? { color: { argb: 'FF000000' } } : {}) }
+  const hdr = ws.addRow(SKU_HEADERS)
+  hdr.height = 30
+  hdr.eachCell((cell) => {
+    cell.fill = HDR_FILL
+    cell.font = HDR_FONT
     cell.alignment = HDR_ALIGNMENT
-    cell.border    = {
-      top:    { style: 'thin', color: { argb: 'FF000000' } },
-      bottom: { style: 'thin', color: { argb: 'FF000000' } },
-      left:   { style: 'thin', color: { argb: 'FF000000' } },
-      right:  { style: 'thin', color: { argb: 'FF000000' } },
-    }
+    cell.border = { top: THIN, bottom: THIN, left: THIN, right: THIN }
   })
 
-  const UOM_COL  = HEADERS.indexOf('uom\n (Lft, Ea, SqFt, Kit, Pc)') + 1
-  const FLEX_COL = HEADERS.indexOf('Flex') + 1
-
-  // Data rows
-  for (const p of rows) {
-    const placements = placementsByProduct.get(p.id) ?? []
-    // Primary category first, then additional categories
-    const primaryName = p.categoryName ?? ''
-    placements.sort((a, b) => {
-      if (a.parentName === primaryName) return -1
-      if (b.parentName === primaryName) return 1
-      return 0
-    })
-    const catCol = placements.length > 0
-      ? [...new Map(placements.map(pl => [pl.parentName, pl.parentName])).values()].join('|')
-      : primaryName
-    const subCol = placements.map(pl => pl.subName).join('|')
-    const sp   = speciesByProduct.get(p.id) ?? new Map()
-    const row = ws.addRow([
-      imageByProduct.get(p.id) ?? '',
-      p.productCode ?? '',
-      p.name ?? '',
-      catCol,
-      subCol,
-      p.sizeDisplay ?? '',
-      p.description ?? '',
-      tick(p.availability),
-      p.price ?? '',
-      p.uom ?? '',
-      ...SPECIES_BEFORE_FLEX.map((s) => tick(sp.get(s))),
-      tick(p.flexAvailability),
-      ...SPECIES_AFTER_FLEX.map((s) => tick(sp.get(s))),
-      [...sp.keys()].filter((s) => !KNOWN_SPECIES.has(s)).join('|'),
-    ])
+  for (const values of rows) {
+    const row = ws.addRow(values)
+    row.getCell(AVAIL_COL).dataValidation = {
+      type: 'list', allowBlank: true, formulae: ['"S,QS,MO"'], showDropDown: false,
+    }
     row.getCell(UOM_COL).dataValidation = {
-      type: 'list',
-      allowBlank: true,
-      formulae: ['"Lft,Ea,SqFt,Kit,Pc"'],
-      showDropDown: false,
-    }
-    row.getCell(FLEX_COL).dataValidation = {
-      type: 'list',
-      allowBlank: true,
-      formulae: ['"S,QS,MO"'],
-      showDropDown: false,
+      type: 'list', allowBlank: true, formulae: ['"Lft,Ea,SqFt,Kit,Pc"'], showDropDown: false,
     }
   }
 
-  // Autofilter on the header row
-  ws.autoFilter = {
-    from: { row: 1, column: 1 },
-    to:   { row: rows.length + 1, column: HEADERS.length },
-  }
-
-  // Part IDs: one row per SKU, in the ERP export's column order so a fresh
-  // export can be pasted straight in. Base Code ties each to its product;
-  // importing this workbook replaces the site's Part IDs with this tab.
-  const parts = await db
-    .select({
-      partId: productPartIds.partId, name: productPartIds.name, uom: productPartIds.uom,
-      species: productPartIds.species, code: products.productCode, category: categories.name,
-    })
-    .from(productPartIds)
-    .innerJoin(products, eq(products.id, productPartIds.productId))
-    .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
-    .orderBy(asc(products.productCode), asc(productPartIds.partId))
-  const ps = wb.addWorksheet(PART_ID_SHEET)
-  ps.views = [{ state: 'frozen', ySplit: 1 }]
-  ;[24, 44, 8, 20, 24, 18].forEach((w, i) => { ps.getColumn(i + 1).width = w })
-  const partHdr = ps.addRow(PART_ID_HEADERS)
-  partHdr.eachCell((c) => { c.fill = HDR_FILL_DEFAULT; c.font = HDR_FONT; c.alignment = HDR_ALIGNMENT })
-  for (const p of parts) {
-    ps.addRow([p.partId, p.name ?? '', p.uom ?? '', p.species, p.category ?? '', p.code ?? ''])
-  }
-  ps.autoFilter = { from: { row: 1, column: 1 }, to: { row: parts.length + 1, column: PART_ID_HEADERS.length } }
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: rows.length + 1, column: SKU_HEADERS.length } }
 
   const buf = await wb.xlsx.writeBuffer()
-  const now  = new Date()
+  const now = new Date()
   const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-
   return new Response(buf, {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
