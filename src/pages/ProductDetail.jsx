@@ -118,14 +118,26 @@ function RelatedCard({ product }) {
       className="group flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-lg"
     >
       <div className={`aspect-[4/3] w-full overflow-hidden bg-white ${imageFit(product.imageRole).pad ? 'p-4' : ''}`}>
-        <img
-          src={thumbSrc(product.image, product.imageWidth)}
-          srcSet={srcSet(product.image, product.imageWidth) ?? undefined}
-          sizes="(min-width: 1024px) 300px, 45vw"
-          alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
-          loading="lazy"
-          className={`h-full w-full ${imageFit(product.imageRole).className} transition-transform duration-300 group-hover:scale-105`}
-        />
+        {/* No picture yet: an <img> with no src shows a broken icon and its alt
+            text, so show the same placeholder as the catalogue instead. */}
+        {product.image ? (
+          <img
+            src={thumbSrc(product.image, product.imageWidth)}
+            srcSet={srcSet(product.image, product.imageWidth) ?? undefined}
+            sizes="(min-width: 1024px) 300px, 45vw"
+            alt={`${product.name}${product.productCode ? ` (${product.productCode})` : ''} profile drawing`}
+            loading="lazy"
+            className={`h-full w-full ${imageFit(product.imageRole).className} transition-transform duration-300 group-hover:scale-105`}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gray-50">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" className="text-gray-300" aria-hidden="true">
+              <rect x="6" y="10" width="36" height="28" rx="3" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="17" cy="20" r="4" stroke="currentColor" strokeWidth="2"/>
+              <path d="M6 32l10-8 8 6 6-5 12 9" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <p className="font-serif text-base leading-snug font-medium text-tundora">{product.name}</p>
