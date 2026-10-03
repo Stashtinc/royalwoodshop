@@ -159,7 +159,7 @@ export function matchPartIds(sheetRows, { productRows, tickRows, current }) {
 
     const row = {
       productId: product.id, code: product.code, partId, species,
-      name: r.name || null, uom: r.uom || null,
+      name: r.name || null, uom: r.uom || null, keepName: Boolean(r.keepName),
     }
     matched.push(row)
     if (!known) warnings.unknownSpecies.set(species, (warnings.unknownSpecies.get(species) ?? 0) + 1)
@@ -171,6 +171,9 @@ export function matchPartIds(sheetRows, { productRows, tickRows, current }) {
 
   // What applying would change, against what is stored now.
   const before = new Map(current.map((c) => [c.partId, c]))
+  // The SKU sheet carries no per-part name (its Name column is the product's),
+  // so a Part ID coming back from it keeps the ERP name already stored.
+  for (const m of matched) if (m.keepName && !m.name) m.name = before.get(m.partId)?.name ?? null
   let added = 0, changed = 0
   for (const m of matched) {
     const b = before.get(m.partId)

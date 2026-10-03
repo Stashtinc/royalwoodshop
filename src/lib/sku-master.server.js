@@ -182,17 +182,22 @@ const PRODUCT_FIELDS = [
  * product field are reported; the first filled-in value is used.
  */
 export function skuRowsToMaster(skuRows) {
+  // Grouped ignoring case, but the code keeps its own spelling: 113 products
+  // have lowercase codes (c400-hanger) and the import matches them as typed.
+  // A row with no code at all stands alone: two code-less products can share
+  // a name (an 8ft and a standard door), and the import skips them anyway.
   const groups = new Map()
-  for (const r of skuRows) {
-    const code = (r['base code'] || r['part id']).toUpperCase()
-    if (!groups.has(code)) groups.set(code, [])
-    groups.get(code).push(r)
+  for (const [i, r] of skuRows.entries()) {
+    const code = r['base code'] || r['part id']
+    const key = code ? `code:${code.toUpperCase()}` : `row:${i}`
+    if (!groups.has(key)) groups.set(key, { code, rows: [] })
+    groups.get(key).rows.push(r)
   }
 
   const masterRows = []
   const partRows = []
   const conflicts = []
-  for (const [code, rows] of groups) {
+  for (const { code, rows } of groups.values()) {
     const m = { code }
     for (const [from, to] of PRODUCT_FIELDS) {
       const values = [...new Set(rows.map((r) => r[from]).filter(Boolean))]
@@ -210,7 +215,7 @@ export function skuRowsToMaster(skuRows) {
       else if (species) m[canon(species)] = tick
       else other.push(r.species)
       if (r['part id']) {
-        partRows.push({ 'part id': r['part id'], 'base code': code, species: r.species, uom: r.uom, name: '', category: r.category })
+        partRows.push({ 'part id': r['part id'], 'base code': code, species: r.species, uom: r.uom, name: '', category: r.category, keepName: true })
       }
     }
     m.other = [...new Set(other)].join('|')
