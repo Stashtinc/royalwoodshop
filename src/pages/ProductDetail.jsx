@@ -233,6 +233,10 @@ export default function ProductDetail({ product: productProp = null, related: re
   const partIdsOf = (species) => partIds
     .filter((p) => normalizeSpecies(p.species) === species)
     .map((p) => p.partId)
+  const priceOf = (species) => {
+    const match = partIds.find((p) => normalizeSpecies(p.species) === species)
+    return match?.price ?? null
+  }
   const otherPartIds = partIds.filter((p) => !listed.has(normalizeSpecies(p.species)))
 
   // Merge all species (from availability + those with part IDs only) into a single table
@@ -241,18 +245,21 @@ export default function ProductDetail({ product: productProp = null, related: re
       name: s.name,
       availability: s.availability,
       partIds: partIdsOf(s.name),
+      price: priceOf(s.name),
     })),
     ...Object.entries(
       otherPartIds.reduce((acc, p) => {
         const species = normalizeSpecies(p.species)
-        if (!acc[species]) acc[species] = []
-        acc[species].push(p.partId)
+        if (!acc[species]) acc[species] = { partIds: [], price: null }
+        acc[species].partIds.push(p.partId)
+        if (p.price) acc[species].price = p.price
         return acc
       }, {})
-    ).map(([species, partIdList]) => ({
+    ).map(([species, data]) => ({
       name: species,
       availability: null,
-      partIds: partIdList,
+      partIds: data.partIds,
+      price: data.price,
     })),
   ]
 
@@ -262,6 +269,7 @@ export default function ProductDetail({ product: productProp = null, related: re
   ).map((s) => ({
     ...s,
     partIds: s.partIds || [],
+    price: s.price || null,
   }))
 
   const specs = [
@@ -282,6 +290,7 @@ export default function ProductDetail({ product: productProp = null, related: re
                   <tr className="border-b border-gray-200">
                     <th className="py-2 pr-3 font-sans text-xs font-semibold uppercase text-gray-500">Material</th>
                     <th className="py-2 px-3 font-sans text-xs font-semibold uppercase text-gray-500">Part ID</th>
+                    <th className="py-2 px-3 font-sans text-xs font-semibold uppercase text-gray-500">Price</th>
                     <th className="py-2 pl-3 font-sans text-xs font-semibold uppercase text-gray-500">Availability</th>
                   </tr>
                 </thead>
@@ -292,6 +301,7 @@ export default function ProductDetail({ product: productProp = null, related: re
                       <tr key={row.name} className="border-b border-gray-100">
                         <td className="py-3 pr-3 font-sans text-sm text-tundora">{row.name}</td>
                         <td className="py-3 px-3 font-mono text-xs text-gray-600">{row.partIds.length ? row.partIds.join(', ') : '—'}</td>
+                        <td className="py-3 px-3 font-sans text-sm text-tundora">{row.price ? `$${Number(row.price).toFixed(2)}` : '—'}</td>
                         <td className="py-3 pl-3">
                           {badge ? (
                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>
@@ -307,25 +317,6 @@ export default function ProductDetail({ product: productProp = null, related: re
                 </tbody>
               </table>
             </div>
-          )
-        : null,
-    },
-    {
-      label: 'Price',
-      value: product.price != null ? String(product.price) : null,
-      render: product.price != null
-        ? () => (
-            <span className="flex flex-wrap items-center gap-2">
-              {product.salePrice != null ? (
-                <>
-                  <span className="font-semibold text-red-600">${Number(product.salePrice).toFixed(2)}</span>
-                  <span className="text-sm text-gray-400 line-through">${Number(product.price).toFixed(2)}</span>
-                  <span className="inline-flex items-center rounded-full bg-red-500 px-2 py-0.5 text-xs font-medium text-white">On Sale</span>
-                </>
-              ) : (
-                <span>${Number(product.price).toFixed(2)}</span>
-              )}
-            </span>
           )
         : null,
     },

@@ -478,31 +478,6 @@ export default function ProductEdit() {
         </section>
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
-          <h2 className="font-serif font-bold text-tundora">Pricing</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-1.5">
-              <Label hint="optional">Regular price</Label>
-              <div className="relative">
-                <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-gray-400">$</span>
-                <input name="price" defaultValue={product.price ?? ''} inputMode="decimal" placeholder="0.00"
-                  className={`${field} pl-6`} />
-              </div>
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <Label hint="shows On Sale badge when filled">Sale price</Label>
-              <div className="relative">
-                <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-gray-400">$</span>
-                <input name="salePrice" defaultValue={product.salePrice ?? ''} inputMode="decimal" placeholder="0.00"
-                  className={`${field} pl-6`} />
-              </div>
-              {product.salePrice && (
-                <span className="w-fit rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">On Sale</span>
-              )}
-            </label>
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Search listing</h2>
           <SeoFields formId="details-form" Label={Label} field={field}
             seoTitle={product.seoTitle ?? ''} seoDescription={product.seoDescription ?? ''}
