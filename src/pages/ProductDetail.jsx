@@ -296,7 +296,7 @@ export default function ProductDetail({ product: productProp = null, related: re
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="py-2 pr-3 font-sans text-xs font-semibold uppercase text-gray-500">Product Name</th>
+                    <th className="py-2 pr-3 font-sans text-xs font-semibold uppercase text-gray-500">Material</th>
                     <th className="py-2 px-3 font-sans text-xs font-semibold uppercase text-gray-500">Part ID</th>
                     <th className="py-2 pl-3 font-sans text-xs font-semibold uppercase text-gray-500">Availability</th>
                   </tr>
