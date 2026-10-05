@@ -28,6 +28,7 @@ const SPECIES_ALIASES = new Map([
   ['popllar', 'Poplar'],
   ['primed fj poplar', 'FJ Primed Poplar'],
   ['primed fj pine', 'FJ Primed Pine'],
+  ['white pine', 'Clear Pine'],
   ['flex', FLEX],
 ])
 
