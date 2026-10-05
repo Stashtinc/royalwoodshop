@@ -247,8 +247,8 @@ export default function ProductDetail({ product: productProp = null, related: re
   ]
 
   const specs = [
+    { label: 'Category', value: product.category },
     { label: 'Product Code', value: product.productCode },
-    { label: 'Size', value: product.size },
     {
       label: 'Price',
       value: product.price != null ? String(product.price) : null,
@@ -271,6 +271,7 @@ export default function ProductDetail({ product: productProp = null, related: re
     {
       label: 'Available in',
       value: product.species?.length ? speciesSummary(product) : null,
+      fullWidth: true,
       render: allSpecies.length
         ? () => (
             <div className="overflow-x-auto">
@@ -307,8 +308,8 @@ export default function ProductDetail({ product: productProp = null, related: re
           )
         : null,
     },
+    { label: 'Size', value: product.size },
     { label: 'Unit of Measure', value: product.uom ?? null },
-    { label: 'Category', value: product.category },
     { label: 'Type', value: subsOf(product).join(', ') },
     { label: 'Lead time', value: product.leadTime ?? null },
   ].filter((s) => s.value)
@@ -383,8 +384,8 @@ export default function ProductDetail({ product: productProp = null, related: re
               <div className="flex flex-col gap-3">
                 <p className="font-serif text-sm font-bold text-tundora">Specifications</p>
                 <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {specs.map(({ label, value, render }) => (
-                    <div key={label} className="flex flex-col gap-0.5 rounded-xl bg-white p-3.5 border border-gray-100">
+                  {specs.map(({ label, value, render, fullWidth }) => (
+                    <div key={label} className={`flex flex-col gap-0.5 rounded-xl bg-white p-3.5 border border-gray-100 ${fullWidth ? 'sm:col-span-2' : ''}`}>
                       <dt className="font-sans text-xs font-semibold tracking-wide text-gray-400 uppercase">{label}</dt>
                       <dd className="font-sans text-sm font-medium text-tundora">{render ? render() : value}</dd>
                     </div>
