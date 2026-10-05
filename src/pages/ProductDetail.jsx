@@ -227,12 +227,24 @@ export default function ProductDetail({ product: productProp = null, related: re
     made_to_order: { label: 'Made-to-Order', className: 'bg-gray-100 text-gray-600' },
   }
 
-  // Part IDs sit beside their species; any for a species the product does
-  // not list (Flex, White Pine…) get a row of their own.
   const partIds = product.partIds ?? []
   const listed = new Set((product.speciesAvailability ?? []).map((s) => s.name))
-  const partIdsOf = (species) => partIds.filter((p) => p.species === species).map((p) => p.partId)
+  const partIdsOf = (species) => partIds.filter((p) => p.species === species).map((p) => p.partId)[0]
   const otherPartIds = partIds.filter((p) => !listed.has(p.species))
+
+  // Merge all species (from availability + those with part IDs only) into a single table
+  const allSpecies = [
+    ...(product.speciesAvailability ?? []).map((s) => ({
+      name: s.name,
+      availability: s.availability,
+      partId: partIdsOf(s.name),
+    })),
+    ...otherPartIds.map((p) => ({
+      name: p.species,
+      availability: null,
+      partId: p.partId,
+    })),
+  ]
 
   const specs = [
     { label: 'Product Code', value: product.productCode },
@@ -256,47 +268,44 @@ export default function ProductDetail({ product: productProp = null, related: re
           )
         : null,
     },
-    // Species comes from the sheet Royal Wood Shop are completing. Until a
-    // product has it, the row is omitted rather than showing a bare 'wood'.
     {
-      label: product.species?.length > 1 ? 'Available in' : 'Species',
+      label: 'Available in',
       value: product.species?.length ? speciesSummary(product) : null,
-      render: product.speciesAvailability?.length
+      render: allSpecies.length
         ? () => (
-            <span className="flex flex-col gap-1.5 pt-0.5">
-              {product.speciesAvailability.map((s) => {
-                const badge = s.availability ? AVAILABILITY_BADGE[s.availability] : null
-                return (
-                  <span key={s.name} className="flex items-center gap-2">
-                    <span className="font-sans text-sm text-tundora">{s.name}</span>
-                    {badge && (
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>
-                        {badge.label}
-                      </span>
-                    )}
-                    {partIdsOf(s.name).length > 0 && (
-                      <span className="font-mono text-xs text-gray-500">{partIdsOf(s.name).join(', ')}</span>
-                    )}
-                  </span>
-                )
-              })}
-            </span>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="py-2 pr-3 font-sans text-xs font-semibold uppercase text-gray-500">Product Name</th>
+                    <th className="py-2 px-3 font-sans text-xs font-semibold uppercase text-gray-500">Part ID</th>
+                    <th className="py-2 pl-3 font-sans text-xs font-semibold uppercase text-gray-500">Availability</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allSpecies.map((row) => {
+                    const badge = row.availability ? AVAILABILITY_BADGE[row.availability] : null
+                    return (
+                      <tr key={row.name} className="border-b border-gray-100">
+                        <td className="py-3 pr-3 font-sans text-sm text-tundora">{row.name}</td>
+                        <td className="py-3 px-3 font-mono text-xs text-gray-600">{row.partId || '—'}</td>
+                        <td className="py-3 pl-3">
+                          {badge ? (
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>
+                              {badge.label}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )
         : null,
-    },
-    {
-      label: otherPartIds.length > 1 ? 'Part IDs' : 'Part ID',
-      value: otherPartIds.length ? otherPartIds.map((p) => p.partId).join(', ') : null,
-      render: () => (
-        <span className="flex flex-col gap-1 pt-0.5">
-          {otherPartIds.map((p) => (
-            <span key={p.partId} className="flex items-center gap-2">
-              <span className="font-sans text-sm text-tundora">{p.species}</span>
-              <span className="font-mono text-xs text-gray-500">{p.partId}</span>
-            </span>
-          ))}
-        </span>
-      ),
     },
     { label: 'Unit of Measure', value: product.uom ?? null },
     { label: 'Category', value: product.category },
