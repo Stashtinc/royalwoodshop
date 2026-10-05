@@ -2,7 +2,7 @@ import { parse } from 'csv-parse/sync'
 import { and, eq } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import {
-  products, attributes, attributeValues, productAttributes, productPartIds,
+  products, attributes, attributeValues, productAttributes,
 } from '../db/schema.js'
 import { SPECIES } from './catalogue-constants.js'
 import { canon } from './species-import.server.js'
