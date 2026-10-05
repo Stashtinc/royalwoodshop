@@ -20,13 +20,20 @@ export async function loader({ request, params }) {
   await requireUser(request)
   const product = await getProduct(params.id)
   if (!product) throw new Response('Not found', { status: 404 })
-  const [images, categoryTree, linkedCategoryIds, partData] = await Promise.all([
+
+  let partData = { partIds: {}, prices: {} }
+  try {
+    partData = await getProductPartIds(params.id)
+  } catch (e) {
+    console.error('Failed to load part IDs:', e.message)
+  }
+
+  const [images, categoryTree, linkedCategoryIds] = await Promise.all([
     listImages(params.id),
     listCategoriesWithSubs(),
     listProductCategories(params.id),
-    getProductPartIds(params.id),
   ])
-  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds: partData.partIds, partPrices: partData.prices }
+  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds: partData.partIds || {}, partPrices: partData.prices || {} }
 }
 
 export async function action({ request, params }) {
@@ -217,7 +224,11 @@ export async function action({ request, params }) {
     }
   }
   if (Object.keys(partIdsBySpecies).length > 0) {
-    await saveProductPartIds(params.id, partIdsBySpecies, pricesBySpecies)
+    try {
+      await saveProductPartIds(params.id, partIdsBySpecies, pricesBySpecies)
+    } catch (e) {
+      console.error('Failed to save part IDs:', e.message)
+    }
   }
 
   await syncProductsJson()

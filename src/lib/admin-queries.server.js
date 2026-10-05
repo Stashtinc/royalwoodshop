@@ -622,19 +622,37 @@ export async function bulkDeleteProducts(ids) {
 /** Gets part IDs and prices for a product, returned as { partIds: { [species]: partId }, prices: { [species]: price } } */
 export async function getProductPartIds(productId) {
   const db = await getDb()
-  const rows = await db.select({
-    species: productPartIds.species,
-    partId: productPartIds.partId,
-    price: productPartIds.price,
-  })
-    .from(productPartIds).where(eq(productPartIds.productId, Number(productId)))
-  const partIds = {}
-  const prices = {}
-  for (const { species, partId, price } of rows) {
-    partIds[species] = partId
-    if (price) prices[species] = price
+  try {
+    const rows = await db.select({
+      species: productPartIds.species,
+      partId: productPartIds.partId,
+      price: productPartIds.price,
+    })
+      .from(productPartIds).where(eq(productPartIds.productId, Number(productId)))
+    const partIds = {}
+    const prices = {}
+    for (const { species, partId, price } of rows) {
+      partIds[species] = partId
+      if (price) prices[species] = price
+    }
+    return { partIds, prices }
+  } catch (e) {
+    // Fallback if price column doesn't exist yet (migration not applied)
+    try {
+      const rows = await db.select({
+        species: productPartIds.species,
+        partId: productPartIds.partId,
+      })
+        .from(productPartIds).where(eq(productPartIds.productId, Number(productId)))
+      const partIds = {}
+      for (const { species, partId } of rows) {
+        partIds[species] = partId
+      }
+      return { partIds, prices: {} }
+    } catch {
+      return { partIds: {}, prices: {} }
+    }
   }
-  return { partIds, prices }
 }
 
 /** Saves part IDs and prices for a product. Replaces all existing part IDs with the provided ones. */
