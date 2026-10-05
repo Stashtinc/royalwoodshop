@@ -40,11 +40,11 @@ function PrintIcon() {
  */
 function SpecSheet({ product }) {
   const rows = [
+    ['Category', product.category],
+    ['Sub-Category', subsOf(product).join(', ')],
     ['Product code', product.productCode],
     ['Size', product.size],
     ['Species', product.species?.length ? speciesSummary(product) : null],
-    ['Category', product.category],
-    ['Type', subsOf(product).join(', ')],
     ['Availability', product.availabilityLabel],
     ['Lead time', product.leadTime],
   ].filter(([, v]) => v)
@@ -266,26 +266,10 @@ export default function ProductDetail({ product: productProp = null, related: re
 
   const specs = [
     { label: 'Category', value: product.category },
+    { label: 'Sub-Category', value: subsOf(product).join(', ') },
     { label: 'Product Code', value: product.productCode },
-    {
-      label: 'Price',
-      value: product.price != null ? String(product.price) : null,
-      render: product.price != null
-        ? () => (
-            <span className="flex flex-wrap items-center gap-2">
-              {product.salePrice != null ? (
-                <>
-                  <span className="font-semibold text-red-600">${Number(product.salePrice).toFixed(2)}</span>
-                  <span className="text-sm text-gray-400 line-through">${Number(product.price).toFixed(2)}</span>
-                  <span className="inline-flex items-center rounded-full bg-red-500 px-2 py-0.5 text-xs font-medium text-white">On Sale</span>
-                </>
-              ) : (
-                <span>${Number(product.price).toFixed(2)}</span>
-              )}
-            </span>
-          )
-        : null,
-    },
+    { label: 'Size', value: product.size },
+    { label: 'Unit of Measure', value: product.uom ?? null },
     {
       label: 'Available in',
       value: product.species?.length ? speciesSummary(product) : null,
@@ -326,9 +310,25 @@ export default function ProductDetail({ product: productProp = null, related: re
           )
         : null,
     },
-    { label: 'Size', value: product.size },
-    { label: 'Unit of Measure', value: product.uom ?? null },
-    { label: 'Type', value: subsOf(product).join(', ') },
+    {
+      label: 'Price',
+      value: product.price != null ? String(product.price) : null,
+      render: product.price != null
+        ? () => (
+            <span className="flex flex-wrap items-center gap-2">
+              {product.salePrice != null ? (
+                <>
+                  <span className="font-semibold text-red-600">${Number(product.salePrice).toFixed(2)}</span>
+                  <span className="text-sm text-gray-400 line-through">${Number(product.price).toFixed(2)}</span>
+                  <span className="inline-flex items-center rounded-full bg-red-500 px-2 py-0.5 text-xs font-medium text-white">On Sale</span>
+                </>
+              ) : (
+                <span>${Number(product.price).toFixed(2)}</span>
+              )}
+            </span>
+          )
+        : null,
+    },
     { label: 'Lead time', value: product.leadTime ?? null },
   ].filter((s) => s.value)
 
