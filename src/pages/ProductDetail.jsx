@@ -228,23 +228,41 @@ export default function ProductDetail({ product: productProp = null, related: re
   }
 
   const partIds = product.partIds ?? []
+  const normalizeSpecies = (s) => s === 'White Pine' ? 'Clear Pine' : s
   const listed = new Set((product.speciesAvailability ?? []).map((s) => s.name))
-  const partIdsOf = (species) => partIds.filter((p) => p.species === species).map((p) => p.partId)[0]
-  const otherPartIds = partIds.filter((p) => !listed.has(p.species))
+  const partIdsOf = (species) => partIds
+    .filter((p) => normalizeSpecies(p.species) === species)
+    .map((p) => p.partId)
+  const otherPartIds = partIds.filter((p) => !listed.has(normalizeSpecies(p.species)))
 
   // Merge all species (from availability + those with part IDs only) into a single table
   const allSpecies = [
     ...(product.speciesAvailability ?? []).map((s) => ({
       name: s.name,
       availability: s.availability,
-      partId: partIdsOf(s.name),
+      partIds: partIdsOf(s.name),
     })),
-    ...otherPartIds.map((p) => ({
-      name: p.species,
+    ...Object.entries(
+      otherPartIds.reduce((acc, p) => {
+        const normalized = normalizeSpecies(p.species)
+        if (!acc[normalized]) acc[normalized] = []
+        acc[normalized].push(p.partId)
+        return acc
+      }, {})
+    ).map(([species, partIdList]) => ({
+      name: species,
       availability: null,
-      partId: p.partId,
+      partIds: partIdList,
     })),
   ]
+
+  // Remove duplicates (species that exist in both availability and otherPartIds)
+  const uniqueSpecies = Array.from(
+    new Map(allSpecies.map((s) => [s.name, s])).values()
+  ).map((s) => ({
+    ...s,
+    partIds: s.partIds || [],
+  }))
 
   const specs = [
     { label: 'Category', value: product.category },
@@ -272,7 +290,7 @@ export default function ProductDetail({ product: productProp = null, related: re
       label: 'Available in',
       value: product.species?.length ? speciesSummary(product) : null,
       fullWidth: true,
-      render: allSpecies.length
+      render: uniqueSpecies.length
         ? () => (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left">
@@ -284,12 +302,12 @@ export default function ProductDetail({ product: productProp = null, related: re
                   </tr>
                 </thead>
                 <tbody>
-                  {allSpecies.map((row) => {
+                  {uniqueSpecies.map((row) => {
                     const badge = row.availability ? AVAILABILITY_BADGE[row.availability] : null
                     return (
                       <tr key={row.name} className="border-b border-gray-100">
                         <td className="py-3 pr-3 font-sans text-sm text-tundora">{row.name}</td>
-                        <td className="py-3 px-3 font-mono text-xs text-gray-600">{row.partId || '—'}</td>
+                        <td className="py-3 px-3 font-mono text-xs text-gray-600">{row.partIds.length ? row.partIds.join(', ') : '—'}</td>
                         <td className="py-3 pl-3">
                           {badge ? (
                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>
