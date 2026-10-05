@@ -143,9 +143,8 @@ export default function Footer() {
             {/* Deliberately understated, and nofollow so it never invites
                 automated login attempts. */}
             <a
-              href="https://royalwoodshop-production.up.railway.app/admin"
-              rel="nofollow noopener"
-              target="_blank"
+              href="/admin/login"
+              rel="nofollow"
               aria-label="Staff login"
               className="inline-flex items-center gap-1.5 font-sans text-sm text-white/45 transition-colors hover:text-white"
             >
