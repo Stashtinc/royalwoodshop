@@ -45,7 +45,7 @@ const FlexSelect = ({ defaultValue }) => (
  * initialOther: [{ name, avail }, ...] for non-standard species
  * initialFlex:  availability key or null
  */
-export default function SpeciesPicker({ initialAvail = {}, initialOther = [], initialFlex = null }) {
+export default function SpeciesPicker({ initialAvail = {}, initialOther = [], initialFlex = null, initialPartIds = {} }) {
   const seed = initialOther.length ? initialOther.map((_, i) => i) : [0]
   const [rows, setRows] = useState(seed)
   const nextId = useRef(seed.length)
@@ -71,12 +71,21 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
           }
           const current = s in initialAvail ? (initialAvail[s] ?? '') : null
           return (
-            <label key={s} className="flex items-center justify-between gap-2">
-              <span className={`text-sm ${current !== null ? 'text-gray-800' : 'text-gray-400'}`}>
-                {s}
-              </span>
-              <AvailSelect name={`species:${s}`} defaultValue={current} />
-            </label>
+            <div key={s} className="flex flex-col gap-1">
+              <label className="flex items-center justify-between gap-2">
+                <span className={`text-sm ${current !== null ? 'text-gray-800' : 'text-gray-400'}`}>
+                  {s}
+                </span>
+                <AvailSelect name={`species:${s}`} defaultValue={current} />
+              </label>
+              <input
+                type="text"
+                name={`partId:${s}`}
+                defaultValue={initialPartIds[s] ?? ''}
+                placeholder="Part ID"
+                className="rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
+              />
+            </div>
           )
         })}
       </div>

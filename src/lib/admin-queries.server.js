@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path'
 import { and, asc, desc, eq, ilike, or, sql, inArray } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import {
-  products, categories, productCategories, attributes, attributeValues, productAttributes, productImages,
+  products, categories, productCategories, attributes, attributeValues, productAttributes, productImages, productPartIds,
 } from '../db/schema.js'
 
 const NAV_CATS_PATH = resolve(dirname(fileURLToPath(import.meta.url)), '../data/navCategories.json')
@@ -617,4 +617,34 @@ export async function bulkDeleteProducts(ids) {
     .from(productImages).where(inArray(productImages.productId, numIds))
   await db.delete(products).where(inArray(products.id, numIds))
   return imgs.map((i) => i.storageKey)
+}
+
+/** Gets part IDs for a product, returned as { [species]: partId } */
+export async function getProductPartIds(productId) {
+  const db = await getDb()
+  const rows = await db.select({ species: productPartIds.species, partId: productPartIds.partId })
+    .from(productPartIds).where(eq(productPartIds.productId, Number(productId)))
+  const result = {}
+  for (const { species, partId } of rows) {
+    result[species] = partId
+  }
+  return result
+}
+
+/** Saves part IDs for a product. Replaces all existing part IDs with the provided ones. */
+export async function saveProductPartIds(productId, partIdsBySpecies) {
+  const db = await getDb()
+  const productIdNum = Number(productId)
+
+  // Delete existing part IDs for this product
+  await db.delete(productPartIds).where(eq(productPartIds.productId, productIdNum))
+
+  // Insert new part IDs
+  for (const [species, partId] of Object.entries(partIdsBySpecies)) {
+    await db.insert(productPartIds).values({
+      productId: productIdNum,
+      species,
+      partId,
+    })
+  }
 }

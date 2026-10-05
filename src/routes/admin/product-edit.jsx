@@ -5,7 +5,7 @@ import { requireUser } from '../../lib/auth.server'
 import {
   getProduct, saveProduct, diffProduct, listImages, addImage, updateImage,
   removeImage, moveImage, listCategoriesWithSubs, listProductCategories,
-  saveProductCategories, deleteProduct, archiveProductsByIds,
+  saveProductCategories, deleteProduct, archiveProductsByIds, getProductPartIds, saveProductPartIds,
 } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
 import { saveUpload, deleteUpload, describeLimits } from '../../lib/uploads.server'
@@ -20,12 +20,13 @@ export async function loader({ request, params }) {
   await requireUser(request)
   const product = await getProduct(params.id)
   if (!product) throw new Response('Not found', { status: 404 })
-  const [images, categoryTree, linkedCategoryIds] = await Promise.all([
+  const [images, categoryTree, linkedCategoryIds, partIds] = await Promise.all([
     listImages(params.id),
     listCategoriesWithSubs(),
     listProductCategories(params.id),
+    getProductPartIds(params.id),
   ])
-  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds }
+  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds }
 }
 
 export async function action({ request, params }) {
@@ -199,6 +200,20 @@ export async function action({ request, params }) {
     await saveProductCategories(params.id, { primaryCategoryId, categoryIds })
   }
 
+  // Save part IDs for each species
+  const partIdsBySpecies = {}
+  for (const [key, value] of f.entries()) {
+    if (key.startsWith('partId:')) {
+      const speciesName = key.slice('partId:'.length)
+      if (value && String(value).trim()) {
+        partIdsBySpecies[speciesName] = String(value).trim()
+      }
+    }
+  }
+  if (Object.keys(partIdsBySpecies).length > 0) {
+    await saveProductPartIds(params.id, partIdsBySpecies)
+  }
+
   await syncProductsJson()
   return redirect(`/admin/products?saved=${params.id}&sortBy=updated&sortDir=desc`)
 }
@@ -327,7 +342,7 @@ function CategoriesSection() {
 
 
 export default function ProductEdit() {
-  const { product } = useLoaderData()
+  const { product, partIds } = useLoaderData()
   const data = useActionData()
   const nav = useNavigation()
   const saving = nav.state === 'submitting'
@@ -440,7 +455,7 @@ export default function ProductEdit() {
           <p className="-mt-2 text-xs text-gray-500">
             Set how each wood ships. The product's overall availability is derived automatically from these.
           </p>
-          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} initialFlex={product.flexAvailability} />
+          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} initialFlex={product.flexAvailability} initialPartIds={partIds} />
           <label className="flex flex-col gap-1.5"><Label>Lead time</Label>
             <input name="leadTime" defaultValue={product.leadTime ?? ''} placeholder="e.g. approximately 1 week" className={field} /></label>
         </section>
