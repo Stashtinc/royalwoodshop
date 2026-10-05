@@ -41,9 +41,38 @@ function InstagramIcon() {
   )
 }
 
+function PinterestIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M9 15c1-1.667 2-3 3.5-4.5M14.5 8.5c0 1.833-.5 3.667-1.5 5.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function HouzzIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M4 9l8-7 8 7v10a2 2 0 0 1-2 2h-3v-5h-6v5H6a2 2 0 0 1-2-2V9z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
+
 const socialLinks = [
-  { label: 'Facebook', href: 'https://www.facebook.com/', Icon: FacebookIcon },
-  { label: 'Instagram', href: 'https://www.instagram.com/', Icon: InstagramIcon },
+  { label: 'Facebook', href: 'https://www.facebook.com/theroyalwoodshop', Icon: FacebookIcon },
+  { label: 'Pinterest', href: 'https://www.pinterest.com/royalwoodshop', Icon: PinterestIcon },
+  { label: 'Instagram', href: 'https://www.instagram.com/royalwoodshop', Icon: InstagramIcon },
+  { label: 'Houzz', href: 'https://www.houzz.com/professionals/royalwoodshop', Icon: HouzzIcon },
 ]
 
 export default function Footer() {
