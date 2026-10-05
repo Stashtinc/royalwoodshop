@@ -5,7 +5,7 @@ import { requireUser } from '../../lib/auth.server'
 import {
   getProduct, saveProduct, diffProduct, listImages, addImage, updateImage,
   removeImage, moveImage, listCategoriesWithSubs, listProductCategories,
-  saveProductCategories, deleteProduct, archiveProductsByIds,
+  saveProductCategories, deleteProduct, archiveProductsByIds, getProductPartIds, saveProductPartIds,
 } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
 import { saveUpload, deleteUpload, describeLimits } from '../../lib/uploads.server'
@@ -25,7 +25,13 @@ export async function loader({ request, params }) {
     listCategoriesWithSubs(),
     listProductCategories(params.id),
   ])
-  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds }
+  let partIds = {}
+  try {
+    partIds = await getProductPartIds(params.id)
+  } catch (err) {
+    // Part IDs table may not exist yet, ignore error
+  }
+  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds }
 }
 
 export async function action({ request, params }) {
@@ -174,6 +180,22 @@ export async function action({ request, params }) {
 
   const changed = diffProduct(before, payload)
   await saveProduct(params.id, payload)
+
+  // Save part IDs for each species
+  const partIds = {}
+  for (const [key, value] of f.entries()) {
+    if (key.startsWith('partId:')) {
+      const species = key.slice('partId:'.length)
+      partIds[species] = String(value).trim()
+    }
+  }
+  if (Object.keys(partIds).length > 0) {
+    try {
+      await saveProductPartIds(params.id, partIds)
+    } catch (err) {
+      // Part IDs table may not exist yet, ignore error
+    }
+  }
 
   if (changed.length) {
     const statusChange = changed.find((c) => c.field === 'status')
@@ -327,7 +349,7 @@ function CategoriesSection() {
 
 
 export default function ProductEdit() {
-  const { product } = useLoaderData()
+  const { product, partIds } = useLoaderData()
   const data = useActionData()
   const nav = useNavigation()
   const saving = nav.state === 'submitting'
@@ -440,7 +462,7 @@ export default function ProductEdit() {
           <p className="-mt-2 text-xs text-gray-500">
             Set how each wood ships. The product's overall availability is derived automatically from these.
           </p>
-          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} initialFlex={product.flexAvailability} />
+          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} initialFlex={product.flexAvailability} initialPartIds={partIds} />
           <label className="flex flex-col gap-1.5"><Label>Lead time</Label>
             <input name="leadTime" defaultValue={product.leadTime ?? ''} placeholder="e.g. approximately 1 week" className={field} /></label>
         </section>
