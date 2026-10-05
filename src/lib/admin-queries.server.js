@@ -619,7 +619,7 @@ export async function bulkDeleteProducts(ids) {
   return imgs.map((i) => i.storageKey)
 }
 
-/** Gets part IDs and prices for a product, returned as { partIds: { [species]: partId }, prices: { [species]: price } } */
+/** Gets part IDs, prices and sale prices for a product */
 export async function getProductPartIds(productId) {
   const db = await getDb()
   try {
@@ -627,36 +627,42 @@ export async function getProductPartIds(productId) {
       species: productPartIds.species,
       partId: productPartIds.partId,
       price: productPartIds.price,
+      salePrice: productPartIds.salePrice,
     })
       .from(productPartIds).where(eq(productPartIds.productId, Number(productId)))
     const partIds = {}
     const prices = {}
-    for (const { species, partId, price } of rows) {
+    const salePrices = {}
+    for (const { species, partId, price, salePrice } of rows) {
       partIds[species] = partId
       if (price) prices[species] = price
+      if (salePrice) salePrices[species] = salePrice
     }
-    return { partIds, prices }
+    return { partIds, prices, salePrices }
   } catch (e) {
-    // Fallback if price column doesn't exist yet (migration not applied)
+    // Fallback if price columns don't exist yet (migration not applied)
     try {
       const rows = await db.select({
         species: productPartIds.species,
         partId: productPartIds.partId,
+        price: productPartIds.price,
       })
         .from(productPartIds).where(eq(productPartIds.productId, Number(productId)))
       const partIds = {}
-      for (const { species, partId } of rows) {
+      const prices = {}
+      for (const { species, partId, price } of rows) {
         partIds[species] = partId
+        if (price) prices[species] = price
       }
-      return { partIds, prices: {} }
+      return { partIds, prices, salePrices: {} }
     } catch {
-      return { partIds: {}, prices: {} }
+      return { partIds: {}, prices: {}, salePrices: {} }
     }
   }
 }
 
-/** Saves part IDs and prices for a product. Replaces all existing part IDs with the provided ones. */
-export async function saveProductPartIds(productId, partIdsBySpecies, pricesBySpecies = {}) {
+/** Saves part IDs, prices and sale prices for a product. Replaces all existing part IDs with the provided ones. */
+export async function saveProductPartIds(productId, partIdsBySpecies, pricesBySpecies = {}, salePricesBySpecies = {}) {
   const db = await getDb()
   const productIdNum = Number(productId)
 
@@ -670,6 +676,7 @@ export async function saveProductPartIds(productId, partIdsBySpecies, pricesBySp
       species,
       partId,
       price: pricesBySpecies[species] ?? null,
+      salePrice: salePricesBySpecies[species] ?? null,
     })
   }
 }

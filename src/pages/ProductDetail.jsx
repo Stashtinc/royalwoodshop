@@ -237,6 +237,10 @@ export default function ProductDetail({ product: productProp = null, related: re
     const match = partIds.find((p) => normalizeSpecies(p.species) === species)
     return match?.price ?? null
   }
+  const salePriceOf = (species) => {
+    const match = partIds.find((p) => normalizeSpecies(p.species) === species)
+    return match?.salePrice ?? null
+  }
   const otherPartIds = partIds.filter((p) => !listed.has(normalizeSpecies(p.species)))
 
   // Merge all species (from availability + those with part IDs only) into a single table
@@ -246,13 +250,15 @@ export default function ProductDetail({ product: productProp = null, related: re
       availability: s.availability,
       partIds: partIdsOf(s.name),
       price: priceOf(s.name),
+      salePrice: salePriceOf(s.name),
     })),
     ...Object.entries(
       otherPartIds.reduce((acc, p) => {
         const species = normalizeSpecies(p.species)
-        if (!acc[species]) acc[species] = { partIds: [], price: null }
+        if (!acc[species]) acc[species] = { partIds: [], price: null, salePrice: null }
         acc[species].partIds.push(p.partId)
         if (p.price) acc[species].price = p.price
+        if (p.salePrice) acc[species].salePrice = p.salePrice
         return acc
       }, {})
     ).map(([species, data]) => ({
@@ -260,6 +266,7 @@ export default function ProductDetail({ product: productProp = null, related: re
       availability: null,
       partIds: data.partIds,
       price: data.price,
+      salePrice: data.salePrice,
     })),
   ]
 
@@ -270,6 +277,7 @@ export default function ProductDetail({ product: productProp = null, related: re
     ...s,
     partIds: s.partIds || [],
     price: s.price || null,
+    salePrice: s.salePrice || null,
   }))
 
   const specs = [
@@ -301,8 +309,22 @@ export default function ProductDetail({ product: productProp = null, related: re
                       <tr key={row.name} className="border-b border-gray-100">
                         <td className="py-3 pr-3 font-sans text-sm text-tundora">{row.name}</td>
                         <td className="py-3 px-3 font-mono text-xs text-gray-600">{row.partIds.length ? row.partIds.join(', ') : '—'}</td>
-                        <td className="py-3 px-3 font-sans text-sm text-tundora">{row.price ? `$${Number(row.price).toFixed(2)}` : '—'}</td>
+                        <td className="py-3 px-3 font-sans text-sm">
+                          {row.salePrice ? (
+                            <span className="flex flex-col gap-0.5">
+                              <span className="font-semibold text-red-600">${Number(row.salePrice).toFixed(2)}</span>
+                              <span className="text-xs text-gray-400 line-through">${Number(row.price).toFixed(2)}</span>
+                            </span>
+                          ) : row.price ? (
+                            <span className="text-tundora">${Number(row.price).toFixed(2)}</span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
                         <td className="py-3 pl-3">
+                          {row.salePrice && (
+                            <span className="inline-flex items-center rounded-full bg-red-500 px-2 py-0.5 text-xs font-medium text-white mr-2">On Sale</span>
+                          )}
                           {badge ? (
                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>
                               {badge.label}

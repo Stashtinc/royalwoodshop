@@ -169,6 +169,7 @@ export const productPartIds = pgTable('product_part_ids', {
   species: varchar('species', { length: 60 }).notNull(),
   partId: varchar('part_id', { length: 80 }).notNull(),
   price: varchar('price', { length: 20 }),
+  salePrice: varchar('sale_price', { length: 20 }),
   name: varchar('name', { length: 200 }),
   uom: varchar('uom', { length: 20 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

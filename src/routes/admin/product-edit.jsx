@@ -21,7 +21,7 @@ export async function loader({ request, params }) {
   const product = await getProduct(params.id)
   if (!product) throw new Response('Not found', { status: 404 })
 
-  let partData = { partIds: {}, prices: {} }
+  let partData = { partIds: {}, prices: {}, salePrices: {} }
   try {
     partData = await getProductPartIds(params.id)
   } catch (e) {
@@ -33,7 +33,7 @@ export async function loader({ request, params }) {
     listCategoriesWithSubs(),
     listProductCategories(params.id),
   ])
-  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds: partData.partIds || {}, partPrices: partData.prices || {} }
+  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds: partData.partIds || {}, partPrices: partData.prices || {}, partSalePrices: partData.salePrices || {} }
 }
 
 export async function action({ request, params }) {
@@ -207,9 +207,10 @@ export async function action({ request, params }) {
     await saveProductCategories(params.id, { primaryCategoryId, categoryIds })
   }
 
-  // Save part IDs and prices for each species
+  // Save part IDs, prices and sale prices for each species
   const partIdsBySpecies = {}
   const pricesBySpecies = {}
+  const salePricesBySpecies = {}
   for (const [key, value] of f.entries()) {
     if (key.startsWith('partId:')) {
       const speciesName = key.slice('partId:'.length)
@@ -221,11 +222,16 @@ export async function action({ request, params }) {
       if (value && String(value).trim()) {
         pricesBySpecies[speciesName] = String(value).trim()
       }
+    } else if (key.startsWith('partSalePrice:')) {
+      const speciesName = key.slice('partSalePrice:'.length)
+      if (value && String(value).trim()) {
+        salePricesBySpecies[speciesName] = String(value).trim()
+      }
     }
   }
   if (Object.keys(partIdsBySpecies).length > 0) {
     try {
-      await saveProductPartIds(params.id, partIdsBySpecies, pricesBySpecies)
+      await saveProductPartIds(params.id, partIdsBySpecies, pricesBySpecies, salePricesBySpecies)
     } catch (e) {
       console.error('Failed to save part IDs:', e.message)
     }
@@ -359,7 +365,7 @@ function CategoriesSection() {
 
 
 export default function ProductEdit() {
-  const { product, partIds, partPrices } = useLoaderData()
+  const { product, partIds, partPrices, partSalePrices } = useLoaderData()
   const data = useActionData()
   const nav = useNavigation()
   const saving = nav.state === 'submitting'
@@ -472,7 +478,7 @@ export default function ProductEdit() {
           <p className="-mt-2 text-xs text-gray-500">
             Set how each wood ships. The product's overall availability is derived automatically from these.
           </p>
-          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} initialFlex={product.flexAvailability} initialPartIds={partIds} initialPartPrices={partPrices} />
+          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} initialFlex={product.flexAvailability} initialPartIds={partIds} initialPartPrices={partPrices} initialPartSalePrices={partSalePrices} />
           <label className="flex flex-col gap-1.5"><Label>Lead time</Label>
             <input name="leadTime" defaultValue={product.leadTime ?? ''} placeholder="e.g. approximately 1 week" className={field} /></label>
         </section>

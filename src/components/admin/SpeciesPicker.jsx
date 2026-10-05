@@ -45,7 +45,7 @@ const FlexSelect = ({ defaultValue }) => (
  * initialOther: [{ name, avail }, ...] for non-standard species
  * initialFlex:  availability key or null
  */
-export default function SpeciesPicker({ initialAvail = {}, initialOther = [], initialFlex = null, initialPartIds = {}, initialPartPrices = {} }) {
+export default function SpeciesPicker({ initialAvail = {}, initialOther = [], initialFlex = null, initialPartIds = {}, initialPartPrices = {}, initialPartSalePrices = {} }) {
   const seed = initialOther.length ? initialOther.map((_, i) => i) : [0]
   const [rows, setRows] = useState(seed)
   const nextId = useRef(seed.length)
@@ -78,22 +78,32 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
                 </span>
                 <AvailSelect name={`species:${s}`} defaultValue={current} />
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-1">
                 <input
                   type="text"
                   name={`partId:${s}`}
                   defaultValue={initialPartIds[s] ?? ''}
                   placeholder="Part ID"
-                  className="flex-1 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
+                  className="rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
                 />
-                <input
-                  type="text"
-                  name={`partPrice:${s}`}
-                  defaultValue={initialPartPrices[s] ?? ''}
-                  placeholder="Price"
-                  inputMode="decimal"
-                  className="w-24 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name={`partPrice:${s}`}
+                    defaultValue={initialPartPrices[s] ?? ''}
+                    placeholder="Price"
+                    inputMode="decimal"
+                    className="flex-1 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
+                  />
+                  <input
+                    type="text"
+                    name={`partSalePrice:${s}`}
+                    defaultValue={initialPartSalePrices[s] ?? ''}
+                    placeholder="Sale Price"
+                    inputMode="decimal"
+                    className="flex-1 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
+                  />
+                </div>
               </div>
             </div>
           )
