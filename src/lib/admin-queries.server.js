@@ -619,20 +619,26 @@ export async function bulkDeleteProducts(ids) {
   return imgs.map((i) => i.storageKey)
 }
 
-/** Gets part IDs for a product, returned as { [species]: partId } */
+/** Gets part IDs and prices for a product, returned as { partIds: { [species]: partId }, prices: { [species]: price } } */
 export async function getProductPartIds(productId) {
   const db = await getDb()
-  const rows = await db.select({ species: productPartIds.species, partId: productPartIds.partId })
+  const rows = await db.select({
+    species: productPartIds.species,
+    partId: productPartIds.partId,
+    price: productPartIds.price,
+  })
     .from(productPartIds).where(eq(productPartIds.productId, Number(productId)))
-  const result = {}
-  for (const { species, partId } of rows) {
-    result[species] = partId
+  const partIds = {}
+  const prices = {}
+  for (const { species, partId, price } of rows) {
+    partIds[species] = partId
+    if (price) prices[species] = price
   }
-  return result
+  return { partIds, prices }
 }
 
-/** Saves part IDs for a product. Replaces all existing part IDs with the provided ones. */
-export async function saveProductPartIds(productId, partIdsBySpecies) {
+/** Saves part IDs and prices for a product. Replaces all existing part IDs with the provided ones. */
+export async function saveProductPartIds(productId, partIdsBySpecies, pricesBySpecies = {}) {
   const db = await getDb()
   const productIdNum = Number(productId)
 
@@ -645,6 +651,7 @@ export async function saveProductPartIds(productId, partIdsBySpecies) {
       productId: productIdNum,
       species,
       partId,
+      price: pricesBySpecies[species] ?? null,
     })
   }
 }

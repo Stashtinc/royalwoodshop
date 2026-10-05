@@ -20,13 +20,13 @@ export async function loader({ request, params }) {
   await requireUser(request)
   const product = await getProduct(params.id)
   if (!product) throw new Response('Not found', { status: 404 })
-  const [images, categoryTree, linkedCategoryIds, partIds] = await Promise.all([
+  const [images, categoryTree, linkedCategoryIds, partData] = await Promise.all([
     listImages(params.id),
     listCategoriesWithSubs(),
     listProductCategories(params.id),
     getProductPartIds(params.id),
   ])
-  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds }
+  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds: partData.partIds, partPrices: partData.prices }
 }
 
 export async function action({ request, params }) {
@@ -200,18 +200,24 @@ export async function action({ request, params }) {
     await saveProductCategories(params.id, { primaryCategoryId, categoryIds })
   }
 
-  // Save part IDs for each species
+  // Save part IDs and prices for each species
   const partIdsBySpecies = {}
+  const pricesBySpecies = {}
   for (const [key, value] of f.entries()) {
     if (key.startsWith('partId:')) {
       const speciesName = key.slice('partId:'.length)
       if (value && String(value).trim()) {
         partIdsBySpecies[speciesName] = String(value).trim()
       }
+    } else if (key.startsWith('partPrice:')) {
+      const speciesName = key.slice('partPrice:'.length)
+      if (value && String(value).trim()) {
+        pricesBySpecies[speciesName] = String(value).trim()
+      }
     }
   }
   if (Object.keys(partIdsBySpecies).length > 0) {
-    await saveProductPartIds(params.id, partIdsBySpecies)
+    await saveProductPartIds(params.id, partIdsBySpecies, pricesBySpecies)
   }
 
   await syncProductsJson()
@@ -342,7 +348,7 @@ function CategoriesSection() {
 
 
 export default function ProductEdit() {
-  const { product, partIds } = useLoaderData()
+  const { product, partIds, partPrices } = useLoaderData()
   const data = useActionData()
   const nav = useNavigation()
   const saving = nav.state === 'submitting'
@@ -455,7 +461,7 @@ export default function ProductEdit() {
           <p className="-mt-2 text-xs text-gray-500">
             Set how each wood ships. The product's overall availability is derived automatically from these.
           </p>
-          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} initialFlex={product.flexAvailability} initialPartIds={partIds} />
+          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} initialFlex={product.flexAvailability} initialPartIds={partIds} initialPartPrices={partPrices} />
           <label className="flex flex-col gap-1.5"><Label>Lead time</Label>
             <input name="leadTime" defaultValue={product.leadTime ?? ''} placeholder="e.g. approximately 1 week" className={field} /></label>
         </section>
