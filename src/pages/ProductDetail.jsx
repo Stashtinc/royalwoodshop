@@ -229,19 +229,11 @@ export default function ProductDetail({ product: productProp = null, related: re
 
   const partIds = product.partIds ?? []
   const normalizeSpecies = (s) => s === 'White Pine' ? 'Clear Pine' : s
-  const reassignPartIdSpecies = (partId, species) => {
-    // Reassign part IDs to correct species based on their codes
-    if (partId.includes('-FJ-PRIMED')) {
-      if (species === 'Poplar') return 'FJ Primed Poplar'
-      if (species === 'Pine') return 'FJ Primed Pine'
-    }
-    return species
-  }
   const listed = new Set((product.speciesAvailability ?? []).map((s) => s.name))
   const partIdsOf = (species) => partIds
-    .filter((p) => reassignPartIdSpecies(p.partId, normalizeSpecies(p.species)) === species)
+    .filter((p) => normalizeSpecies(p.species) === species)
     .map((p) => p.partId)
-  const otherPartIds = partIds.filter((p) => !listed.has(reassignPartIdSpecies(p.partId, normalizeSpecies(p.species))))
+  const otherPartIds = partIds.filter((p) => !listed.has(normalizeSpecies(p.species)))
 
   // Merge all species (from availability + those with part IDs only) into a single table
   const allSpecies = [
@@ -252,9 +244,9 @@ export default function ProductDetail({ product: productProp = null, related: re
     })),
     ...Object.entries(
       otherPartIds.reduce((acc, p) => {
-        const reassigned = reassignPartIdSpecies(p.partId, normalizeSpecies(p.species))
-        if (!acc[reassigned]) acc[reassigned] = []
-        acc[reassigned].push(p.partId)
+        const species = normalizeSpecies(p.species)
+        if (!acc[species]) acc[species] = []
+        acc[species].push(p.partId)
         return acc
       }, {})
     ).map(([species, partIdList]) => ({
