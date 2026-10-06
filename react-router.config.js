@@ -16,7 +16,11 @@ async function catalogue() {
   const schema = await import('./src/db/schema.js')
   let client, db
   try {
-    if (url) {
+    if (globalThis.__rwsDb) {
+      // The dev server reloads this config while its own database is open; a
+      // second PGlite on .data/pg aborts and can corrupt it, so share that one.
+      db = await globalThis.__rwsDb
+    } else if (url) {
       client = (await import('postgres')).default(url, { prepare: false, max: 1 })
       db = (await import('drizzle-orm/postgres-js')).drizzle(client, { schema })
     } else {

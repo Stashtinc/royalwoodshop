@@ -6,7 +6,7 @@ import { UPLOAD_DIR, UPLOAD_DIRS, mediaFile, saveMediaUpload } from '../../lib/u
 const PAGE_SIZE = 60
 /** Responsive copies saved next to each image: the current widths (see
  *  lib/images.js) plus 400 and 800 from the original migration. */
-const VARIANT_WIDTHS = [320, 400, 640, 800, 960, 1440]
+const VARIANT_WIDTHS = [320, 400, 640, 800, 960, 1200, 1440]
 const VARIANT_RE = new RegExp(`-(${VARIANT_WIDTHS.join('|')})\\.(webp|jpe?g|png)$`, 'i')
 
 /* ---------------------------------------------------------------- loader -- */

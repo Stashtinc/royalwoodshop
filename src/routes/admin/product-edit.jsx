@@ -10,6 +10,7 @@ import {
 import { log } from '../../lib/activity.server'
 import { saveUpload, deleteUpload, describeLimits } from '../../lib/uploads.server'
 import { syncProductsJson } from '../../lib/sync.server'
+import MediaPicker from '../../components/admin/MediaPicker'
 import ImageDropZone from '../../components/admin/ImageDropZone'
 import CategoryPicker from '../../components/admin/CategoryPicker'
 import SpeciesPicker, { readSpeciesAvail } from '../../components/admin/SpeciesPicker'
@@ -68,6 +69,33 @@ export async function action({ request, params }) {
     return errors.length
       ? { error: errors.join(' '), saved: added ? `${added} added.` : undefined }
       : { saved: `${added} image${added === 1 ? '' : 's'} added.` }
+  }
+
+  if (intent === 'attach-media') {
+    const { existsSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const sharp = (await import('sharp')).default
+    const { UPLOAD_DIRS, mediaFile } = await import('../../lib/uploads.server')
+    const product = await getProduct(params.id)
+    let added = 0
+    for (const path of f.getAll('path').map(String)) {
+      const rest = path.match(/^\/uploads\/((?:panelling\/)?[^/]+)$/)?.[1]
+      const file = rest && UPLOAD_DIRS.map((d) => join(d, rest)).find((x) => mediaFile(x) && existsSync(x))
+      if (!file) continue
+      const meta = await sharp(file).metadata().catch(() => ({}))
+      await addImage(params.id, {
+        storageKey: path, width: meta.width ?? null, height: meta.height ?? null,
+        altText: `${product?.name ?? 'Product'} photo`,
+      })
+      added++
+    }
+    if (!added) return { error: 'None of those images could be found.' }
+    await log(user, 'image.added', {
+      entityType: 'product', entityId: params.id, entityLabel: product?.name,
+      details: { count: added, from: 'media library' },
+    })
+    await syncProductsJson()
+    return { saved: `${added} image${added === 1 ? '' : 's'} added from the Media library.` }
   }
 
   if (intent === 'image-alt') {
@@ -339,6 +367,7 @@ function ImagesSection() {
           hint={`JPG, PNG, WebP or AVIF · up to ${limits.maxMb} MB each · several at once`}
         />
       </Form>
+      <MediaPicker />
     </section>
   )
 }
