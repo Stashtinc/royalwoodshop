@@ -7,6 +7,7 @@ export const SPECIES = [
   'Poplar', 'FJ Primed Poplar', 'FJ Primed Pine', 'Clear Pine', 'Knotty Pine',
   'Primed MDF', 'White Oak', 'Red Oak', 'Hard Maple', 'Black Walnut', 'Mahogany',
   'Douglas Fir', 'Western Red Cedar', 'PVC', 'Steel', 'Plastic',
+  'Hollow Core', 'Solid Core', 'Solid Stile & Rail',
 ]
 
 export const AVAILABILITY = [
