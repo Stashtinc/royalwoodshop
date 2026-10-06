@@ -15,7 +15,6 @@ import * as schema from '../db/schema.js'
  *
  * `.server.js` keeps this out of the browser bundle.
  */
-let instance = null
 
 /**
  * Applies any migration in drizzle/ that has not run yet, recording each in
@@ -65,9 +64,17 @@ async function ensureSchema(db) {
   }
 }
 
-export async function getDb() {
-  if (instance) return instance
+// On globalThis, not a module variable: the dev server re-runs this module on
+// every server reload (each save rewrites products.json), and a second PGlite
+// on the same folder aborts and can corrupt it. Caching the promise also keeps
+// concurrent first requests on one instance.
+export function getDb() {
+  globalThis.__rwsDb ??= openDb().catch((e) => { globalThis.__rwsDb = null; throw e })
+  return globalThis.__rwsDb
+}
 
+async function openDb() {
+  let instance
   const url = process.env.DATABASE_URL
   if (url) {
     const postgres = (await import('postgres')).default

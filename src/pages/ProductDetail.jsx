@@ -231,14 +231,14 @@ export default function ProductDetail({ product: productProp = null, related: re
   const normalizeSpecies = (s) => s === 'White Pine' ? 'Clear Pine' : s
   const listed = new Set((product.speciesAvailability ?? []).map((s) => s.name))
   const partIdsOf = (species) => partIds
-    .filter((p) => normalizeSpecies(p.species) === species)
+    .filter((p) => normalizeSpecies(p.species) === species && p.partId)
     .map((p) => p.partId)
   const priceOf = (species) => {
-    const match = partIds.find((p) => normalizeSpecies(p.species) === species)
+    const match = partIds.find((p) => normalizeSpecies(p.species) === species && p.price)
     return match?.price ?? null
   }
   const salePriceOf = (species) => {
-    const match = partIds.find((p) => normalizeSpecies(p.species) === species)
+    const match = partIds.find((p) => normalizeSpecies(p.species) === species && p.salePrice)
     return match?.salePrice ?? null
   }
   const otherPartIds = partIds.filter((p) => !listed.has(normalizeSpecies(p.species)))
@@ -256,7 +256,7 @@ export default function ProductDetail({ product: productProp = null, related: re
       otherPartIds.reduce((acc, p) => {
         const species = normalizeSpecies(p.species)
         if (!acc[species]) acc[species] = { partIds: [], price: null, salePrice: null }
-        acc[species].partIds.push(p.partId)
+        if (p.partId) acc[species].partIds.push(p.partId)
         if (p.price) acc[species].price = p.price
         if (p.salePrice) acc[species].salePrice = p.salePrice
         return acc
@@ -313,7 +313,7 @@ export default function ProductDetail({ product: productProp = null, related: re
                           {row.salePrice ? (
                             <span className="flex flex-col gap-0.5">
                               <span className="font-semibold text-red-600">${Number(row.salePrice).toFixed(2)}</span>
-                              <span className="text-xs text-gray-400 line-through">${Number(row.price).toFixed(2)}</span>
+                              {row.price && <span className="text-xs text-gray-400 line-through">${Number(row.price).toFixed(2)}</span>}
                             </span>
                           ) : row.price ? (
                             <span className="text-tundora">${Number(row.price).toFixed(2)}</span>
@@ -343,7 +343,7 @@ export default function ProductDetail({ product: productProp = null, related: re
         : null,
     },
     { label: 'Lead time', value: product.leadTime ?? null },
-  ].filter((s) => s.value)
+  ].filter((s) => s.value || s.render)
 
   return (
     <div className="w-full bg-[#fbfbfb]">

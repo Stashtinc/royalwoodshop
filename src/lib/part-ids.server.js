@@ -1,8 +1,8 @@
 import { parse } from 'csv-parse/sync'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, or } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import {
-  products, attributes, attributeValues, productAttributes,
+  products, attributes, attributeValues, productAttributes, productPartIds,
 } from '../db/schema.js'
 import { SPECIES } from './catalogue-constants.js'
 import { canon } from './species-import.server.js'
@@ -130,7 +130,7 @@ export async function analysePartIds(sheetRows) {
   const current = await db.select({
     partId: productPartIds.partId, productId: productPartIds.productId,
     species: productPartIds.species, name: productPartIds.name, uom: productPartIds.uom,
-  }).from(productPartIds)
+  }).from(productPartIds).where(isNotNull(productPartIds.partId))
   return matchPartIds(sheetRows, { productRows, tickRows, current })
 }
 
@@ -200,25 +200,55 @@ export function matchPartIds(sheetRows, { productRows, tickRows, current }) {
   }
 }
 
-/** Replaces every stored Part ID with the matched rows, in one transaction. */
+/**
+ * Replaces every stored Part ID with the matched rows, in one transaction.
+ * Prices are set in the admin, not the sheet, so they carry over by
+ * product + species; a priced material the sheet has no Part ID for keeps
+ * its price on a row without one.
+ */
 export async function applyPartIds(matched) {
   const db = await getDb()
   await db.transaction(async (tx) => {
+    const priced = await tx.select({
+      productId: productPartIds.productId, species: productPartIds.species,
+      price: productPartIds.price, salePrice: productPartIds.salePrice,
+    }).from(productPartIds)
+      .where(or(isNotNull(productPartIds.price), isNotNull(productPartIds.salePrice)))
+      .orderBy(asc(productPartIds.id))
+    const priceOf = new Map()
+    for (const p of priced) {
+      const key = `${p.productId}|${p.species}`
+      if (!priceOf.has(key)) priceOf.set(key, p)
+    }
+
     await tx.delete(productPartIds)
-    for (let i = 0; i < matched.length; i += 200) {
-      await tx.insert(productPartIds).values(matched.slice(i, i + 200).map((m) => ({
+    const covered = new Set()
+    const rows = matched.map((m) => {
+      const key = `${m.productId}|${m.species}`
+      covered.add(key)
+      const p = priceOf.get(key)
+      return {
         productId: m.productId, species: m.species, partId: m.partId, name: m.name, uom: m.uom,
-      })))
+        price: p?.price ?? null, salePrice: p?.salePrice ?? null,
+      }
+    })
+    for (const [key, p] of priceOf) {
+      if (!covered.has(key)) rows.push({ productId: p.productId, species: p.species, partId: null, price: p.price, salePrice: p.salePrice })
+    }
+    for (let i = 0; i < rows.length; i += 200) {
+      await tx.insert(productPartIds).values(rows.slice(i, i + 200))
     }
   })
   return { stored: matched.length }
 }
 
-/** A product's Part IDs, grouped by species in the site's species order. */
+/** A product's Part IDs and prices, grouped by species in the site's species order. */
 export async function partIdsForProduct(productId) {
   const db = await getDb()
-  const rows = await db.select({ species: productPartIds.species, partId: productPartIds.partId })
-    .from(productPartIds).where(eq(productPartIds.productId, productId))
+  const rows = await db.select({
+    species: productPartIds.species, partId: productPartIds.partId,
+    price: productPartIds.price, salePrice: productPartIds.salePrice,
+  }).from(productPartIds).where(eq(productPartIds.productId, productId))
   const order = (s) => { const i = SPECIES.indexOf(s); return i === -1 ? (s === FLEX ? 900 : 999) : i }
-  return rows.sort((a, b) => order(a.species) - order(b.species) || a.partId.localeCompare(b.partId))
+  return rows.sort((a, b) => order(a.species) - order(b.species) || (a.partId ?? '').localeCompare(b.partId ?? ''))
 }

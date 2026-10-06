@@ -81,7 +81,7 @@ export async function skuRows(db) {
   const parts = await db.select({
     productId: productPartIds.productId, species: productPartIds.species,
     partId: productPartIds.partId, uom: productPartIds.uom,
-  }).from(productPartIds).where(inArray(productPartIds.productId, ids))
+  }).from(productPartIds).where(and(inArray(productPartIds.productId, ids), isNotNull(productPartIds.partId)))
   const partsOf = new Map()
   for (const p of parts) {
     if (!partsOf.has(p.productId)) partsOf.set(p.productId, [])

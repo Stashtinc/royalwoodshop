@@ -167,7 +167,7 @@ export const productPartIds = pgTable('product_part_ids', {
   id: serial('id').primaryKey(),
   productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
   species: varchar('species', { length: 60 }).notNull(),
-  partId: varchar('part_id', { length: 80 }).notNull(),
+  partId: varchar('part_id', { length: 80 }),
   price: varchar('price', { length: 20 }),
   salePrice: varchar('sale_price', { length: 20 }),
   name: varchar('name', { length: 200 }),

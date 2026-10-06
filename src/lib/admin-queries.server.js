@@ -622,61 +622,48 @@ export async function bulkDeleteProducts(ids) {
 /** Gets part IDs, prices and sale prices for a product */
 export async function getProductPartIds(productId) {
   const db = await getDb()
-  try {
-    const rows = await db.select({
-      species: productPartIds.species,
-      partId: productPartIds.partId,
-      price: productPartIds.price,
-      salePrice: productPartIds.salePrice,
-    })
-      .from(productPartIds).where(eq(productPartIds.productId, Number(productId)))
-    const partIds = {}
-    const prices = {}
-    const salePrices = {}
-    for (const { species, partId, price, salePrice } of rows) {
-      partIds[species] = partId
-      if (price) prices[species] = price
-      if (salePrice) salePrices[species] = salePrice
-    }
-    return { partIds, prices, salePrices }
-  } catch (e) {
-    // Fallback if price columns don't exist yet (migration not applied)
-    try {
-      const rows = await db.select({
-        species: productPartIds.species,
-        partId: productPartIds.partId,
-        price: productPartIds.price,
-      })
-        .from(productPartIds).where(eq(productPartIds.productId, Number(productId)))
-      const partIds = {}
-      const prices = {}
-      for (const { species, partId, price } of rows) {
-        partIds[species] = partId
-        if (price) prices[species] = price
-      }
-      return { partIds, prices, salePrices: {} }
-    } catch {
-      return { partIds: {}, prices: {}, salePrices: {} }
-    }
+  const rows = await db.select({
+    species: productPartIds.species,
+    partId: productPartIds.partId,
+    price: productPartIds.price,
+    salePrice: productPartIds.salePrice,
+  })
+    .from(productPartIds).where(eq(productPartIds.productId, Number(productId)))
+    .orderBy(asc(productPartIds.id))
+  const partIds = {}
+  const prices = {}
+  const salePrices = {}
+  // The editor has one box per species; a species with several Part IDs shows its first.
+  for (const { species, partId, price, salePrice } of rows) {
+    if (species in partIds) continue
+    partIds[species] = partId ?? ''
+    if (price) prices[species] = price
+    if (salePrice) salePrices[species] = salePrice
   }
+  return { partIds, prices, salePrices }
 }
 
-/** Saves part IDs, prices and sale prices for a product. Replaces all existing part IDs with the provided ones. */
-export async function saveProductPartIds(productId, partIdsBySpecies, pricesBySpecies = {}, salePricesBySpecies = {}) {
+/**
+ * Saves the editor's Part ID, price and sale price per species:
+ * entries = { [species]: { partId, price, salePrice } }, blanks as null.
+ * Only each species' first row is touched, so extra Part IDs (Flex lengths,
+ * species without a box) stay as the import left them.
+ */
+export async function saveProductPartIds(productId, entries) {
   const db = await getDb()
-  const productIdNum = Number(productId)
+  const pid = Number(productId)
+  const existing = await db.select({ id: productPartIds.id, species: productPartIds.species })
+    .from(productPartIds).where(eq(productPartIds.productId, pid)).orderBy(asc(productPartIds.id))
+  const firstRow = new Map()
+  for (const r of existing) if (!firstRow.has(r.species)) firstRow.set(r.species, r.id)
 
-  // Delete existing part IDs for this product
-  await db.delete(productPartIds).where(eq(productPartIds.productId, productIdNum))
-
-  // Insert new part IDs
-  for (const [species, partId] of Object.entries(partIdsBySpecies)) {
-    await db.insert(productPartIds).values({
-      productId: productIdNum,
-      species,
-      partId,
-      price: pricesBySpecies[species] ?? null,
-      salePrice: salePricesBySpecies[species] ?? null,
-    })
-  }
+  await db.transaction(async (tx) => {
+    for (const [species, { partId, price, salePrice }] of Object.entries(entries)) {
+      const id = firstRow.get(species)
+      const empty = !partId && !price && !salePrice
+      if (id && empty) await tx.delete(productPartIds).where(eq(productPartIds.id, id))
+      else if (id) await tx.update(productPartIds).set({ partId, price, salePrice }).where(eq(productPartIds.id, id))
+      else if (!empty) await tx.insert(productPartIds).values({ productId: pid, species, partId, price, salePrice })
+    }
+  })
 }

@@ -159,6 +159,23 @@ export async function action({ request, params }) {
 
   const { species, speciesAvail, flexAvailability } = readSpeciesAvail(f)
 
+  // Part ID, price and sale price per wood, from SpeciesPicker
+  const partEntries = {}
+  const text = (k) => String(f.get(k) ?? '').trim() || null
+  const money = (k) => text(k)?.replace(/[$,\s]/g, '') || null
+  for (const key of f.keys()) {
+    if (!key.startsWith('partId:')) continue
+    const wood = key.slice('partId:'.length)
+    partEntries[wood] = {
+      partId: text(key)?.toUpperCase() ?? null,
+      price: money(`partPrice:${wood}`),
+      salePrice: money(`partSalePrice:${wood}`),
+    }
+  }
+  const badPrice = Object.entries(partEntries).find(([, e]) =>
+    [e.price, e.salePrice].some((v) => v != null && !/^\d+(\.\d{1,2})?$/.test(v)))
+  if (badPrice) return { error: `${badPrice[0]}: prices must be numbers, like 12.50.` }
+
   const before = await getProduct(params.id)
   const payload = {
     name,
@@ -171,8 +188,8 @@ export async function action({ request, params }) {
     availability: before.availability,  // preserved; overwritten by saveProduct if species set
     leadTime: String(f.get('leadTime') ?? '').trim(),
     flexAvailability,
-    price: num(f.get('price')),
-    salePrice: num(f.get('salePrice')),
+    price: f.has('price') ? num(f.get('price')) : before.price,
+    salePrice: f.has('salePrice') ? num(f.get('salePrice')) : before.salePrice,
     status: ['draft', 'published', 'archived'].includes(String(f.get('status'))) ? String(f.get('status')) : 'draft',
     seoTitle: String(f.get('seoTitle') ?? '').trim(),
     seoDescription: String(f.get('seoDescription') ?? '').trim(),
@@ -207,34 +224,13 @@ export async function action({ request, params }) {
     await saveProductCategories(params.id, { primaryCategoryId, categoryIds })
   }
 
-  // Save part IDs, prices and sale prices for each species
-  const partIdsBySpecies = {}
-  const pricesBySpecies = {}
-  const salePricesBySpecies = {}
-  for (const [key, value] of f.entries()) {
-    if (key.startsWith('partId:')) {
-      const speciesName = key.slice('partId:'.length)
-      if (value && String(value).trim()) {
-        partIdsBySpecies[speciesName] = String(value).trim()
-      }
-    } else if (key.startsWith('partPrice:')) {
-      const speciesName = key.slice('partPrice:'.length)
-      if (value && String(value).trim()) {
-        pricesBySpecies[speciesName] = String(value).trim()
-      }
-    } else if (key.startsWith('partSalePrice:')) {
-      const speciesName = key.slice('partSalePrice:'.length)
-      if (value && String(value).trim()) {
-        salePricesBySpecies[speciesName] = String(value).trim()
-      }
+  try {
+    await saveProductPartIds(params.id, partEntries)
+  } catch (e) {
+    if (/product_part_ids_part_id_idx|duplicate key/.test(e.cause?.message ?? e.message)) {
+      return { error: 'One of those Part IDs is already used on another product.' }
     }
-  }
-  if (Object.keys(partIdsBySpecies).length > 0) {
-    try {
-      await saveProductPartIds(params.id, partIdsBySpecies, pricesBySpecies, salePricesBySpecies)
-    } catch (e) {
-      console.error('Failed to save part IDs:', e.message)
-    }
+    throw e
   }
 
   await syncProductsJson()
