@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNotNull, ne } from 'drizzle-orm'
 import {
   products, categories, productCategories, attributes, attributeValues,
-  productAttributes, productImages,
+  productAttributes, productImages, productPartIds,
 } from '../db/schema.js'
 import { SPECIES } from './catalogue-constants.js'
 import { canon } from './species-import.server.js'

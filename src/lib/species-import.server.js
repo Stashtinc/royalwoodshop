@@ -461,8 +461,6 @@ export async function analyse(rows, { layout = 'species' } = {}) {
       currentSubsById.get(row.productId).push(`${row.parentSlug}::${row.name}`)
     }
   }
-  const sameSubs = (a, b) =>
-    [...a].sort().join('|') === [...b].sort().join('|')
 
   const currentSpeciesById = new Map()
   for (const row of currentAttrs) {
@@ -607,8 +605,9 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     }
     const wantedPlacements = (p.placements ?? [])
       .map((x) => `${categorySlug(x.category) ?? product.categorySlug}::${x.sub}`)
-    const subsWouldChange = wantedPlacements.length > 0
-      && !sameSubs(wantedPlacements, currentSubsById.get(product.id) ?? [])
+    // Sub-categories are only ever added: the sheet cannot undo placements made in the admin.
+    const haveSubs = new Set((currentSubsById.get(product.id) ?? []).map((x) => x.toLowerCase()))
+    const subsWouldChange = wantedPlacements.some((x) => !haveSubs.has(x.toLowerCase()))
 
     const present = p.imageFiles
     const imagesWouldChange = present.length > 0
@@ -905,9 +904,9 @@ export async function apply(rows, overrides = {}, options = {}) {
         imaged++
       }
 
-      // Placements are facets, not addresses — rewritten whenever the sheet
-      // names any. Each sub is created under ITS OWN category, so a product in
-      // two categories files correctly under both. The address does not move.
+      // Placements are facets, not addresses. Each sub is created under ITS OWN
+      // category, so a product in two categories files correctly under both.
+      // The address does not move.
       if (p.placements?.length) {
         const wantedIds = []
         for (const { category, sub } of p.placements) {
@@ -929,18 +928,9 @@ export async function apply(rows, overrides = {}, options = {}) {
         }
         if (parentId) wantedIds.push(parentId)
 
-        const keep = new Set(wantedIds)
-        const existing = await db.select({ categoryId: productCategories.categoryId })
-          .from(productCategories).where(eq(productCategories.productId, product.id))
-        for (const row of existing) {
-          if (!keep.has(row.categoryId)) {
-            await db.delete(productCategories).where(and(
-              eq(productCategories.productId, product.id),
-              eq(productCategories.categoryId, row.categoryId),
-            ))
-          }
-        }
-        for (const cid of keep) {
+        // Added only, never removed: sub-categories set in the admin survive an
+        // import of a sheet that predates them. Take one off in the admin.
+        for (const cid of new Set(wantedIds)) {
           await db.insert(productCategories)
             .values({ productId: product.id, categoryId: cid }).onConflictDoNothing()
         }
