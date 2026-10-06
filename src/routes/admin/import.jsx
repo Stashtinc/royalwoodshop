@@ -24,6 +24,7 @@ async function readImport(buffer, fileName) {
     const { masterRows, partRows, conflicts, products } = skuRowsToMaster(sku.rows)
     return {
       rows: masterRows, layout: 'master', sheetName: sku.sheetName, skipped: 0, missingColumns: [],
+      downloadedAt: sku.downloadedAt,
       skuRows: sku.rows.length, skuProducts: products, conflicts, partRows,
     }
   }
@@ -71,7 +72,7 @@ export async function action({ request }) {
     }
 
     let summary
-    try { ({ summary } = await analyse(parsedSheet.rows, { layout: parsedSheet.layout })) }
+    try { ({ summary } = await analyse(parsedSheet.rows, { layout: parsedSheet.layout, downloadedAt: parsedSheet.downloadedAt })) }
     catch (e) { return { error: `Analysis failed: ${e.message}` } }
     if (parsedSheet.partRows?.length) {
       try { partIds = (await analysePartIds(parsedSheet.partRows)).summary }
@@ -395,6 +396,7 @@ export default function Import() {
   const [editingCode, setEditingCode] = useState(null)
   const [archiveMissing, setArchiveMissing] = useState(false)
   const [moveCategories, setMoveCategories] = useState(false)
+  const [overwriteOk, setOverwriteOk] = useState(false)
   const [fileName, setFileName] = useState('')
   const fileRef = useRef(null)
 
@@ -473,6 +475,35 @@ export default function Import() {
               tone="warn"
               items={data.sku.conflicts.map((c) => `${c.code} · ${c.field}: ${c.values.join(' / ')}`)}
             />
+          )}
+          {s.stale?.length > 0 && (
+            <div className="rounded-lg border-2 border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
+              <p className="font-semibold">
+                This sheet is out of date. It was downloaded on {new Date(s.downloadedAt).toLocaleString('en-CA')}, and{' '}
+                {s.stale.length} product{s.stale.length === 1 ? ' has' : 's have'} been changed on the website since.
+                Importing it will undo those changes:
+              </p>
+              <ul className="mt-2 max-h-48 overflow-y-auto text-xs">
+                {s.stale.map((x) => (
+                  <li key={x.code} className="py-0.5">
+                    <span className="font-mono">{x.code}</span> {x.name}
+                    <span className="text-red-700"> — edited {new Date(x.at).toLocaleString('en-CA')}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs">Safer: Download Master again, make your changes in that copy, and import it.</p>
+              <label className="mt-2 flex cursor-pointer items-start gap-2 text-xs">
+                <input type="checkbox" checked={overwriteOk} onChange={(e) => setOverwriteOk(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5 rounded accent-red-600" />
+                <span>Import anyway and overwrite those website changes.</span>
+              </label>
+            </div>
+          )}
+          {data.layout === 'master' && !s.downloadedAt && (
+            <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              This sheet was not made with Download Master, so it cannot be checked against edits made on
+              the website since. If anyone has edited products in the admin, Download Master and work from that copy.
+            </p>
           )}
           {data.partIds && <PartIdsReport p={data.partIds} />}
 
@@ -581,7 +612,7 @@ export default function Import() {
               <p className="border-b border-gray-100 bg-gray-50 px-4 py-2 text-xs tracking-wide text-gray-600 uppercase">
                 {s.willSetFields} product{s.willSetFields === 1 ? '' : 's'} change on fields other than species
                 <span className="ml-2 normal-case font-normal text-gray-400">
-                  — a blank cell in the sheet never clears what is already there
+                  — an empty cell clears that field on the website
                 </span>
               </p>
               <ul className="max-h-72 overflow-y-auto">
@@ -594,7 +625,7 @@ export default function Import() {
                         <li key={field}>
                           <span className="font-medium">{field}</span>:{' '}
                           <span className="text-gray-400 line-through">{String(v.from ?? '—').slice(0, 60)}</span>{' '}
-                          → <span className="text-royal-blue">{String(v.to).slice(0, 60)}</span>
+                          → <span className="text-royal-blue">{v.to == null ? "(cleared)" : String(v.to).slice(0, 60)}</span>
                         </li>
                       ))}
                     </ul>
@@ -788,7 +819,7 @@ export default function Import() {
               {(() => {
                 const total = s.willChange + s.willCreate.length
                 return (
-                  <button disabled={busy || (total === 0 && !s.removed?.length)}
+                  <button disabled={busy || (total === 0 && !s.removed?.length) || (s.stale?.length > 0 && !overwriteOk)}
                     className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
                     {busy ? 'Applying…' : total === 0 && !s.removed?.length ? 'Nothing to apply'
                       : `Apply — update ${s.willChange}, create ${s.willCreate.length}${s.removed?.length ? `, archive ${s.removed.length}` : ''}`}

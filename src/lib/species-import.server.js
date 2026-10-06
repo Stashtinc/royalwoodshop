@@ -1,10 +1,10 @@
 import { parse } from 'csv-parse/sync'
-import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, isNotNull, notLike, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { getDb } from './db.server.js'
 import {
   products, attributes, attributeValues, productAttributes, speciesImportRuns,
-  categories, productCategories, productImages,
+  categories, productCategories, productImages, activityLog,
 } from '../db/schema.js'
 import { SPECIES, TICK_CODES, TICK_ALIASES, bestAvailability } from './catalogue-constants.js'
 
@@ -180,8 +180,8 @@ function readRow(r, layout = 'species') {
 
   if (layout !== 'master') return row
 
-  // Fields only the Master Product List carries. An empty cell means "leave
-  // what is there alone" — it never clears a value that is already set.
+  // Fields only the Master Product List carries. The sheet is the source of
+  // truth: an empty cell clears the field (see CLEARABLE), except the name.
   const uomKey = Object.keys(r).find((k) => k.startsWith('uom'))
   const priceRaw = cell(r, 'price').replace(/[$,]/g, '')
   const price = priceRaw && Number.isFinite(Number(priceRaw)) ? Number(priceRaw) : null
@@ -349,11 +349,17 @@ const categoryTitle = (name) => CATEGORY_TITLE[categorySlug(name)] ?? String(nam
 
 /** Which of the extra columns differ from what the database already holds.
  *  A blank cell is "leave it alone" and never appears here. */
+/** Master fields an empty cell clears. The name is never cleared. */
+const CLEARABLE = new Set(['description', 'sizeDisplay', 'price', 'uom'])
+
 function fieldDiff(sheet, current) {
   const out = {}
   for (const [k, v] of Object.entries(sheet ?? {})) {
-    if (v === null || v === '') continue
     const now = current?.[k]
+    if (v === null || v === '') {
+      if (CLEARABLE.has(k) && now != null && String(now).trim() !== '') out[k] = { from: now, to: null }
+      continue
+    }
     const same = k === 'price'
       ? Number(now ?? NaN) === Number(v)
       : String(now ?? '').trim() === String(v).trim()
@@ -362,7 +368,7 @@ function fieldDiff(sheet, current) {
   return out
 }
 
-export async function analyse(rows, { layout = 'species' } = {}) {
+export async function analyse(rows, { layout = 'species', downloadedAt = null } = {}) {
   const db = await getDb()
   const all = rows.map((r) => readRow(r, layout)).filter(Boolean)
   let parsed = all.filter((p) => p.code)
@@ -414,6 +420,22 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     : []
   const byCode = new Map(found.map((f) => [f.productCode, f]))
 
+  // Products edited on the website after this sheet was downloaded: importing
+  // the sheet would undo those edits, so the preview names them.
+  const editedSince = new Map()
+  if (downloadedAt && found.length) {
+    const edits = await db.select({ id: activityLog.entityId, at: sql`max(${activityLog.createdAt})` })
+      .from(activityLog)
+      .where(and(
+        eq(activityLog.entityType, 'product'),
+        gt(activityLog.createdAt, downloadedAt),
+        notLike(activityLog.action, 'import%'),
+        inArray(activityLog.entityId, found.map((f) => f.id)),
+      ))
+      .groupBy(activityLog.entityId)
+    for (const e of edits) editedSince.set(e.id, e.at)
+  }
+
   // Fetch current per-species availability for all matched products so we can
   // detect whether the sheet would actually change anything.
   const productIds = found.map((f) => f.id)
@@ -462,6 +484,11 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     }
   }
 
+  const sameSubs = (a, b) => {
+    const key = (xs) => xs.map((x) => x.toLowerCase()).sort().join('|')
+    return key(a) === key(b)
+  }
+
   const currentSpeciesById = new Map()
   for (const row of currentAttrs) {
     if (!currentSpeciesById.has(row.productId)) currentSpeciesById.set(row.productId, [])
@@ -478,6 +505,8 @@ export async function analyse(rows, { layout = 'species' } = {}) {
   const known = new Set(SPECIES.map((s) => s.toLowerCase()))
   const summary = {
     rows: parsed.length,
+    downloadedAt: downloadedAt ? downloadedAt.toISOString() : null,
+    stale: [],
     matched: 0,
     willChange: 0,
     alreadyCorrect: 0,
@@ -605,9 +634,9 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     }
     const wantedPlacements = (p.placements ?? [])
       .map((x) => `${categorySlug(x.category) ?? product.categorySlug}::${x.sub}`)
-    // Sub-categories are only ever added: the sheet cannot undo placements made in the admin.
-    const haveSubs = new Set((currentSubsById.get(product.id) ?? []).map((x) => x.toLowerCase()))
-    const subsWouldChange = wantedPlacements.some((x) => !haveSubs.has(x.toLowerCase()))
+    // The sheet sets sub-categories exactly; an empty cell removes them.
+    const subsWouldChange = layout === 'master'
+      && !sameSubs(wantedPlacements, currentSubsById.get(product.id) ?? [])
 
     const present = p.imageFiles
     const imagesWouldChange = present.length > 0
@@ -643,6 +672,9 @@ export async function analyse(rows, { layout = 'species' } = {}) {
     }
 
     summary.willChange++
+    if (editedSince.has(product.id)) {
+      summary.stale.push({ code: p.code, name: product.name, at: editedSince.get(product.id) })
+    }
     if (allSpecies.length) summary.willSetSpecies++
     if (p.availability) summary.willSetAvailability++
     if (p.flex) summary.willSetFlex++
@@ -847,9 +879,10 @@ export async function apply(rows, overrides = {}, options = {}) {
     }
 
     if (layout === 'master') {
-      // Sheet wins where it has a value; a blank cell leaves the field alone.
+      // The sheet wins: a value is written, an empty cell clears the field.
       for (const [k, v] of Object.entries(p.fields ?? {})) {
         if (v !== null && v !== '') patch[k] = v
+        else if (CLEARABLE.has(k)) patch[k] = null
       }
 
       const wanted = categorySlug(p.category)
@@ -907,7 +940,7 @@ export async function apply(rows, overrides = {}, options = {}) {
       // Placements are facets, not addresses. Each sub is created under ITS OWN
       // category, so a product in two categories files correctly under both.
       // The address does not move.
-      if (p.placements?.length) {
+      if (layout === 'master') {
         const wantedIds = []
         for (const { category, sub } of p.placements) {
           const topSlug = categorySlug(category) ?? wanted ?? product.categorySlug
@@ -928,13 +961,31 @@ export async function apply(rows, overrides = {}, options = {}) {
         }
         if (parentId) wantedIds.push(parentId)
 
-        // Added only, never removed: sub-categories set in the admin survive an
-        // import of a sheet that predates them. Take one off in the admin.
-        for (const cid of new Set(wantedIds)) {
+        // The sheet sets placements exactly. With no sub-category named, only
+        // sub-category links go: top-level placements are the address and stay.
+        const keep = new Set(wantedIds)
+        const existing = await db
+          .select({ categoryId: productCategories.categoryId, parentId: categories.parentId })
+          .from(productCategories)
+          .innerJoin(categories, eq(categories.id, productCategories.categoryId))
+          .where(eq(productCategories.productId, product.id))
+        let changed = false
+        for (const row of existing) {
+          if (keep.has(row.categoryId) || (!p.placements.length && !row.parentId)) continue
+          await db.delete(productCategories).where(and(
+            eq(productCategories.productId, product.id),
+            eq(productCategories.categoryId, row.categoryId),
+          ))
+          changed = true
+        }
+        const had = new Set(existing.map((r) => r.categoryId))
+        for (const cid of keep) {
+          if (had.has(cid)) continue
           await db.insert(productCategories)
             .values({ productId: product.id, categoryId: cid }).onConflictDoNothing()
+          changed = true
         }
-        subcategorised++
+        if (changed) subcategorised++
       }
     }
 

@@ -51,8 +51,10 @@ export async function loader({ request }) {
 
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: rows.length + 1, column: SKU_HEADERS.length } }
 
-  const buf = await wb.xlsx.writeBuffer()
+  // Read back on import to spot a copy that predates edits made on the website.
   const now = new Date()
+  wb.subject = `Downloaded from the website ${now.toISOString()}`
+  const buf = await wb.xlsx.writeBuffer()
   const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   return new Response(buf, {
     headers: {

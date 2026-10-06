@@ -157,9 +157,11 @@ export async function readSkuSheet(buffer) {
     const XLSX = mod.default ?? mod
     let book
     try { book = XLSX.read(buf, { type: 'buffer' }) } catch { return null }
+    const stamp = String(book.Props?.Subject ?? '').match(/^Downloaded from the website (\S+)$/)?.[1]
+    const downloadedAt = stamp && !Number.isNaN(Date.parse(stamp)) ? new Date(stamp) : null
     for (const name of book.SheetNames) {
       const rows = readSkuGrid(XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, defval: '' }))
-      if (rows) return { rows, sheetName: name }
+      if (rows) return { rows, sheetName: name, downloadedAt }
     }
     return null
   }
