@@ -40,3 +40,27 @@ export function bestAvailability(values) {
   for (const key of AVAILABILITY_RANK) if (values.includes(key)) return key
   return null
 }
+
+/** Units of measure, as the Master's UOM drop-down offers them. */
+export const UOM_OPTIONS = [
+  ['Lft', 'Linear Foot'],
+  ['Ea', 'Each'],
+  ['SqFt', 'Square Foot'],
+  ['Kit', 'Kit'],
+  ['Pc', 'Piece'],
+]
+
+const UOM_ALIASES = {
+  lft: 'Lft', lf: 'Lft', 'lin ft': 'Lft', 'linear foot': 'Lft', 'linear feet': 'Lft', ft: 'Lft',
+  ea: 'Ea', each: 'Ea',
+  sqft: 'SqFt', 'sq ft': 'SqFt', sf: 'SqFt', 'square foot': 'SqFt', 'square feet': 'SqFt',
+  kit: 'Kit', kits: 'Kit',
+  pc: 'Pc', pcs: 'Pc', piece: 'Pc', pieces: 'Pc',
+}
+
+/** "LFT", "lin ft", "Each" → "Lft", "Ea"; an unknown unit is kept as typed; blank → null. */
+export function normaliseUom(v) {
+  const t = String(v ?? '').trim().replace(/\.$/, '')
+  if (!t) return null
+  return UOM_ALIASES[t.toLowerCase().replace(/\s+/g, ' ')] ?? t
+}

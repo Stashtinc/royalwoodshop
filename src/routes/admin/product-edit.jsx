@@ -14,6 +14,8 @@ import MediaPicker from '../../components/admin/MediaPicker'
 import ImageDropZone from '../../components/admin/ImageDropZone'
 import CategoryPicker from '../../components/admin/CategoryPicker'
 import SpeciesPicker, { readSpeciesAvail, readPartEntries } from '../../components/admin/SpeciesPicker'
+import UomSelect from '../../components/admin/UomSelect'
+import { normaliseUom } from '../../lib/catalogue-constants'
 import { thumbSrc } from '../../lib/images'
 import SeoFields from '../../components/admin/SeoFields'
 
@@ -178,7 +180,7 @@ export async function action({ request, params }) {
     sizeDisplay: String(f.get('sizeDisplay') ?? '').trim(),
     thicknessIn: num(f.get('thicknessIn')),
     widthIn: num(f.get('widthIn')),
-    uom: String(f.get('uom') ?? '').trim() || null,
+    uom: normaliseUom(f.get('uom')),
     availability: before.availability,  // preserved; overwritten by saveProduct if species set
     leadTime: String(f.get('leadTime') ?? '').trim(),
     flexAvailability,
@@ -443,14 +445,7 @@ export default function ProductEdit() {
             <label className="flex flex-col gap-1.5"><Label>Size shown to customers</Label>
               <input name="sizeDisplay" defaultValue={product.sizeDisplay ?? ''} className={field} /></label>
             <label className="flex flex-col gap-1.5"><Label>Unit of measure</Label>
-              <select name="uom" defaultValue={product.uom ?? ''} className={field}>
-                <option value="">— not set —</option>
-                <option value="Lft">Lft — Linear Foot</option>
-                <option value="Ea">Ea — Each</option>
-                <option value="SqFt">SqFt — Square Foot</option>
-                <option value="Kit">Kit — Kit</option>
-                <option value="Pc">Pc — Piece</option>
-              </select>
+              <UomSelect defaultValue={product.uom} className={field} />
             </label>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

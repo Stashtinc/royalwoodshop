@@ -6,7 +6,7 @@ import {
   products, attributes, attributeValues, productAttributes, speciesImportRuns,
   categories, productCategories, productImages, activityLog,
 } from '../db/schema.js'
-import { SPECIES, TICK_CODES, TICK_ALIASES, bestAvailability } from './catalogue-constants.js'
+import { SPECIES, TICK_CODES, TICK_ALIASES, bestAvailability, normaliseUom } from './catalogue-constants.js'
 
 /** Ticked beside species on the sheet, but stored as a product flag. */
 const FLEX = 'Flex'
@@ -190,7 +190,7 @@ function readRow(r, layout = 'species') {
     name: name || null,
     description: cell(r, 'description') || null,
     sizeDisplay: cell(r, 'size') || null,
-    uom: (uomKey ? cell(r, uomKey) : '') || null,
+    uom: normaliseUom(uomKey ? cell(r, uomKey) : ''),
   }
   row.images = pipes(r['image name'])
 

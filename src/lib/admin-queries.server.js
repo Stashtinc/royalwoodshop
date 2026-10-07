@@ -289,6 +289,7 @@ export async function createProduct(data) {
     widthIn: data.widthIn || null,
     availability: data.availability || null,
     leadTime: data.leadTime || null,
+    uom: data.uom || null,
     flexAvailability: data.flexAvailability || null,
     flexAvailable: !!data.flexAvailability,
     price: data.price || null,

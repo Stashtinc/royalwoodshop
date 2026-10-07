@@ -6,6 +6,8 @@ import { log } from '../../lib/activity.server'
 import { AVAILABILITY } from '../../lib/catalogue-constants'
 import CategoryPicker from '../../components/admin/CategoryPicker'
 import SpeciesPicker, { readSpeciesAvail, readPartEntries } from '../../components/admin/SpeciesPicker'
+import UomSelect from '../../components/admin/UomSelect'
+import { normaliseUom } from '../../lib/catalogue-constants'
 import SeoFields from '../../components/admin/SeoFields'
 import ImageDropZone from '../../components/admin/ImageDropZone'
 import MediaPicker from '../../components/admin/MediaPicker'
@@ -50,6 +52,7 @@ export async function action({ request }) {
     widthIn: num(f.get('widthIn')),
     availability: null,  // derived from species in createProduct
     leadTime: String(f.get('leadTime') ?? '').trim(),
+    uom: normaliseUom(f.get('uom')),
     flexAvailability,
     price: num(f.get('price')),
     salePrice: num(f.get('salePrice')),
@@ -142,8 +145,12 @@ export default function ProductNew() {
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Dimensions</h2>
-          <label className="flex flex-col gap-1.5"><Label>Size shown to customers</Label>
-            <input name="sizeDisplay" className={field} placeholder='e.g. 11/16 x 3-1/2"' /></label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5"><Label>Size shown to customers</Label>
+              <input name="sizeDisplay" className={field} placeholder='e.g. 11/16 x 3-1/2"' /></label>
+            <label className="flex flex-col gap-1.5"><Label>Unit of measure</Label>
+              <UomSelect className={field} /></label>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5"><Label>Thickness</Label>
               <input name="thicknessIn" className={field} inputMode="decimal" placeholder="0.6875" /></label>
