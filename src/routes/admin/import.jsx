@@ -1018,6 +1018,9 @@ export default function Import() {
             {r.imaged > 0 && (
               <Stat label="Products whose images were attached from the folder" value={r.imaged} tone="good" />
             )}
+            {r.duplicateImages > 0 && (
+              <Stat label="Duplicate images left out (the same picture at a lower resolution)" value={r.duplicateImages} />
+            )}
             {r.subcategorised > 0 && (
               <Stat label="Products whose sub-categories were set" value={r.subcategorised} tone="good" />
             )}

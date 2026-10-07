@@ -3,7 +3,7 @@ import Toast from '../../components/admin/Toast'
 import { Form, Link, redirect, useActionData, useLoaderData, useNavigation, useBlocker } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import {
-  getProduct, saveProduct, diffProduct, listImages, addImage, updateImage,
+  getProduct, saveProduct, diffProduct, listImages, updateImage,
   removeImage, moveImage, listCategoriesWithSubs, listProductCategories,
   saveProductCategories, deleteProduct, archiveProductsByIds, getProductPartIds, saveProductPartIds, partIdsInUse,
 } from '../../lib/admin-queries.server'
@@ -42,60 +42,37 @@ export async function action({ request, params }) {
   const f = await request.formData()
   const intent = String(f.get('intent') ?? 'details')
 
-  if (intent === 'upload') {
-    const files = f.getAll('images').filter((x) => typeof x !== 'string' && x.size > 0)
-    if (!files.length) return { error: 'No files were selected.' }
+  if (intent === 'upload' || intent === 'attach-media') {
+    const { addImageOnce, describeImageResults, mediaImage } = await import('../../lib/image-dupes.server')
     const product = await getProduct(params.id)
+    const altText = `${product?.name ?? 'Product'} photo`
     const errors = []
-    let added = 0
-    for (const file of files) {
-      const res = await saveUpload(file, { slug: product?.slug })
-      if (res.error) { errors.push(res.error); continue }
-      await addImage(params.id, {
-        storageKey: res.storageKey,
-        width: res.width,
-        height: res.height,
-        altText: `${product?.name ?? 'Product'} photo`,
-      })
-      added++
+    const results = []
+    if (intent === 'upload') {
+      const files = f.getAll('images').filter((x) => typeof x !== 'string' && x.size > 0)
+      if (!files.length) return { error: 'No files were selected.' }
+      for (const file of files) {
+        const res = await saveUpload(file, { slug: product?.slug })
+        if (res.error) { errors.push(res.error); continue }
+        results.push(await addImageOnce(params.id, { ...res, altText }, { ownsFile: true }))
+      }
+    } else {
+      for (const path of f.getAll('path').map(String)) {
+        const img = await mediaImage(path)
+        if (img) results.push(await addImageOnce(params.id, { ...img, altText }))
+      }
+      if (!results.length) return { error: 'None of those images could be found.' }
     }
-    if (added) {
+    const changed = results.filter((r) => r !== 'skipped').length
+    if (changed) {
       await log(user, 'image.added', {
         entityType: 'product', entityId: params.id, entityLabel: product?.name,
-        details: { count: added },
+        details: { count: changed, ...(intent === 'attach-media' ? { from: 'media library' } : {}) },
       })
       await syncProductsJson()
     }
-    return errors.length
-      ? { error: errors.join(' '), saved: added ? `${added} added.` : undefined }
-      : { saved: `${added} image${added === 1 ? '' : 's'} added.` }
-  }
-
-  if (intent === 'attach-media') {
-    const { existsSync } = await import('node:fs')
-    const { join } = await import('node:path')
-    const sharp = (await import('sharp')).default
-    const { UPLOAD_DIRS, mediaFile } = await import('../../lib/uploads.server')
-    const product = await getProduct(params.id)
-    let added = 0
-    for (const path of f.getAll('path').map(String)) {
-      const rest = path.match(/^\/uploads\/((?:panelling\/)?[^/]+)$/)?.[1]
-      const file = rest && UPLOAD_DIRS.map((d) => join(d, rest)).find((x) => mediaFile(x) && existsSync(x))
-      if (!file) continue
-      const meta = await sharp(file).metadata().catch(() => ({}))
-      await addImage(params.id, {
-        storageKey: path, width: meta.width ?? null, height: meta.height ?? null,
-        altText: `${product?.name ?? 'Product'} photo`,
-      })
-      added++
-    }
-    if (!added) return { error: 'None of those images could be found.' }
-    await log(user, 'image.added', {
-      entityType: 'product', entityId: params.id, entityLabel: product?.name,
-      details: { count: added, from: 'media library' },
-    })
-    await syncProductsJson()
-    return { saved: `${added} image${added === 1 ? '' : 's'} added from the Media library.` }
+    const saved = describeImageResults(results)
+    return errors.length ? { error: errors.join(' '), saved } : { saved }
   }
 
   if (intent === 'image-alt') {

@@ -6,14 +6,14 @@ import { useRef, useState } from 'react'
  * Wraps a plain multiple file input, so it still works if JavaScript fails —
  * the drag-and-drop behaviour is an enhancement, not the mechanism.
  */
-export default function ImageDropZone({ name = 'images', hint }) {
+export default function ImageDropZone({ name = 'images', hint, autoSubmit = true }) {
   const inputRef = useRef(null)
   const [over, setOver] = useState(false)
   const [picked, setPicked] = useState([])
 
   const submit = (files) => {
     setPicked([...files].map((f) => f.name))
-    if (files.length) inputRef.current?.form?.requestSubmit()
+    if (files.length && autoSubmit) inputRef.current?.form?.requestSubmit()
   }
 
   function onDrop(e) {

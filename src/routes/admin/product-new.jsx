@@ -7,6 +7,9 @@ import { AVAILABILITY } from '../../lib/catalogue-constants'
 import CategoryPicker from '../../components/admin/CategoryPicker'
 import SpeciesPicker, { readSpeciesAvail, readPartEntries } from '../../components/admin/SpeciesPicker'
 import SeoFields from '../../components/admin/SeoFields'
+import ImageDropZone from '../../components/admin/ImageDropZone'
+import MediaPicker from '../../components/admin/MediaPicker'
+import { saveUpload, describeLimits } from '../../lib/uploads.server'
 
 export async function loader({ request }) {
   await requireUser(request)
@@ -33,6 +36,11 @@ export async function action({ request }) {
   const taken = await partIdsInUse(Object.values(partEntries).map((e) => e.partId))
   if (taken.length) return { error: `Already used on another product: ${taken.join(', ')}` }
 
+  const files = f.getAll('images').filter((x) => typeof x !== 'string' && x.size > 0)
+  const { maxMb } = describeLimits()
+  const badFile = files.find((x) => !/^image\/(jpeg|png|webp|avif)$/.test(x.type) || x.size > maxMb * 1024 * 1024)
+  if (badFile) return { error: `${badFile.name}: only JPG, PNG, WebP or AVIF up to ${maxMb} MB.` }
+
   const id = await createProduct({
     name,
     productCode: String(f.get('productCode') ?? '').trim(),
@@ -55,6 +63,18 @@ export async function action({ request }) {
   })
 
   await saveProductPartIds(id, partEntries)
+
+  // Images: uploaded files first, then picks from the Media library, each once.
+  const { addImageOnce, mediaImage } = await import('../../lib/image-dupes.server')
+  const altText = `${name} photo`
+  for (const file of files) {
+    const res = await saveUpload(file, { slug: name })
+    if (!res.error) await addImageOnce(id, { ...res, altText }, { ownsFile: true })
+  }
+  for (const path of f.getAll('mediaPath').map(String)) {
+    const img = await mediaImage(path)
+    if (img) await addImageOnce(id, { ...img, altText })
+  }
 
   await log(user, 'product.updated', {
     entityType: 'product', entityId: id, entityLabel: name,
@@ -89,7 +109,14 @@ export default function ProductNew() {
         <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-800">{data.error}</p>
       )}
 
-      <Form id="new-product-form" method="post" className="flex flex-col gap-6">
+      <Form id="new-product-form" method="post" encType="multipart/form-data" className="flex flex-col gap-6">
+
+        <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
+          <h2 className="font-serif font-bold text-tundora">Images</h2>
+          <p className="-mt-2 text-xs text-gray-500">The first one is used on the catalogue card. They are added when you create the product.</p>
+          <ImageDropZone autoSubmit={false} hint="JPG, PNG, WebP or AVIF · several at once" />
+          <MediaPicker formId="new-product-form" />
+        </section>
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Details</h2>
@@ -134,26 +161,6 @@ export default function ProductNew() {
           <SpeciesPicker />
           <label className="flex flex-col gap-1.5"><Label>Lead time</Label>
             <input name="leadTime" placeholder="e.g. approximately 1 week" className={field} /></label>
-        </section>
-
-        <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
-          <h2 className="font-serif font-bold text-tundora">Pricing</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-1.5">
-              <Label hint="optional">Regular price</Label>
-              <div className="relative">
-                <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-gray-400">$</span>
-                <input name="price" inputMode="decimal" placeholder="0.00" className={`${field} pl-6`} />
-              </div>
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <Label hint="shows On Sale badge when filled">Sale price</Label>
-              <div className="relative">
-                <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-gray-400">$</span>
-                <input name="salePrice" inputMode="decimal" placeholder="0.00" className={`${field} pl-6`} />
-              </div>
-            </label>
-          </div>
         </section>
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">

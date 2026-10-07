@@ -178,6 +178,14 @@ export async function saveMediaUpload(file) {
  *  old site, which are absolute URLs pointing at royalwoodshop.com. */
 export async function deleteUpload(storageKey) {
   if (!storageKey?.startsWith(`${PUBLIC_PREFIX}/`)) return
+  // Library files are shared: never delete one another product or a blog post still shows.
+  const { getDb } = await import('./db.server.js')
+  const { productImages, posts } = await import('../db/schema.js')
+  const { eq } = await import('drizzle-orm')
+  const db = await getDb()
+  const [inProduct] = await db.select({ id: productImages.id }).from(productImages).where(eq(productImages.storageKey, storageKey)).limit(1)
+  const [inPost] = await db.select({ id: posts.id }).from(posts).where(eq(posts.featuredImage, storageKey)).limit(1)
+  if (inProduct || inPost) return
   const paths = [storageKey, ...WIDTHS.map((w) => variantPath(storageKey, w))]
   for (const p of paths) {
     try { await unlink(join(UPLOAD_DIR, p.slice(PUBLIC_PREFIX.length + 1))) }

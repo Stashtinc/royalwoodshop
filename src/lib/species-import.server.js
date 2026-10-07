@@ -818,7 +818,7 @@ export async function apply(rows, overrides = {}, options = {}) {
     valueIds.set(s.toLowerCase(), v.id)
   }
 
-  let written = 0, subcategorised = 0, imaged = 0
+  let written = 0, subcategorised = 0, imaged = 0, duplicateImages = 0
   const moved = []
   for (const p of parsed) {
     const product = byCode.get(p.code)
@@ -911,7 +911,11 @@ export async function apply(rows, overrides = {}, options = {}) {
       // is fetched. Replaced wholesale when the sheet names any, so the sheet
       // decides the set and the order; left alone when it names none.
       if (p.imageFiles?.length) {
-        const keys = p.imageFiles.map((f) => `/uploads/${f}`)
+        // The same picture listed twice (an old small copy and a sharp one)
+        // is kept once, at the higher resolution.
+        const { dedupeImageKeys } = await import('./image-dupes.server.js')
+        const { keys, dropped } = await dedupeImageKeys(p.imageFiles.map((f) => `/uploads/${f}`))
+        duplicateImages += dropped.length
         const existing = await db
           .select({ key: productImages.storageKey, alt: productImages.altText, role: productImages.role })
           .from(productImages).where(eq(productImages.productId, product.id))
@@ -919,7 +923,7 @@ export async function apply(rows, overrides = {}, options = {}) {
 
         await db.delete(productImages).where(eq(productImages.productId, product.id))
         for (const [i, key] of keys.entries()) {
-          const file = p.imageFiles[i]
+          const file = key.slice('/uploads/'.length)
           await db.insert(productImages).values({
             productId: product.id,
             storageKey: key,
@@ -1034,7 +1038,7 @@ export async function apply(rows, overrides = {}, options = {}) {
   })
 
   return {
-    ...summary, written, archived, moved, subcategorised, imaged,
+    ...summary, written, archived, moved, subcategorised, imaged, duplicateImages,
     totals: { withSpecies, withAvail, ticksWithAvail },
   }
 }
