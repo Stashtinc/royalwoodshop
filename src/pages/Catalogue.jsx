@@ -265,7 +265,19 @@ function ProductCard({ product, query = '', isAdmin = false }) {
               {product.size}
             </p>
           )}
-          {product.price != null && (
+          {product.priceFrom != null ? (
+            <p className="mt-1 font-sans text-sm font-semibold text-tundora">
+              <span className="font-normal text-gray-500">From </span>
+              {product.salePriceFrom != null ? (
+                <>
+                  <span className="text-red-600">${product.salePriceFrom.toFixed(2)}</span>
+                  <span className="ml-1.5 text-xs font-normal text-gray-400 line-through">${product.priceFrom.toFixed(2)}</span>
+                </>
+              ) : (
+                <span>${product.priceFrom.toFixed(2)}</span>
+              )}
+            </p>
+          ) : product.price != null && (
             <p className="mt-1 font-sans text-sm font-semibold text-tundora">
               {product.salePrice != null ? (
                 <>

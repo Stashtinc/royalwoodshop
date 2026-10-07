@@ -182,15 +182,14 @@ function readRow(r, layout = 'species') {
 
   // Fields only the Master Product List carries. The sheet is the source of
   // truth: an empty cell clears the field (see CLEARABLE), except the name.
+  // Price is not a product field any more: each Part ID carries its own, and
+  // the Part ID import writes it.
   const uomKey = Object.keys(r).find((k) => k.startsWith('uom'))
-  const priceRaw = cell(r, 'price').replace(/[$,]/g, '')
-  const price = priceRaw && Number.isFinite(Number(priceRaw)) ? Number(priceRaw) : null
 
   row.fields = {
     name: name || null,
     description: cell(r, 'description') || null,
     sizeDisplay: cell(r, 'size') || null,
-    price,
     uom: (uomKey ? cell(r, uomKey) : '') || null,
   }
   row.images = pipes(r['image name'])
@@ -350,7 +349,7 @@ const categoryTitle = (name) => CATEGORY_TITLE[categorySlug(name)] ?? String(nam
 /** Which of the extra columns differ from what the database already holds.
  *  A blank cell is "leave it alone" and never appears here. */
 /** Master fields an empty cell clears. The name is never cleared. */
-const CLEARABLE = new Set(['description', 'sizeDisplay', 'price', 'uom'])
+const CLEARABLE = new Set(['description', 'sizeDisplay', 'uom'])
 
 function fieldDiff(sheet, current) {
   const out = {}

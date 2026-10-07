@@ -1,6 +1,6 @@
 import { eq, sql, asc, desc, and, inArray } from 'drizzle-orm'
 import {
-  products, categories, attributes, attributeValues, productAttributes, productImages,
+  products, categories, attributes, attributeValues, productAttributes, productImages, productPartIds,
 } from './schema.js'
 
 /** Fallback names only — used when a product has no primary category. */
@@ -131,7 +131,22 @@ export async function getAllProducts(db) {
     .where(eq(products.status, 'published'))
     .orderBy(asc(products.productCode), asc(products.name))
 
-  return rows.map(shape)
+  // Lowest per-material price and its sale price, for the catalogue card.
+  const priced = await db.select({
+    productId: productPartIds.productId, price: productPartIds.price, salePrice: productPartIds.salePrice,
+  }).from(productPartIds).where(sql`${productPartIds.price} ~ '^[0-9]+(\\.[0-9]+)?$'`)
+  const from = new Map()
+  for (const p of priced) {
+    const now = from.get(p.productId)
+    if (!now || Number(p.price) < Number(now.price)) from.set(p.productId, p)
+  }
+  return rows.map((r) => {
+    const out = shape(r)
+    const f = from.get(r.id)
+    out.priceFrom = f ? Number(f.price) : null
+    out.salePriceFrom = f?.salePrice && Number.isFinite(Number(f.salePrice)) ? Number(f.salePrice) : null
+    return out
+  })
 }
 
 function shape(r) {

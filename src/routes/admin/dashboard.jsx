@@ -6,13 +6,14 @@ import { getAnalytics, refresh as refreshAnalytics } from '../../lib/analytics.s
 import SearchConsolePanel from '../../components/admin/SearchConsolePanel'
 import AnalyticsPanel from '../../components/admin/AnalyticsPanel'
 import { INDEXING_ENABLED } from '../../seo'
+import { missingPartIds } from '../../lib/part-ids.server'
 
 export async function loader({ request }) {
   await requireUser(request)
   await ensureSpecies()
 
-  const [stats, search, analytics] = await Promise.all([
-    dashboardStats(), getSearchConsole(), getAnalytics(),
+  const [stats, search, analytics, missing] = await Promise.all([
+    dashboardStats(), getSearchConsole(), getAnalytics(), missingPartIds().catch(() => ({ items: [] })),
   ])
 
   // Top up in the background when the cache has gone stale. Deliberately not
@@ -24,7 +25,7 @@ export async function loader({ request }) {
     refreshAnalytics().catch(() => {})
   }
 
-  return { stats, search, analytics }
+  return { stats, search, analytics, missing }
 }
 
 export async function action({ request }) {
@@ -55,7 +56,7 @@ function Card({ label, value, tone = 'default', to, hint }) {
 }
 
 export default function Dashboard() {
-  const { stats, search, analytics } = useLoaderData()
+  const { stats, search, analytics, missing } = useLoaderData()
   return (
     <div className="flex flex-col gap-8">
       {!INDEXING_ENABLED && (
@@ -92,6 +93,30 @@ export default function Dashboard() {
         <Card label="No description" value={stats.noDescription} tone={stats.noDescription ? 'warn' : 'good'}
           to="/admin/products?missing=description" hint="Blank pages cannot rank" />
       </div>
+
+      {missing.items.length > 0 && (
+        <details className="overflow-hidden rounded-2xl border border-amber-300 bg-amber-50">
+          <summary className="cursor-pointer px-5 py-4">
+            <span className="text-lg font-bold text-tundora">{missing.items.length}</span>
+            <span className="ml-2 text-sm font-medium text-gray-800">
+              Part ID{missing.items.length === 1 ? '' : 's'} missing from the site
+            </span>
+            <span className="ml-2 text-xs text-gray-600">
+              — named in {missing.from} ({new Date(missing.at).toLocaleDateString('en-CA')}) but no product has {missing.items.length === 1 ? 'it' : 'them'}.
+              Add them in the Master, then import again.
+            </span>
+          </summary>
+          <ul className="max-h-72 overflow-y-auto border-t border-amber-200 bg-white px-5 py-2 font-mono text-xs text-gray-700">
+            {missing.items.map((m) => (
+              <li key={m.partId} className="py-0.5">
+                {m.partId}
+                {m.price && <span className="text-gray-500"> · ${Number(m.price).toFixed(2)}</span>}
+                {m.name && <span className="font-sans text-gray-500"> · {m.name}</span>}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       <SearchConsolePanel search={search} />
 

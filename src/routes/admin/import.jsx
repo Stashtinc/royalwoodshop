@@ -2,7 +2,10 @@ import { useRef, useState } from 'react'
 import { Form, Link, useActionData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { parseUpload, analyse, apply } from '../../lib/species-import.server'
-import { readPartIdSheet, analysePartIds, applyPartIds } from '../../lib/part-ids.server'
+import {
+  readPartIdSheet, analysePartIds, applyPartIds, resolvePriceRows,
+  isPriceList, analysePrices, applyPrices,
+} from '../../lib/part-ids.server'
 import { readSkuSheet, skuRowsToMaster } from '../../lib/sku-master.server'
 import { log } from '../../lib/activity.server'
 import { syncProductsJson } from '../../lib/sync.server'
@@ -21,11 +24,11 @@ export async function loader({ request }) {
 async function readImport(buffer, fileName) {
   const sku = await readSkuSheet(buffer)
   if (sku) {
-    const { masterRows, partRows, conflicts, products } = skuRowsToMaster(sku.rows)
+    const { masterRows, partRows, priceRows, conflicts, products } = skuRowsToMaster(sku.rows)
     return {
       rows: masterRows, layout: 'master', sheetName: sku.sheetName, skipped: 0, missingColumns: [],
       downloadedAt: sku.downloadedAt,
-      skuRows: sku.rows.length, skuProducts: products, conflicts, partRows,
+      skuRows: sku.rows.length, skuProducts: products, conflicts, partRows, priceRows,
     }
   }
   return parseUpload(buffer, fileName)
@@ -54,6 +57,16 @@ export async function action({ request }) {
     // (Part ID | Name | UOM | Species | Category) may stand on its own.
     const skuSheet = await readSkuSheet(buffer)
     const partSheet = skuSheet ? null : await readPartIdSheet(buffer, file.name)
+
+    // Part ID | Price: prices for Part IDs the site already has.
+    if (partSheet && isPriceList(partSheet.rows)) {
+      const prices = await analysePrices(partSheet.rows)
+      await mkdir(STAGING, { recursive: true })
+      const token = randomBytes(8).toString('hex')
+      await writeFile(`${STAGING}/${token}`, Buffer.from(buffer))
+      return { stage: 'prices-preview', token, fileName: file.name, sheetName: partSheet.sheetName, prices }
+    }
+
     let partIds = null
     if (partSheet) {
       try { partIds = (await analysePartIds(partSheet.rows)).summary }
@@ -103,6 +116,27 @@ export async function action({ request }) {
     }
   }
 
+  if (intent === 'apply-prices') {
+    const token = String(form.get('token') ?? '')
+    if (!/^[a-f0-9]{16}$/.test(token)) return { error: 'That upload has expired. Please choose the file again.' }
+    let buffer
+    try { buffer = await readFile(`${STAGING}/${token}`) }
+    catch { return { error: 'That upload has expired. Please choose the file again.' } }
+    const fileName = String(form.get('fileName') ?? '')
+    const sheet = await readPartIdSheet(buffer, fileName)
+    if (!sheet || !isPriceList(sheet.rows)) return { error: 'No Part ID and Price columns found in that file.' }
+    const prices = await analysePrices(sheet.rows)
+    const result = await applyPrices(prices.changes)
+    await unlink(`${STAGING}/${token}`).catch(() => {})
+    await log(user, 'import.prices', {
+      entityType: 'import', entityLabel: fileName || 'Price list',
+      details: { updated: result.updated, unchanged: prices.unchanged, missingPartIds: prices.missing },
+    })
+    let syncError = null
+    try { await syncProductsJson() } catch (e) { syncError = e.message }
+    return { stage: 'prices-done', prices: { ...prices, updated: result.updated }, syncError }
+  }
+
   if (intent === 'apply-partids') {
     const token = String(form.get('token') ?? '')
     if (!/^[a-f0-9]{16}$/.test(token)) return { error: 'That upload has expired. Please choose the file again.' }
@@ -118,7 +152,10 @@ export async function action({ request }) {
     await unlink(`${STAGING}/${token}`).catch(() => {})
     await log(user, 'import.partids', {
       entityType: 'import', entityLabel: fileName || 'Part IDs',
-      details: { stored: result.stored, unmatched: summary.unmatched.length, removed: summary.removed.length },
+      details: {
+        stored: result.stored, unmatched: summary.unmatched.length, removed: summary.removed.length,
+        missingPartIds: summary.unmatched.map((u) => ({ partId: u.partId, name: u.name })),
+      },
     })
     return { stage: 'partids-done', partIds: { ...summary, stored: result.stored } }
   }
@@ -131,7 +168,7 @@ export async function action({ request }) {
     try { buffer = await readFile(`${STAGING}/${token}`) }
     catch { return { error: 'That upload has expired. Please choose the file again.' } }
 
-    const { rows, layout, partRows } = await readImport(buffer, String(form.get('fileName') ?? ''))
+    const { rows, layout, partRows, priceRows } = await readImport(buffer, String(form.get('fileName') ?? ''))
 
     let overrides = {}
     try { const raw = form.get('overrides'); if (raw) overrides = JSON.parse(raw) } catch { /* ignore malformed */ }
@@ -145,9 +182,11 @@ export async function action({ request }) {
     })
     // The SKU sheet's Part IDs, matched after the products exist so a product
     // the sheet just created gets its Part IDs too.
+    let missingPartIds
     if (partRows) {
-      const { matched } = await analysePartIds(partRows)
-      result.partIdsStored = (await applyPartIds(matched)).stored
+      const { matched, summary: parts } = await analysePartIds(partRows)
+      result.partIdsStored = (await applyPartIds(matched, { priceOnly: await resolvePriceRows(priceRows) })).stored
+      missingPartIds = parts.unmatched.map((u) => ({ partId: u.partId, name: u.name }))
     }
     await unlink(`${STAGING}/${token}`).catch(() => {})
 
@@ -160,6 +199,7 @@ export async function action({ request }) {
         availability: result.willSetAvailability,
         unmatched: result.unmatched.length,
         archived: result.archived.length,
+        ...(missingPartIds ? { missingPartIds } : {}),
       },
     })
 
@@ -406,9 +446,9 @@ export default function Import() {
         <div>
           <h1 className="font-serif text-2xl font-bold text-tundora">Import Master Product List</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Upload the Master Product List (one row per SKU, as Download Master gives it), or a
-            Part ID list on its own (Part ID, Name, UOM, Species). You will see what it changes
-            before anything is saved.
+            Upload the Master Product List (one row per SKU, as Download Master gives it), a
+            Part ID list on its own (Part ID, Name, UOM, Species), or a price list (Part ID, Price).
+            You will see what it changes before anything is saved.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -829,6 +869,77 @@ export default function Import() {
             </Form>
             <Link to="/admin/import" className="text-sm text-gray-600 hover:underline">Choose a different file</Link>
           </div>
+        </div>
+      )}
+
+      {/* Price list (Part ID | Price) — preview */}
+      {data?.stage === 'prices-preview' && data.prices && (
+        <div className="flex flex-col gap-5">
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">{data.fileName}</span>
+              {' '}— a price list ({data.prices.rows} rows). It sets the price of each Part ID on the site.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Stat label="Prices will change" value={data.prices.changes.length} tone={data.prices.changes.length ? 'good' : 'default'} />
+            <Stat label="Already this price" value={data.prices.unchanged} />
+            <Stat label="Part ID not on the site" value={data.prices.missing.length} tone={data.prices.missing.length ? 'warn' : 'default'} />
+          </div>
+          {data.prices.changes.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+              <ul className="max-h-72 overflow-y-auto text-sm">
+                {data.prices.changes.map((c) => (
+                  <li key={c.partId} className="flex flex-wrap gap-2 border-b border-gray-100 px-4 py-2 last:border-0">
+                    <span className="font-mono text-xs text-gray-600">{c.partId}</span>
+                    <span className="text-gray-500">{c.code} · {c.species}</span>
+                    <span className="ml-auto">
+                      <span className="text-gray-400 line-through">{c.from ? `$${Number(c.from).toFixed(2)}` : '—'}</span>
+                      {' '}→ <span className="font-medium text-royal-blue">{c.to ? `$${Number(c.to).toFixed(2)}` : '(cleared)'}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <CodeList
+            title="Part IDs not on the site — not priced, and flagged on the dashboard"
+            tone="warn"
+            note="Add the product (or its Part ID in the Master), then import this list again."
+            items={data.prices.missing.map((m) => `${m.partId}  ·  ${m.price ? `$${Number(m.price).toFixed(2)}` : '—'}`)}
+          />
+          <CodeList title="Prices that are not a number — skipped" tone="warn" items={data.prices.invalid} />
+          <div className="flex items-center gap-4">
+            <Form method="post">
+              <input type="hidden" name="intent" value="apply-prices" />
+              <input type="hidden" name="token" value={data.token} />
+              <input type="hidden" name="fileName" value={data.fileName} />
+              <button disabled={busy || (!data.prices.changes.length && !data.prices.missing.length)}
+                className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-40">
+                {busy ? 'Saving…' : `Save ${data.prices.changes.length} price${data.prices.changes.length === 1 ? '' : 's'}`}
+              </button>
+            </Form>
+            <Link to="/admin/import" className="text-sm text-gray-600 hover:underline">Choose a different file</Link>
+          </div>
+        </div>
+      )}
+
+      {data?.stage === 'prices-done' && data.prices && (
+        <div className="flex flex-col gap-5">
+          <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-900">
+            Done. {data.prices.updated} price{data.prices.updated === 1 ? '' : 's'} saved. They show on each product page
+            beside the Part ID, and in the Master when you download it.
+          </p>
+          {data.prices.missing.length > 0 && (
+            <CodeList
+              title="Not saved — Part ID not on the site (flagged on the dashboard)"
+              tone="warn"
+              items={data.prices.missing.map((m) => `${m.partId}  ·  ${m.price ? `$${Number(m.price).toFixed(2)}` : '—'}`)}
+            />
+          )}
+          <Link to="/admin/import" className="w-fit rounded-lg border border-gray-300 px-5 py-2.5 text-sm hover:border-gray-400">
+            Import another
+          </Link>
         </div>
       )}
 

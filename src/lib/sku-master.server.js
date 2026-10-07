@@ -80,8 +80,8 @@ export async function skuRows(db) {
 
   const parts = await db.select({
     productId: productPartIds.productId, species: productPartIds.species,
-    partId: productPartIds.partId, uom: productPartIds.uom,
-  }).from(productPartIds).where(and(inArray(productPartIds.productId, ids), isNotNull(productPartIds.partId)))
+    partId: productPartIds.partId, uom: productPartIds.uom, price: productPartIds.price,
+  }).from(productPartIds).where(inArray(productPartIds.productId, ids)).orderBy(asc(productPartIds.id))
   const partsOf = new Map()
   for (const p of parts) {
     if (!partsOf.has(p.productId)) partsOf.set(p.productId, [])
@@ -112,13 +112,16 @@ export async function skuRows(db) {
 
     const skus = []
     const covered = new Set()
+    // A price set for a wood that has no Part ID yet rides on that wood's row.
+    const priceOnly = new Map()
     for (const part of partsOf.get(p.id) ?? []) {
-      skus.push({ partId: part.partId, species: part.species, availability: tick(part.species), uom: part.uom })
+      if (!part.partId) { if (!priceOnly.has(part.species)) priceOnly.set(part.species, part.price); continue }
+      skus.push({ partId: part.partId, species: part.species, availability: tick(part.species), uom: part.uom, price: part.price })
       covered.add(part.species)
     }
     // A species sold without a Part ID yet still gets its row, so it is not lost.
-    for (const s of avail.keys()) {
-      if (!covered.has(s)) skus.push({ partId: '', species: s, availability: tick(s) })
+    for (const s of new Set([...avail.keys(), ...priceOnly.keys()])) {
+      if (!covered.has(s)) skus.push({ partId: '', species: s, availability: tick(s), price: priceOnly.get(s) })
     }
     skus.sort((a, b) => SPECIES_ORDER(a.species) - SPECIES_ORDER(b.species) || a.partId.localeCompare(b.partId))
     if (!skus.length) skus.push({ partId: '', species: '', availability: '' })
@@ -126,7 +129,7 @@ export async function skuRows(db) {
     for (const s of skus) {
       out.push([
         s.partId, base.code, base.image, base.name, base.category, base.sub, base.size,
-        base.description, s.species, s.availability, base.price, base.uom || s.uom || '',
+        base.description, s.species, s.availability, s.price ?? '', base.uom || s.uom || '',
       ])
     }
   }
@@ -175,7 +178,7 @@ export async function readSkuSheet(buffer) {
 const PRODUCT_FIELDS = [
   ['image name', 'image name'], ['product name', 'product name'], ['category', 'category'],
   ['type sub-cat', 'type sub-cat'], ['size', 'size'], ['description', 'description'],
-  ['price', 'price'], ['uom', 'uom (lft, ea, sqft, kit, pc)'],
+  ['uom', 'uom (lft, ea, sqft, kit, pc)'],
 ]
 
 /**
@@ -198,6 +201,7 @@ export function skuRowsToMaster(skuRows) {
 
   const masterRows = []
   const partRows = []
+  const priceRows = []
   const conflicts = []
   for (const { code, rows } of groups.values()) {
     const m = { code }
@@ -216,12 +220,15 @@ export function skuRowsToMaster(skuRows) {
       if (species === FLEX) m[canon(FLEX)] = tick
       else if (species) m[canon(species)] = tick
       else other.push(r.species)
+      // Price is per row: the Part ID's price, or the wood's when it has no Part ID.
       if (r['part id']) {
-        partRows.push({ 'part id': r['part id'], 'base code': code, species: r.species, uom: r.uom, name: '', category: r.category, keepName: true })
+        partRows.push({ 'part id': r['part id'], 'base code': code, species: r.species, uom: r.uom, name: '', category: r.category, keepName: true, price: r.price ?? '' })
+      } else if (r.price) {
+        priceRows.push({ code, species: r.species, price: r.price })
       }
     }
     m.other = [...new Set(other)].join('|')
     masterRows.push(m)
   }
-  return { masterRows, partRows, conflicts, products: groups.size }
+  return { masterRows, partRows, priceRows, conflicts, products: groups.size }
 }

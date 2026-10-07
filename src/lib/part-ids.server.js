@@ -1,8 +1,8 @@
 import { parse } from 'csv-parse/sync'
-import { and, asc, eq, isNotNull, or } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNotNull, or } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import {
-  products, attributes, attributeValues, productAttributes, productPartIds,
+  products, attributes, attributeValues, productAttributes, productPartIds, activityLog,
 } from '../db/schema.js'
 import { SPECIES } from './catalogue-constants.js'
 import { canon } from './species-import.server.js'
@@ -161,6 +161,8 @@ export function matchPartIds(sheetRows, { productRows, tickRows, current }) {
     const row = {
       productId: product.id, code: product.code, partId, species,
       name: r.name || null, uom: r.uom || null, keepName: Boolean(r.keepName),
+      // Only a sheet with a Price column sets prices; an ERP list keeps the stored ones.
+      ...('price' in r ? { price: money(r.price) } : {}),
     }
     matched.push(row)
     if (!known) warnings.unknownSpecies.set(species, (warnings.unknownSpecies.get(species) ?? 0) + 1)
@@ -200,25 +202,47 @@ export function matchPartIds(sheetRows, { productRows, tickRows, current }) {
   }
 }
 
+/** "$1,234.50" → "1234.50"; blank or not a number → null. */
+export function money(v) {
+  const t = String(v ?? '').replace(/[$,\s]/g, '')
+  return t && Number.isFinite(Number(t)) ? String(Number(t)) : null
+}
+
+/** Master rows that price a wood with no Part ID: { code, species, price } → product + species. */
+export async function resolvePriceRows(priceRows) {
+  if (!priceRows?.length) return []
+  const db = await getDb()
+  const index = productIndex(await db.select({ id: products.id, code: products.productCode, status: products.status }).from(products))
+  return priceRows.flatMap((r) => {
+    const product = index.byCode.get(String(r.code ?? '').toUpperCase())
+    const price = money(r.price)
+    return product && price ? [{ productId: product.id, species: normaliseSpecies(r.species).species, price }] : []
+  })
+}
+
 /**
  * Replaces every stored Part ID with the matched rows, in one transaction.
- * Prices are set in the admin, not the sheet, so they carry over by
- * product + species; a priced material the sheet has no Part ID for keeps
- * its price on a row without one.
+ * A matched row carrying `price` (a sheet with a Price column) sets it;
+ * otherwise prices carry over by product + species. Sale prices always carry
+ * over. `priceOnly` (from the Master) replaces the prices of woods with no
+ * Part ID; without it they are kept.
  */
-export async function applyPartIds(matched) {
+export async function applyPartIds(matched, { priceOnly = null } = {}) {
   const db = await getDb()
   await db.transaction(async (tx) => {
     const priced = await tx.select({
-      productId: productPartIds.productId, species: productPartIds.species,
+      productId: productPartIds.productId, species: productPartIds.species, partId: productPartIds.partId,
       price: productPartIds.price, salePrice: productPartIds.salePrice,
     }).from(productPartIds)
       .where(or(isNotNull(productPartIds.price), isNotNull(productPartIds.salePrice)))
       .orderBy(asc(productPartIds.id))
+    // By Part ID first; by product + species for a row that has no Part ID.
     const priceOf = new Map()
+    const priceOfPart = new Map()
     for (const p of priced) {
+      if (p.partId) priceOfPart.set(p.partId.toUpperCase(), p)
       const key = `${p.productId}|${p.species}`
-      if (!priceOf.has(key)) priceOf.set(key, p)
+      if (!p.partId && !priceOf.has(key)) priceOf.set(key, p)
     }
 
     await tx.delete(productPartIds)
@@ -226,14 +250,21 @@ export async function applyPartIds(matched) {
     const rows = matched.map((m) => {
       const key = `${m.productId}|${m.species}`
       covered.add(key)
-      const p = priceOf.get(key)
+      const p = priceOfPart.get(m.partId.toUpperCase()) ?? priceOf.get(key)
       return {
         productId: m.productId, species: m.species, partId: m.partId, name: m.name, uom: m.uom,
-        price: p?.price ?? null, salePrice: p?.salePrice ?? null,
+        price: 'price' in m ? m.price : (p?.price ?? null), salePrice: p?.salePrice ?? null,
       }
     })
-    for (const [key, p] of priceOf) {
-      if (!covered.has(key)) rows.push({ productId: p.productId, species: p.species, partId: null, price: p.price, salePrice: p.salePrice })
+    if (priceOnly) {
+      for (const p of priceOnly) {
+        const key = `${p.productId}|${p.species}`
+        if (!covered.has(key)) { covered.add(key); rows.push({ productId: p.productId, species: p.species, partId: null, price: p.price, salePrice: priceOf.get(key)?.salePrice ?? null }) }
+      }
+    } else {
+      for (const [key, p] of priceOf) {
+        if (!covered.has(key)) rows.push({ productId: p.productId, species: p.species, partId: null, price: p.price, salePrice: p.salePrice })
+      }
     }
     for (let i = 0; i < rows.length; i += 200) {
       await tx.insert(productPartIds).values(rows.slice(i, i + 200))
@@ -251,4 +282,75 @@ export async function partIdsForProduct(productId) {
   }).from(productPartIds).where(eq(productPartIds.productId, productId))
   const order = (s) => { const i = SPECIES.indexOf(s); return i === -1 ? (s === FLEX ? 900 : 999) : i }
   return rows.sort((a, b) => order(a.species) - order(b.species) || (a.partId ?? '').localeCompare(b.partId ?? ''))
+}
+
+/* ------------------------------------------------------------ price lists */
+
+/** A Part ID | Price sheet: prices for existing Part IDs, nothing else. */
+export function isPriceList(rows) {
+  const keys = new Set(rows.flatMap((r) => Object.keys(r)))
+  return keys.has('price') && !keys.has('species') && !keys.has('base code')
+}
+
+/**
+ * Each listed Part ID against the stored ones. `missing` are Part IDs the
+ * site does not have — reported, and flagged on the dashboard.
+ */
+export async function analysePrices(rows) {
+  const db = await getDb()
+  const stored = await db.select({
+    id: productPartIds.id, partId: productPartIds.partId, price: productPartIds.price,
+    salePrice: productPartIds.salePrice, code: products.productCode, species: productPartIds.species,
+  }).from(productPartIds).innerJoin(products, eq(products.id, productPartIds.productId))
+    .where(isNotNull(productPartIds.partId))
+  const byPart = new Map(stored.map((s) => [s.partId.toUpperCase(), s]))
+  const changes = [], missing = [], invalid = []
+  let unchanged = 0
+  const salePriceCol = rows.some((r) => 'sale price' in r)
+  for (const r of rows) {
+    const partId = String(r['part id'] ?? '').trim().toUpperCase()
+    if (!partId) continue
+    const price = money(r.price)
+    if (String(r.price ?? '').trim() && !price) { invalid.push(`${partId}: ${r.price}`); continue }
+    const salePrice = salePriceCol ? money(r['sale price']) : undefined
+    const s = byPart.get(partId)
+    if (!s) { missing.push({ partId, price }); continue }
+    const samePrice = Number(s.price ?? NaN) === Number(price ?? NaN) || (s.price == null && price == null)
+    const sameSale = salePrice === undefined || Number(s.salePrice ?? NaN) === Number(salePrice ?? NaN) || (s.salePrice == null && salePrice == null)
+    if (samePrice && sameSale) { unchanged++; continue }
+    changes.push({ id: s.id, partId, code: s.code, species: s.species, from: s.price, to: price, ...(salePrice !== undefined ? { saleFrom: s.salePrice, saleTo: salePrice } : {}) })
+  }
+  return { changes, missing, invalid, unchanged, rows: rows.length }
+}
+
+export async function applyPrices(changes) {
+  const db = await getDb()
+  await db.transaction(async (tx) => {
+    for (const c of changes) {
+      await tx.update(productPartIds)
+        .set({ price: c.to, ...('saleTo' in c ? { salePrice: c.saleTo } : {}) })
+        .where(eq(productPartIds.id, c.id))
+    }
+  })
+  return { updated: changes.length }
+}
+
+/**
+ * Part IDs named in the latest price list or Master import that the site
+ * still does not have — the dashboard's "missing Part IDs" list.
+ */
+export async function missingPartIds() {
+  const db = await getDb()
+  const recent = await db.select({ at: activityLog.createdAt, label: activityLog.entityLabel, details: activityLog.details })
+    .from(activityLog).where(inArray(activityLog.action, ['import.prices', 'import.species', 'import.partids']))
+    .orderBy(desc(activityLog.createdAt)).limit(25)
+  const json = (t) => { try { return JSON.parse(t ?? 'null') } catch { return null } }
+  const last = recent.find((r) => Array.isArray(json(r.details)?.missingPartIds))
+  if (!last) return { items: [], from: null, at: null }
+  const listed = json(last.details).missingPartIds
+  const have = listed.length
+    ? new Set((await db.select({ partId: productPartIds.partId }).from(productPartIds)
+      .where(inArray(productPartIds.partId, listed.map((m) => m.partId)))).map((r) => r.partId.toUpperCase()))
+    : new Set()
+  return { items: listed.filter((m) => !have.has(m.partId.toUpperCase())), from: last.label, at: last.at }
 }
