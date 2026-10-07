@@ -5,7 +5,7 @@ import { requireUser } from '../../lib/auth.server'
 import {
   getProduct, saveProduct, diffProduct, listImages, addImage, updateImage,
   removeImage, moveImage, listCategoriesWithSubs, listProductCategories,
-  saveProductCategories, deleteProduct, archiveProductsByIds, getProductPartIds, saveProductPartIds,
+  saveProductCategories, deleteProduct, archiveProductsByIds, getProductPartIds, saveProductPartIds, partIdsInUse,
 } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
 import { saveUpload, deleteUpload, describeLimits } from '../../lib/uploads.server'
@@ -13,7 +13,7 @@ import { syncProductsJson } from '../../lib/sync.server'
 import MediaPicker from '../../components/admin/MediaPicker'
 import ImageDropZone from '../../components/admin/ImageDropZone'
 import CategoryPicker from '../../components/admin/CategoryPicker'
-import SpeciesPicker, { readSpeciesAvail } from '../../components/admin/SpeciesPicker'
+import SpeciesPicker, { readSpeciesAvail, readPartEntries } from '../../components/admin/SpeciesPicker'
 import { thumbSrc } from '../../lib/images'
 import SeoFields from '../../components/admin/SeoFields'
 
@@ -188,21 +188,10 @@ export async function action({ request, params }) {
   const { species, speciesAvail, flexAvailability } = readSpeciesAvail(f)
 
   // Part ID, price and sale price per wood, from SpeciesPicker
-  const partEntries = {}
-  const text = (k) => String(f.get(k) ?? '').trim() || null
-  const money = (k) => text(k)?.replace(/[$,\s]/g, '') || null
-  for (const key of f.keys()) {
-    if (!key.startsWith('partId:')) continue
-    const wood = key.slice('partId:'.length)
-    partEntries[wood] = {
-      partId: text(key)?.toUpperCase() ?? null,
-      price: money(`partPrice:${wood}`),
-      salePrice: money(`partSalePrice:${wood}`),
-    }
-  }
-  const badPrice = Object.entries(partEntries).find(([, e]) =>
-    [e.price, e.salePrice].some((v) => v != null && !/^\d+(\.\d{1,2})?$/.test(v)))
-  if (badPrice) return { error: `${badPrice[0]}: prices must be numbers, like 12.50.` }
+  const { entries: partEntries, error: partError } = readPartEntries(f)
+  if (partError) return { error: partError }
+  const taken = await partIdsInUse(Object.values(partEntries).map((e) => e.partId), params.id)
+  if (taken.length) return { error: `Already used on another product: ${taken.join(', ')}` }
 
   const before = await getProduct(params.id)
   const payload = {

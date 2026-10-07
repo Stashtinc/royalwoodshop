@@ -644,6 +644,16 @@ export async function getProductPartIds(productId) {
   return { partIds, prices, salePrices }
 }
 
+/** Part IDs from `partIds` already used by a product other than `exceptId`. */
+export async function partIdsInUse(partIds, exceptId = null) {
+  const wanted = partIds.filter(Boolean)
+  if (!wanted.length) return []
+  const db = await getDb()
+  const rows = await db.select({ partId: productPartIds.partId, productId: productPartIds.productId })
+    .from(productPartIds).where(inArray(productPartIds.partId, wanted))
+  return rows.filter((r) => r.productId !== Number(exceptId)).map((r) => r.partId)
+}
+
 /**
  * Saves the editor's Part ID, price and sale price per species:
  * entries = { [species]: { partId, price, salePrice } }, blanks as null.

@@ -177,3 +177,25 @@ export function readSpeciesAvail(f) {
 
   return { species, speciesAvail, flexAvailability }
 }
+
+/**
+ * Part ID, price and sale price per wood from FormData submitted by
+ * SpeciesPicker: { entries: { [wood]: { partId, price, salePrice } }, error }.
+ */
+export function readPartEntries(f) {
+  const entries = {}
+  const text = (k) => String(f.get(k) ?? '').trim() || null
+  const money = (k) => text(k)?.replace(/[$,\s]/g, '') || null
+  for (const key of f.keys()) {
+    if (!key.startsWith('partId:')) continue
+    const wood = key.slice('partId:'.length)
+    entries[wood] = {
+      partId: text(key)?.toUpperCase() ?? null,
+      price: money(`partPrice:${wood}`),
+      salePrice: money(`partSalePrice:${wood}`),
+    }
+  }
+  const bad = Object.entries(entries).find(([, e]) =>
+    [e.price, e.salePrice].some((v) => v != null && !/^\d+(\.\d{1,2})?$/.test(v)))
+  return { entries, error: bad ? `${bad[0]}: prices must be numbers, like 12.50.` : null }
+}

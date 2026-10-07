@@ -1,10 +1,11 @@
 import { Form, Link, redirect, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { createProduct, listCategoriesWithSubs } from '../../lib/admin-queries.server'
+import { createProduct, listCategoriesWithSubs, saveProductPartIds, partIdsInUse } from '../../lib/admin-queries.server'
+import { syncProductsJson } from '../../lib/sync.server'
 import { log } from '../../lib/activity.server'
 import { AVAILABILITY } from '../../lib/catalogue-constants'
 import CategoryPicker from '../../components/admin/CategoryPicker'
-import SpeciesPicker, { readSpeciesAvail } from '../../components/admin/SpeciesPicker'
+import SpeciesPicker, { readSpeciesAvail, readPartEntries } from '../../components/admin/SpeciesPicker'
 import SeoFields from '../../components/admin/SeoFields'
 
 export async function loader({ request }) {
@@ -25,6 +26,12 @@ export async function action({ request }) {
   }
 
   const { species, speciesAvail, flexAvailability } = readSpeciesAvail(f)
+
+  // Checked before the product is created, so a bad value cannot leave a half-made product.
+  const { entries: partEntries, error: partError } = readPartEntries(f)
+  if (partError) return { error: partError }
+  const taken = await partIdsInUse(Object.values(partEntries).map((e) => e.partId))
+  if (taken.length) return { error: `Already used on another product: ${taken.join(', ')}` }
 
   const id = await createProduct({
     name,
@@ -47,10 +54,13 @@ export async function action({ request }) {
     speciesAvail,
   })
 
+  await saveProductPartIds(id, partEntries)
+
   await log(user, 'product.updated', {
     entityType: 'product', entityId: id, entityLabel: name,
     details: { changed: [{ field: 'status', from: '—', to: 'created' }] },
   })
+  await syncProductsJson().catch(() => {})
 
   throw redirect(`/admin/products?saved=${id}&sortBy=id&sortDir=desc`)
 }
