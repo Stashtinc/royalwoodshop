@@ -61,22 +61,17 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
     <div className="flex flex-col gap-3">
       <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
         {SPECIES.flatMap((s) => (s === 'Steel' ? ['Flex', s] : [s])).map((s) => {
-          if (s === 'Flex') {
-            return (
-              <label key="Flex" className="flex items-center justify-between gap-2">
-                <span className={`text-sm ${initialFlex ? 'text-gray-800' : 'text-gray-400'}`}>Flex</span>
-                <FlexSelect defaultValue={initialFlex} />
-              </label>
-            )
-          }
-          const current = s in initialAvail ? (initialAvail[s] ?? '') : null
+          const isFlex = s === 'Flex'
+          const current = isFlex ? (initialFlex ?? null) : s in initialAvail ? (initialAvail[s] ?? '') : null
           return (
             <div key={s} className="flex flex-col gap-1">
               <label className="flex items-center justify-between gap-2">
                 <span className={`text-sm ${current !== null ? 'text-gray-800' : 'text-gray-400'}`}>
                   {s}
                 </span>
-                <AvailSelect name={`species:${s}`} defaultValue={current} />
+                {isFlex
+                  ? <FlexSelect defaultValue={initialFlex} />
+                  : <AvailSelect name={`species:${s}`} defaultValue={current} />}
               </label>
               <div className="flex flex-col gap-1">
                 <input
