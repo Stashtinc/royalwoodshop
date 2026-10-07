@@ -9,6 +9,9 @@ import { AVAILABILITY_LABEL, SPECIES } from '../../lib/catalogue-constants'
 import { thumbSrc } from '../../lib/images'
 import Pagination from '../../components/admin/Pagination'
 
+
+/** Status views besides the default (everything not archived). */
+const STATUS_VIEWS = ['archived', 'draft']
 export async function loader({ request }) {
   await requireUser(request)
   const url = new URL(request.url)
@@ -26,7 +29,7 @@ export async function loader({ request }) {
       availability: url.searchParams.get('availability') ?? '',
       sortBy: url.searchParams.get('sortBy') ?? 'updated',
       sortDir: url.searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc',
-      status: url.searchParams.get('status') === 'archived' ? 'archived' : 'active',
+      status: STATUS_VIEWS.includes(url.searchParams.get('status')) ? url.searchParams.get('status') : 'active',
     }),
     listCategories(),
   ])
@@ -57,8 +60,8 @@ export async function action({ request }) {
     const count = await activateProductsByIds(ids)
     await log(user, 'product.status', {
       entityType: 'product',
-      entityLabel: `Bulk activate (${ids.length} products)`,
-      details: { from: 'archived', to: 'published', count },
+      entityLabel: `Bulk ${f.get('from') === 'draft' ? 'publish' : 'activate'} (${ids.length} products)`,
+      details: { from: f.get('from') === 'draft' ? 'draft' : 'archived', to: 'published', count },
     })
     await syncProductsJson()
     return { activated: count }
@@ -176,7 +179,7 @@ export default function Products() {
   const q = params.get('q') ?? ''
   const category = params.get('category') ?? ''
   const species = params.get('species') ?? ''
-  const statusFilter = params.get('status') === 'archived' ? 'archived' : 'active'
+  const statusFilter = STATUS_VIEWS.includes(params.get('status')) ? params.get('status') : 'active'
   const savedRowRef = useRef(null)
 
   useEffect(() => {
@@ -263,7 +266,7 @@ export default function Products() {
     <div className="flex flex-col gap-5">
       {actionData?.activated != null && (
         <p className="rounded-lg bg-green-50 px-4 py-2.5 text-sm text-green-800">
-          {actionData.activated} product{actionData.activated === 1 ? '' : 's'} activated and published.
+          {actionData.activated} product{actionData.activated === 1 ? "" : "s"} published.
         </p>
       )}
       {actionData?.archived != null && (
@@ -287,6 +290,9 @@ export default function Products() {
           {statusFilter === 'archived' && (
             <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">Archived</span>
           )}
+          {statusFilter === 'draft' && (
+            <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-medium text-sky-800">Drafts</span>
+          )}
           <p className="text-sm text-gray-500">
             {total} total
           </p>
@@ -294,15 +300,16 @@ export default function Products() {
         <div className="flex items-center gap-2">
           {bulkEdit ? (
             <>
-              {selectedIds.size > 0 && statusFilter === 'archived' && (
+              {selectedIds.size > 0 && statusFilter !== 'active' && (
                 <Form method="post" onSubmit={() => exitBulkEdit()}>
                   <input type="hidden" name="intent" value="activate-selected" />
+                  <input type="hidden" name="from" value={statusFilter} />
                   {[...selectedIds].map((id) => (
                     <input key={id} type="hidden" name="productId" value={id} />
                   ))}
                   <button type="submit"
                     className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
-                    Activate {selectedIds.size} selected
+                    {statusFilter === 'draft' ? 'Publish' : 'Activate'} {selectedIds.size} selected
                   </button>
                 </Form>
               )}
@@ -392,16 +399,18 @@ export default function Products() {
         </div>
         <FilterPill
           label="All types"
-          value={statusFilter === 'archived' ? '__archived__' : category}
+          value={statusFilter === 'active' ? category : `__${statusFilter}__`}
           options={[
             { value: '', label: 'All types' },
             ...categoryOptions.map((c) => ({ value: c.name, label: c.name })),
+            { value: '__draft__', label: 'Drafts' },
             { value: '__archived__', label: 'Archived' },
           ]}
           onChange={(val) => {
-            if (val === '__archived__') {
-              navigate('?status=archived', { replace: true })
-            } else if (statusFilter === 'archived') {
+            const view = val.match(/^__(\w+)__$/)?.[1]
+            if (view) {
+              navigate(`?status=${view}`, { replace: true })
+            } else if (statusFilter !== 'active') {
               const next = new URLSearchParams()
               if (val) next.set('category', val)
               navigate(`?${next.toString()}`, { replace: true })
@@ -412,9 +421,9 @@ export default function Products() {
               navigate(`?${next.toString()}`, { replace: true })
             }
           }}
-          activeClass={statusFilter === 'archived' ? 'border-amber-500 bg-amber-500 text-white' : 'border-royal-blue bg-royal-blue text-white'}
+          activeClass={statusFilter === 'archived' ? 'border-amber-500 bg-amber-500 text-white' : statusFilter === 'draft' ? 'border-sky-600 bg-sky-600 text-white' : 'border-royal-blue bg-royal-blue text-white'}
         />
-        {statusFilter === 'archived' && <input type="hidden" name="status" value="archived" />}
+        {statusFilter !== 'active' && <input type="hidden" name="status" value={statusFilter} />}
         <FilterPill
           label="All species"
           value={species}
@@ -519,11 +528,12 @@ export default function Products() {
                 </td>
                 <td className="px-4 py-2.5 text-right">
                   <div className="flex items-center justify-end gap-3">
-                    {statusFilter === 'archived' && !bulkEdit && (
+                    {statusFilter !== 'active' && !bulkEdit && (
                       <Form method="post">
                         <input type="hidden" name="intent" value="activate-selected" />
+                        <input type="hidden" name="from" value={statusFilter} />
                         <input type="hidden" name="productId" value={r.id} />
-                        <button type="submit" className="text-sm text-green-700 hover:underline">Activate</button>
+                        <button type="submit" className="text-sm text-green-700 hover:underline">{statusFilter === 'draft' ? 'Publish' : 'Activate'}</button>
                       </Form>
                     )}
 <Link to={`/admin/products/${r.id}`} className="text-sm text-royal-blue hover:underline">Edit</Link>

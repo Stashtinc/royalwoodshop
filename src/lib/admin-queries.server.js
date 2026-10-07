@@ -76,6 +76,7 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
   // Default: hide archived. Pass status='all' or status='archived' to see them.
   if (status === 'active') where.push(sql`${products.status} != 'archived'`)
   else if (status === 'archived') where.push(eq(products.status, 'archived'))
+  else if (status === 'draft') where.push(eq(products.status, 'draft'))
   // status='all' → no filter
 
   if (q.trim()) {
