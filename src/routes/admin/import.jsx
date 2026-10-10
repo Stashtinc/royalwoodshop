@@ -516,6 +516,18 @@ export default function Import() {
               items={data.sku.conflicts.map((c) => `${c.code} · ${c.field}: ${c.values.join(' / ')}`)}
             />
           )}
+          {s.codesSharedInDb?.length > 0 && (
+            <div className="rounded-lg border-2 border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-semibold">
+                {s.codesSharedInDb.length} product code{s.codesSharedInDb.length === 1 ? ' is' : 's are'} used by more than one product,
+                so {s.codesSharedInDb.length === 1 ? 'its rows are' : 'their rows are'} left out of this import:
+              </p>
+              <ul className="mt-2 text-xs">
+                {s.codesSharedInDb.map((d) => <li key={d.code}><span className="font-mono">{d.code}</span> — {d.names}</li>)}
+              </ul>
+              <p className="mt-2 text-xs">Give each product its own code in the admin (e.g. CRO-500-MDF), then import again.</p>
+            </div>
+          )}
           {s.stale?.length > 0 && (
             <div className="rounded-lg border-2 border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
               <p className="font-semibold">

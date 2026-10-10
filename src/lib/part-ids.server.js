@@ -87,7 +87,10 @@ function productIndex(rows) {
     byCode.set(key, p)
   }
   const codes = [...byCode.keys()].sort((a, b) => b.length - a.length)
-  return { byCode, codes }
+  const counts = new Map()
+  for (const p of rows) if (p.code) counts.set(p.code.trim().toUpperCase(), (counts.get(p.code.trim().toUpperCase()) ?? 0) + 1)
+  const shared = new Set([...counts].filter(([, n]) => n > 1).map(([c]) => c))
+  return { byCode, codes, shared }
 }
 
 /** Finishes on a species Part ID that are not part of the size (flat stock). */
@@ -137,6 +140,7 @@ export async function analysePartIds(sheetRows) {
 /** The matching itself, on plain data: products, species ticks and the stored list. */
 export function matchPartIds(sheetRows, { productRows, tickRows, current }) {
   const index = productIndex(productRows)
+  const heldBy = new Map(current.filter((c) => c.partId).map((c) => [c.partId.toUpperCase(), c.productId]))
   const ticks = new Set(tickRows.map((t) => `${t.productId}|${t.species}`))
 
   const matched = []
@@ -155,7 +159,12 @@ export function matchPartIds(sheetRows, { productRows, tickRows, current }) {
     seen.add(partId)
 
     const { species, known } = normaliseSpecies(r.species)
-    const product = matchProduct(partId, r['base code'], index)
+    let product = matchProduct(partId, r['base code'], index)
+    // Two products share this code: a Part ID stays on the one that has it.
+    const held = heldBy.get(partId)
+    if (product && held && index.shared.has(product.code.trim().toUpperCase())) {
+      product = productRows.find((x) => x.id === held) ?? product
+    }
     if (!product) { unmatched.push({ partId, name: r.name, species, category: r.category }); continue }
 
     const row = {

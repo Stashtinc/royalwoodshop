@@ -645,6 +645,16 @@ export async function getProductPartIds(productId) {
   return { partIds, prices, salePrices }
 }
 
+/** The product (other than `exceptId`) already using this code, ignoring case and spaces; or null. */
+export async function productWithCode(code, exceptId = null) {
+  const c = String(code ?? '').trim()
+  if (!c) return null
+  const db = await getDb()
+  const rows = await db.select({ id: products.id, name: products.name, status: products.status })
+    .from(products).where(sql`upper(trim(${products.productCode})) = ${c.toUpperCase()}`)
+  return rows.find((r) => r.id !== Number(exceptId)) ?? null
+}
+
 /** Part IDs from `partIds` already used by a product other than `exceptId`. */
 export async function partIdsInUse(partIds, exceptId = null) {
   const wanted = partIds.filter(Boolean)

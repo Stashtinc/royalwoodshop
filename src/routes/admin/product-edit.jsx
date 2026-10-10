@@ -5,7 +5,7 @@ import { requireUser } from '../../lib/auth.server'
 import {
   getProduct, saveProduct, diffProduct, listImages, updateImage,
   removeImage, moveImage, listCategoriesWithSubs, listProductCategories,
-  saveProductCategories, deleteProduct, archiveProductsByIds, getProductPartIds, saveProductPartIds, partIdsInUse,
+  saveProductCategories, deleteProduct, archiveProductsByIds, getProductPartIds, saveProductPartIds, partIdsInUse, productWithCode,
 } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
 import { saveUpload, deleteUpload, describeLimits } from '../../lib/uploads.server'
@@ -173,6 +173,13 @@ export async function action({ request, params }) {
   if (taken.length) return { error: `Already used on another product: ${taken.join(', ')}` }
 
   const before = await getProduct(params.id)
+  // Only a change of code is checked, so a product that already shares one can still be saved.
+  const newCode = String(f.get('productCode') ?? '').trim()
+  const sameCode = newCode.toUpperCase() !== String(before.productCode ?? '').trim().toUpperCase()
+    ? await productWithCode(newCode, params.id) : null
+  if (sameCode) {
+    return { error: `Product code ${newCode} is already used by "${sameCode.name}"${sameCode.status === 'archived' ? ' (archived)' : ''}. Each product needs its own code, e.g. ${newCode}-MDF.` }
+  }
   const payload = {
     name,
     productCode: String(f.get('productCode') ?? '').trim(),

@@ -1,6 +1,6 @@
 import { Form, Link, redirect, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { createProduct, listCategoriesWithSubs, saveProductPartIds, partIdsInUse } from '../../lib/admin-queries.server'
+import { createProduct, listCategoriesWithSubs, saveProductPartIds, partIdsInUse, productWithCode } from '../../lib/admin-queries.server'
 import { syncProductsJson } from '../../lib/sync.server'
 import { log } from '../../lib/activity.server'
 import { AVAILABILITY } from '../../lib/catalogue-constants'
@@ -24,6 +24,10 @@ export async function action({ request }) {
 
   const name = String(f.get('name') ?? '').trim()
   if (!name) return { error: 'A product name is required.' }
+  const sameCode = await productWithCode(f.get('productCode'), null)
+  if (sameCode) {
+    return { error: `Product code ${String(f.get('productCode')).trim()} is already used by "${sameCode.name}"${sameCode.status === 'archived' ? ' (archived)' : ''}. Each product needs its own code, e.g. ${String(f.get('productCode')).trim()}-MDF.` }
+  }
 
   const num = (v) => {
     const t = String(v ?? '').trim()

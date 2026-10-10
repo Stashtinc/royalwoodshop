@@ -419,6 +419,16 @@ export async function analyse(rows, { layout = 'species', downloadedAt = null } 
     : []
   const byCode = new Map(found.map((f) => [f.productCode, f]))
 
+  // A code two products share cannot say which one a row means: those rows are
+  // left out (and listed), never blended into one product.
+  const shared = await db.select({ code: sql`upper(trim(${products.productCode}))`, names: sql`string_agg(${products.name}, ' | ')` })
+    .from(products).where(sql`coalesce(trim(${products.productCode}), '') <> ''`)
+    .groupBy(sql`upper(trim(${products.productCode}))`).having(sql`count(*) > 1`)
+  const sharedCodes = new Map(shared.map((r) => [r.code, r.names]))
+  const codesSharedInDb = [...new Set(parsed.map((p) => p.code.trim().toUpperCase()).filter((c) => sharedCodes.has(c)))]
+    .map((code) => ({ code, names: sharedCodes.get(code) }))
+  parsed = parsed.filter((p) => !sharedCodes.has(p.code.trim().toUpperCase()))
+
   // Products edited on the website after this sheet was downloaded: importing
   // the sheet would undo those edits, so the preview names them.
   const editedSince = new Map()
@@ -506,6 +516,7 @@ export async function analyse(rows, { layout = 'species', downloadedAt = null } 
     rows: parsed.length,
     downloadedAt: downloadedAt ? downloadedAt.toISOString() : null,
     stale: [],
+    codesSharedInDb,
     matched: 0,
     willChange: 0,
     alreadyCorrect: 0,
@@ -952,8 +963,14 @@ export async function apply(rows, overrides = {}, options = {}) {
             .values({ slug: topSlug, name: categoryTitle(category ?? p.category) })
             .onConflictDoUpdate({ target: categories.slug, set: { updatedAt: new Date() } })
             .returning({ id: categories.id })
+          // An existing sub-category of that name under that parent is the one
+          // meant, whatever its slug: two same-named subs merged in the admin
+          // must not come back because the import worked out a slug.
           const childSlug = `${topSlug}-${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
-          const [child] = await db.insert(categories)
+          const [named] = await db.select({ id: categories.id }).from(categories)
+            .where(and(eq(categories.parentId, top.id), sql`lower(trim(${categories.name})) = ${sub.trim().toLowerCase()}`))
+            .orderBy(sql`${categories.slug} = ${childSlug} desc`, categories.id).limit(1)
+          const [child] = named ? [named] : await db.insert(categories)
             .values({ slug: childSlug, name: sub, parentId: top.id })
             .onConflictDoUpdate({
               target: categories.slug,
