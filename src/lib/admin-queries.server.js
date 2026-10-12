@@ -70,7 +70,7 @@ export async function saveProductCategories(productId, { primaryCategoryId, cate
   }
 }
 
-export async function listProducts({ q = '', page = 1, perPage = 25, missing = '', category = '', species = '', availability = '', sortBy = 'code', sortDir = 'asc', status = 'active' } = {}) {
+export async function listProducts({ q = '', page = 1, perPage = 25, missing = '', category = '', species = '', availability = '', sortBy = 'code', sortDir = 'asc', status = 'active', photosFirst = true } = {}) {
   const db = await getDb()
   const where = []
   // Default: hide archived. Pass status='all' or status='archived' to see them.
@@ -134,7 +134,11 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
         id: [d(products.id)],
         updated: [d(products.updatedAt), d(products.id)],
       }
-      return cols[sortBy] ?? [asc(products.productCode), asc(products.name)]
+      const order = cols[sortBy] ?? [asc(products.productCode), asc(products.name)]
+      // Products with a photo come first; the chosen sort applies within each group.
+      return photosFirst
+        ? [sql`exists (select 1 from product_images pi where pi.product_id = ${products.id}) desc`, ...order]
+        : order
     })())
     .limit(perPage).offset((page - 1) * perPage)
 

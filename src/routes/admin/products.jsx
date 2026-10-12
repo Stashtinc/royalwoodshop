@@ -31,6 +31,8 @@ export async function loader({ request }) {
       sortBy: url.searchParams.get('sortBy') ?? 'updated',
       sortDir: url.searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc',
       status: STATUS_VIEWS.includes(url.searchParams.get('status')) ? url.searchParams.get('status') : 'active',
+      // Right after a save, the saved product leads the list whether or not it has a photo.
+      photosFirst: !url.searchParams.get('saved'),
     }),
     listCategories(),
   ])
