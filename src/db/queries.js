@@ -220,7 +220,8 @@ function shape(r) {
     images: Array.isArray(r.images) ? r.images : JSON.parse(r.images ?? '[]'),
     seoTitle: r.seoTitle ?? '',
     seoDescription: r.seoDescription ?? '',
-    views: (r.legacyViews ?? 0) + (r.siteViews ?? 0),
+    // Visits on this site only. legacyViews (the WordPress count) is kept but not used.
+    views: r.siteViews ?? 0,
   }
 }
 

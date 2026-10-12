@@ -478,7 +478,7 @@ export default function Products() {
               <th className="px-4 py-3">
                 <Link to={sortLink('availability')} className="inline-flex items-center gap-1 hover:text-royal-blue">Availability<SortIndicator col="availability" /></Link>
               </th>
-              <th className="px-4 py-3 text-right" title="Product page views (WordPress + this site)">
+              <th className="px-4 py-3 text-right" title="Product page views on this site (from Oct 13, 2026)">
                 <Link to={sortLink('views')} className="inline-flex items-center gap-1 hover:text-royal-blue">Views<SortIndicator col="views" /></Link>
               </th>
               <th className="px-4 py-3" />

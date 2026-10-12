@@ -198,7 +198,7 @@ function AvailabilityPill({ availability, className = '' }) {
 /** Admin-only view count beside the edit pencil. */
 function Views({ product }) {
   return (
-    <span title="Product page views (WordPress + this site)"
+    <span title="Product page views on this site (from Oct 13, 2026)"
       className="inline-flex shrink-0 items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 font-sans text-[11px] font-medium text-amber-700">
       <EyeIcon size={11} /> {Number(product.views ?? 0).toLocaleString('en-CA')}
     </span>

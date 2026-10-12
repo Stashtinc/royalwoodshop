@@ -99,7 +99,7 @@ export default function Route() {
         <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-4 border-t border-amber-300 bg-amber-50 px-6 py-2 print:hidden">
           <p className="font-sans text-xs font-medium text-amber-800">
             Admin mode — public view
-            <span className="ml-3 inline-flex items-center gap-1 text-amber-700" title="Product page views (WordPress + this site)">
+            <span className="ml-3 inline-flex items-center gap-1 text-amber-700" title="Product page views on this site (from Oct 13, 2026)">
               <EyeIcon /> {Number(product.views ?? 0).toLocaleString('en-CA')} views
             </span>
           </p>
