@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Form, Link, useActionData, useLoaderData, useNavigation, useFetcher } from 'react-router'
+import { ConfirmForm } from '../../components/admin/ConfirmDialog'
 import Toast from '../../components/admin/Toast'
 import { requireUser } from '../../lib/auth.server'
 import {
@@ -178,9 +179,7 @@ function SubRow({ sub }) {
               <path d="M13.5 3.5 16.5 6.5l-10 10H3.5v-3l10-10Z" />
             </svg>
           </button>
-          <Form method="post" onSubmit={(e) => {
-            if (!confirm(`Delete "${sub.name}"? Products in this sub-category will be unlinked.`)) e.preventDefault()
-          }}>
+          <ConfirmForm method="post" confirm={{ title: `Delete "${sub.name}"?`, message: 'Products in this sub-category will be unlinked from it.', action: 'Delete' }}>
             <input type="hidden" name="intent" value="delete" />
             <input type="hidden" name="id" value={sub.id} />
             <input type="hidden" name="name" value={sub.name} />
@@ -189,7 +188,7 @@ function SubRow({ sub }) {
                 <path d="M5 5l10 10M15 5L5 15" />
               </svg>
             </button>
-          </Form>
+          </ConfirmForm>
         </>
       )}
     </div>
@@ -291,9 +290,7 @@ function CategoryRow({ cat, isFirst, isLast }) {
           </button>
         )}
 
-        <Form method="post" className="shrink-0" onSubmit={(e) => {
-          if (!confirm(`Delete "${cat.name}"? Products assigned only to this category will be uncategorised.`)) e.preventDefault()
-        }}>
+        <ConfirmForm method="post" className="shrink-0" confirm={{ title: `Delete "${cat.name}"?`, message: 'Products assigned only to this category will be uncategorised.', action: 'Delete' }}>
           <input type="hidden" name="intent" value="delete" />
           <input type="hidden" name="id" value={cat.id} />
           <input type="hidden" name="name" value={cat.name} />
@@ -303,7 +300,7 @@ function CategoryRow({ cat, isFirst, isLast }) {
               <path d="M4 6h12l-1.5 11H5.5L4 6ZM8 6V4h4v2M2 6h16" />
             </svg>
           </button>
-        </Form>
+        </ConfirmForm>
       </div>
 
       {/* Sub-categories */}

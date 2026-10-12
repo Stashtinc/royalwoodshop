@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Toast from '../../components/admin/Toast'
+import { ConfirmForm } from '../../components/admin/ConfirmDialog'
 import { Form, Link, redirect, useActionData, useLoaderData, useNavigation, useBlocker } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import {
@@ -325,12 +326,12 @@ function ImagesSection() {
                   <button disabled={i === images.length - 1} title="Move later"
                     className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs disabled:opacity-30">↓</button>
                 </Form>
-                <Form method="post" onSubmit={(e) => { if (!confirm('Remove this image?')) e.preventDefault() }}>
+                <ConfirmForm method="post" confirm={{ title: 'Remove this image?', message: 'It is taken off this product. The file stays in the Media library.', action: 'Remove image' }}>
                   <input type="hidden" name="intent" value="image-delete" />
                   <input type="hidden" name="imageId" value={img.id} />
                   <button title="Remove"
                     className="rounded-lg border border-red-200 px-2 py-1.5 text-xs text-red-700 hover:border-red-400">✕</button>
-                </Form>
+                </ConfirmForm>
               </div>
             </li>
           ))}
@@ -501,24 +502,20 @@ export default function ProductEdit() {
           <Link to="/admin/products" className="text-sm text-gray-600 hover:underline">Cancel</Link>
         </div>
         <div className="flex items-center gap-3">
-          <Form method="post" onSubmit={(e) => {
-            if (!confirm(`Are you sure you want to archive "${product.name}"? It will be hidden from the site.`)) e.preventDefault()
-          }}>
+          <ConfirmForm method="post" confirm={{ title: 'Archive this product?', message: `"${product.name}" will be hidden from the site. You can publish it again from Products → Archived.`, action: 'Archive' }}>
             <input type="hidden" name="intent" value="archive" />
             <button type="submit"
               className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50">
               Archive
             </button>
-          </Form>
-          <Form method="post" onSubmit={(e) => {
-            if (!confirm(`Are you sure you want to delete "${product.name}"? This cannot be undone.`)) e.preventDefault()
-          }}>
+          </ConfirmForm>
+          <ConfirmForm method="post" confirm={{ title: 'Delete this product?', message: `"${product.name}" will be deleted. This cannot be undone.`, action: 'Delete product' }}>
             <input type="hidden" name="intent" value="delete" />
             <button type="submit"
               className="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 hover:border-red-400 hover:bg-red-50">
               Delete product
             </button>
-          </Form>
+          </ConfirmForm>
         </div>
       </div>
 

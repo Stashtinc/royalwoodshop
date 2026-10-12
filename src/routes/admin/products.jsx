@@ -8,6 +8,7 @@ import { log } from '../../lib/activity.server'
 import { AVAILABILITY_LABEL, SPECIES } from '../../lib/catalogue-constants'
 import { thumbSrc } from '../../lib/images'
 import Pagination from '../../components/admin/Pagination'
+import { ConfirmForm } from '../../components/admin/ConfirmDialog'
 
 
 /** Status views besides the default (everything not archived). */
@@ -326,10 +327,8 @@ export default function Products() {
                 </Form>
               )}
               {selectedIds.size > 0 && (
-                <Form method="post" onSubmit={(e) => {
-                  if (!confirm(`Are you sure you want to delete ${selectedIds.size} product${selectedIds.size === 1 ? '' : 's'}? This cannot be undone.`)) e.preventDefault()
-                  else exitBulkEdit()
-                }}>
+                <ConfirmForm method="post" onConfirmed={exitBulkEdit}
+                  confirm={{ title: `Delete ${selectedIds.size} product${selectedIds.size === 1 ? '' : 's'}?`, message: 'This cannot be undone.', action: 'Delete' }}>
                   <input type="hidden" name="intent" value="bulk-delete" />
                   {[...selectedIds].map((id) => (
                     <input key={id} type="hidden" name="productId" value={id} />
@@ -338,7 +337,7 @@ export default function Products() {
                     className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
                     Delete {selectedIds.size} selected
                   </button>
-                </Form>
+                </ConfirmForm>
               )}
               <button
                 type="button"
