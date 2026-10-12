@@ -7,6 +7,7 @@ import { AVAILABILITY } from '../../lib/catalogue-constants'
 import CategoryPicker from '../../components/admin/CategoryPicker'
 import SpeciesPicker, { readSpeciesAvail, readPartEntries } from '../../components/admin/SpeciesPicker'
 import UomSelect from '../../components/admin/UomSelect'
+import ProductCodeInput from '../../components/admin/ProductCodeInput'
 import { normaliseUom } from '../../lib/catalogue-constants'
 import SeoFields from '../../components/admin/SeoFields'
 import Toast from '../../components/admin/Toast'
@@ -130,7 +131,7 @@ export default function ProductNew() {
             <input name="name" required autoFocus className={field} placeholder='e.g. Colonial Baseboard 3-1/2"' /></label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5"><Label>Product code</Label>
-              <input name="productCode" className={field} placeholder="e.g. BAS-350" /></label>
+              <ProductCodeInput className={field} placeholder="e.g. BAS-350" /></label>
             <label className="flex flex-col gap-1.5"><Label>Status</Label>
               <select name="status" defaultValue="draft" className={field}>
                 <option value="published">Published</option>

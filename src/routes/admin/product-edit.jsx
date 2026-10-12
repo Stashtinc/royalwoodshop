@@ -15,6 +15,7 @@ import ImageDropZone from '../../components/admin/ImageDropZone'
 import CategoryPicker from '../../components/admin/CategoryPicker'
 import SpeciesPicker, { readSpeciesAvail, readPartEntries } from '../../components/admin/SpeciesPicker'
 import UomSelect from '../../components/admin/UomSelect'
+import ProductCodeInput from '../../components/admin/ProductCodeInput'
 import { normaliseUom } from '../../lib/catalogue-constants'
 import { thumbSrc } from '../../lib/images'
 import SeoFields from '../../components/admin/SeoFields'
@@ -434,7 +435,7 @@ export default function ProductEdit() {
             <input name="name" defaultValue={product.name} className={field} required /></label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5"><Label>Product code</Label>
-              <input name="productCode" defaultValue={product.productCode ?? ''} className={field} /></label>
+              <ProductCodeInput defaultValue={product.productCode ?? ''} exceptId={product.id} className={field} /></label>
             <label className="flex flex-col gap-1.5"><Label>Status</Label>
               <select name="status" defaultValue={product.status} className={field}>
                 <option value="published">Published</option>
