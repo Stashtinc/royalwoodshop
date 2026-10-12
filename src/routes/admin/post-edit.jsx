@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import Toast from '../../components/admin/Toast'
 import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { getPostById, savePost, listCategories, slugTaken } from '../../lib/posts.server'
@@ -271,7 +272,7 @@ export default function PostEdit() {
         getEditorState={getEditorState}
       />
 
-      {data?.error && <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-800">{data.error}</p>}
+      <Toast message={data?.error} stamp={data} tone="error" />
 
       <Form ref={formRef} method="post" encType="multipart/form-data" className="flex flex-col gap-6">
         <input type="hidden" name="featuredImageExisting" value={featured} readOnly />

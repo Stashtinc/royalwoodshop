@@ -420,8 +420,8 @@ export default function ProductEdit() {
       </div>
       <h1 className="font-serif text-2xl font-bold text-tundora">{product.name}</h1>
 
-      {data?.error && <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-800">{data.error}</p>}
       <Toast message={toast} onDismiss={() => setToast(null)} />
+      <Toast message={data?.error} stamp={data} tone="error" top={data?.saved ? 'top-20' : 'top-5'} />
 
       <ImagesSection />
       <CategoriesSection />

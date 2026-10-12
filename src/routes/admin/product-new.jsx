@@ -9,6 +9,7 @@ import SpeciesPicker, { readSpeciesAvail, readPartEntries } from '../../componen
 import UomSelect from '../../components/admin/UomSelect'
 import { normaliseUom } from '../../lib/catalogue-constants'
 import SeoFields from '../../components/admin/SeoFields'
+import Toast from '../../components/admin/Toast'
 import ImageDropZone from '../../components/admin/ImageDropZone'
 import MediaPicker from '../../components/admin/MediaPicker'
 import { saveUpload, describeLimits } from '../../lib/uploads.server'
@@ -112,9 +113,7 @@ export default function ProductNew() {
       </div>
       <h1 className="font-serif text-2xl font-bold text-tundora">New Product</h1>
 
-      {data?.error && (
-        <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-800">{data.error}</p>
-      )}
+      <Toast message={data?.error} stamp={data} tone="error" />
 
       <Form id="new-product-form" method="post" encType="multipart/form-data" className="flex flex-col gap-6">
 
