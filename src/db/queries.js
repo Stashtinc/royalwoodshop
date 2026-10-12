@@ -60,6 +60,7 @@ export async function getAllProducts(db) {
       seoTitle: products.seoTitle,
       seoDescription: products.seoDescription,
       legacyViews: products.legacyViews,
+      siteViews: products.views,
       // The primary category, lifted to its top-level parent when the
       // primary is a sub-category — the address uses the top level.
       categorySlug: sql`coalesce(
@@ -219,7 +220,7 @@ function shape(r) {
     images: Array.isArray(r.images) ? r.images : JSON.parse(r.images ?? '[]'),
     seoTitle: r.seoTitle ?? '',
     seoDescription: r.seoDescription ?? '',
-    views: r.legacyViews ?? 0,
+    views: (r.legacyViews ?? 0) + (r.siteViews ?? 0),
   }
 }
 

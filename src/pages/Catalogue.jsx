@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useRouteLoaderData, useSearchParams } from 'react-router'
+import EyeIcon from '../components/EyeIcon'
 import { srcSet, thumbSrc, imageFit, showImageFallback, imageFallbackRef } from '../lib/images'
 import {
   productPath, catalogueProducts as snapshotProducts,
@@ -194,6 +195,16 @@ function AvailabilityPill({ availability, className = '' }) {
   )
 }
 
+/** Admin-only view count beside the edit pencil. */
+function Views({ product }) {
+  return (
+    <span title="Product page views (WordPress + this site)"
+      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 font-sans text-[11px] font-medium text-amber-700">
+      <EyeIcon size={11} /> {Number(product.views ?? 0).toLocaleString('en-CA')}
+    </span>
+  )
+}
+
 function ProductCard({ product, query = '', isAdmin = false }) {
   return (
     <Link
@@ -242,16 +253,19 @@ function ProductCard({ product, query = '', isAdmin = false }) {
         <div className="flex items-start justify-between gap-1">
           <p className="font-serif text-base leading-snug font-medium text-tundora"><Highlight text={product.name} query={query} /></p>
           {isAdmin && product.dbId && (
-            <Link
-              to={`/admin/products/${product.dbId}`}
-              onClick={(e) => e.stopPropagation()}
-              title="Edit product"
-              className="shrink-0 rounded-md border border-amber-300 bg-amber-50 p-1 text-amber-600 hover:bg-amber-100"
-            >
-              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-                <path d="M9.5 1.5l3 3-8 8H1.5v-3l8-8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </Link>
+            <div className="flex shrink-0 items-center gap-1">
+              <Views product={product} />
+              <Link
+                to={`/admin/products/${product.dbId}`}
+                onClick={(e) => e.stopPropagation()}
+                title="Edit product"
+                className="shrink-0 rounded-md border border-amber-300 bg-amber-50 p-1 text-amber-600 hover:bg-amber-100"
+              >
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                  <path d="M9.5 1.5l3 3-8 8H1.5v-3l8-8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </Link>
+            </div>
           )}
         </div>
         <div className="mt-auto flex flex-col gap-0.5 font-sans text-xs text-gray-500">
@@ -330,16 +344,19 @@ function ProductRow({ product, query = '', isAdmin = false }) {
         <div className="flex items-start justify-between gap-2">
           <p className="font-serif text-lg leading-snug font-medium text-tundora"><Highlight text={product.name} query={query} /></p>
           {isAdmin && product.dbId && (
-            <Link
-              to={`/admin/products/${product.dbId}`}
-              onClick={(e) => e.stopPropagation()}
-              title="Edit product"
-              className="shrink-0 rounded-md border border-amber-300 bg-amber-50 p-1 text-amber-600 hover:bg-amber-100"
-            >
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                <path d="M9.5 1.5l3 3-8 8H1.5v-3l8-8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </Link>
+            <div className="flex shrink-0 items-center gap-1">
+              <Views product={product} />
+              <Link
+                to={`/admin/products/${product.dbId}`}
+                onClick={(e) => e.stopPropagation()}
+                title="Edit product"
+                className="shrink-0 rounded-md border border-amber-300 bg-amber-50 p-1 text-amber-600 hover:bg-amber-100"
+              >
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                  <path d="M9.5 1.5l3 3-8 8H1.5v-3l8-8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </Link>
+            </div>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 font-sans text-sm text-gray-500">
@@ -394,6 +411,8 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   const [filterOpen, setFilterOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [view, setView] = useState('grid')
+  // Most popular first by default; "Product code" is the old alphanumeric order.
+  const [sortOrder, setSortOrder] = useState(() => (searchParams.get('sort') === 'code' ? 'code' : 'popular'))
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const resultsRef = useRef(null)
   const sidebarRef = useRef(null)
@@ -541,8 +560,10 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
 
   const sorted = useMemo(() => {
     const catIndex = Object.fromEntries(catalogueCategoryOrder.map((c, i) => [c.name, i]))
-    return [...filtered].sort((a, b) => (catIndex[a.category] ?? 99) - (catIndex[b.category] ?? 99))
-  }, [filtered, catalogueCategoryOrder])
+    return [...filtered].sort((a, b) =>
+      ((catIndex[a.category] ?? 99) - (catIndex[b.category] ?? 99))
+      || (sortOrder === 'popular' ? (b.views ?? 0) - (a.views ?? 0) : 0))
+  }, [filtered, catalogueCategoryOrder, sortOrder])
 
   const visibleCount = page * pageSize
   const hasMore = visibleCount < sorted.length
@@ -827,6 +848,16 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <div className="w-44">
+                  <CustomSelect
+                    value={sortOrder}
+                    onChange={withPageReset(setSortOrder)}
+                    options={[
+                      { value: 'popular', label: 'Sort: Most popular' },
+                      { value: 'code', label: 'Sort: Product code' },
+                    ]}
+                  />
+                </div>
                 {speciesOptions.length > 0 && (
                   <div className="w-44">
                     <CustomSelect

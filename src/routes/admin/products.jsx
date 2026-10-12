@@ -400,16 +400,19 @@ export default function Products() {
         </div>
         <FilterPill
           label="All types"
-          value={statusFilter === 'active' ? category : `__${statusFilter}__`}
+          value={statusFilter === 'active' ? (sortBy === 'views' && !category ? '__popular__' : category) : `__${statusFilter}__`}
           options={[
             { value: '', label: 'All types' },
             ...categoryOptions.map((c) => ({ value: c.name, label: c.name })),
+            { value: '__popular__', label: 'By popularity' },
             { value: '__draft__', label: 'Drafts' },
             { value: '__archived__', label: 'Archived' },
           ]}
           onChange={(val) => {
             const view = val.match(/^__(\w+)__$/)?.[1]
-            if (view) {
+            if (view === 'popular') {
+              navigate('?sortBy=views&sortDir=desc', { replace: true })
+            } else if (view) {
               navigate(`?status=${view}`, { replace: true })
             } else if (statusFilter !== 'active') {
               const next = new URLSearchParams()
@@ -475,6 +478,9 @@ export default function Products() {
               <th className="px-4 py-3">
                 <Link to={sortLink('availability')} className="inline-flex items-center gap-1 hover:text-royal-blue">Availability<SortIndicator col="availability" /></Link>
               </th>
+              <th className="px-4 py-3 text-right" title="Product page views (WordPress + this site)">
+                <Link to={sortLink('views')} className="inline-flex items-center gap-1 hover:text-royal-blue">Views<SortIndicator col="views" /></Link>
+              </th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -527,6 +533,7 @@ export default function Products() {
                     ? AVAILABILITY_LABEL[r.availability] ?? r.availability.replace(/_/g, ' ')
                     : <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">not set</span>}
                 </td>
+                <td className="px-4 py-2.5 text-right tabular-nums text-gray-600">{Number(r.views ?? 0).toLocaleString('en-CA')}</td>
                 <td className="px-4 py-2.5 text-right">
                   <div className="flex items-center justify-end gap-3">
                     {statusFilter !== 'active' && !bulkEdit && (
@@ -543,7 +550,7 @@ export default function Products() {
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={bulkEdit ? 8 : 7} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
+              <tr><td colSpan={bulkEdit ? 9 : 8} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
             )}
           </tbody>
         </table>

@@ -120,6 +120,7 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
                 order by pi.sort_order, pi.id limit 1)`.as('imageWidth'),
     imageCount: sql`(select count(*)::int from product_images pi
                      where pi.product_id = products.id)`.as('imageCount'),
+    views: sql`(${products.legacyViews} + ${products.views})`.mapWith(Number).as('views'),
   })
     .from(products)
     .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
@@ -133,10 +134,11 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
         availability: [d(products.availability), asc(products.productCode)],
         id: [d(products.id)],
         updated: [d(products.updatedAt), d(products.id)],
+        views: [d(sql`${products.legacyViews} + ${products.views}`), asc(products.productCode)],
       }
       const order = cols[sortBy] ?? [asc(products.productCode), asc(products.name)]
       // Products with a photo come first; the chosen sort applies within each group.
-      return photosFirst
+      return photosFirst && sortBy !== 'views'
         ? [sql`exists (select 1 from product_images pi where pi.product_id = ${products.id}) desc`, ...order]
         : order
     })())

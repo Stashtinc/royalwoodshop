@@ -104,6 +104,8 @@ export const products = pgTable('products', {
 
   /** Carried across from UPCP so popular products can be prioritised. */
   legacyViews: integer('legacy_views').notNull().default(0),
+  /** Product page visits on this site; popularity is legacyViews + views. */
+  views: integer('views').notNull().default(0),
 
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
