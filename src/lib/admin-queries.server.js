@@ -487,6 +487,17 @@ export async function deleteCategoryAdmin(id) {
   await db.delete(categories).where(eq(categories.id, Number(id)))
 }
 
+/** Sets the display order of sibling categories to the order of `ids` (all must share a parent). */
+export async function reorderCategories(ids) {
+  const list = ids.map(Number).filter(Boolean)
+  if (!list.length) return
+  const db = await getDb()
+  const rows = await db.select({ id: categories.id, parentId: categories.parentId })
+    .from(categories).where(inArray(categories.id, list))
+  if (rows.length !== list.length || new Set(rows.map((r) => r.parentId ?? 0)).size !== 1) return
+  for (const [i, id] of list.entries()) await db.update(categories).set({ sortOrder: i }).where(eq(categories.id, id))
+}
+
 export async function moveCategoryOrder(id, direction) {
   const db = await getDb()
   const [cat] = await db.select({ id: categories.id, sortOrder: categories.sortOrder, parentId: categories.parentId })
@@ -502,9 +513,12 @@ export async function moveCategoryOrder(id, direction) {
   const swapIdx = direction === 'up' ? idx - 1 : idx + 1
   if (swapIdx < 0 || swapIdx >= siblings.length) return
 
-  const other = siblings[swapIdx]
-  await db.update(categories).set({ sortOrder: other.sortOrder }).where(eq(categories.id, cat.id))
-  await db.update(categories).set({ sortOrder: cat.sortOrder }).where(eq(categories.id, other.id))
+  // Siblings that were never ordered all share 0 (shown A–Z), so swapping two
+  // numbers would change nothing: number them 0, 1, 2… in the order shown, then swap.
+  ;[siblings[idx], siblings[swapIdx]] = [siblings[swapIdx], siblings[idx]]
+  for (const [i, s] of siblings.entries()) {
+    if (s.sortOrder !== i) await db.update(categories).set({ sortOrder: i }).where(eq(categories.id, s.id))
+  }
 }
 
 export async function dashboardStats() {

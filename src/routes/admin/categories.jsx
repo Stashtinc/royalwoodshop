@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
 import { Form, Link, useActionData, useLoaderData, useNavigation, useFetcher } from 'react-router'
 import { ConfirmForm } from '../../components/admin/ConfirmDialog'
+import { useDragReorder } from '../../components/admin/useDragReorder'
 import Toast from '../../components/admin/Toast'
 import { requireUser } from '../../lib/auth.server'
 import {
   listCategoriesAdmin, createCategory, updateCategory,
-  deleteCategoryAdmin, moveCategoryOrder, writeNavCategoriesJson,
+  deleteCategoryAdmin, moveCategoryOrder, reorderCategories, writeNavCategoriesJson,
 } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
 
@@ -46,6 +47,12 @@ export async function action({ request }) {
     await updateCategory(id, { inNav })
     await writeNavCategoriesJson()
     return { saved: inNav ? 'Category shown.' : 'Category hidden from the menu and catalogue.' }
+  }
+
+  if (intent === 'reorder') {
+    await reorderCategories(String(f.get('ids') ?? '').split(','))
+    await writeNavCategoriesJson()
+    return { saved: 'Order saved.' }
   }
 
   if (intent === 'move') {
@@ -90,7 +97,16 @@ function InlineInput({ defaultValue, onSave, onCancel, placeholder = 'Category n
 
 /* --------------------------------------------------------------- sub row */
 
-function SubRow({ sub }) {
+function GripIcon({ className = '' }) {
+  return (
+    <svg width="10" height="12" viewBox="0 0 10 16" fill="currentColor" className={className} aria-hidden>
+      <circle cx="3" cy="3" r="1.4" /><circle cx="7" cy="3" r="1.4" /><circle cx="3" cy="8" r="1.4" />
+      <circle cx="7" cy="8" r="1.4" /><circle cx="3" cy="13" r="1.4" /><circle cx="7" cy="13" r="1.4" />
+    </svg>
+  )
+}
+
+function SubRow({ sub, dragProps }) {
   const nav = useNavigation()
   const busy = nav.state !== 'idle'
   const [editing, setEditing] = useState(false)
@@ -120,7 +136,9 @@ function SubRow({ sub }) {
 
   return (
     <div
-      className="relative flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs"
+      {...dragProps({ draggable: !editing })}
+      className={`relative flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs ${editing ? '' : 'cursor-grab active:cursor-grabbing'}`}
+      title={editing ? undefined : 'Drag to reorder'}
       onMouseEnter={scheduleShow}
       onMouseLeave={scheduleHide}
     >
@@ -169,6 +187,7 @@ function SubRow({ sub }) {
         </Form>
       ) : (
         <>
+          <GripIcon className="text-gray-300" />
           <span className="text-gray-700">{sub.name}</span>
           {sub.productCount > 0 && (
             <span className="text-gray-400">({sub.productCount})</span>
@@ -197,7 +216,9 @@ function SubRow({ sub }) {
 
 /* --------------------------------------------------------------- category row */
 
-function CategoryRow({ cat, isFirst, isLast }) {
+function CategoryRow({ cat, rowProps, handleProps }) {
+  const rowRef = useRef(null)
+  const { order: subs, itemProps: subProps } = useDragReorder(cat.subcategories, { axis: 'x' })
   const nav = useNavigation()
   const busy = nav.state !== 'idle'
   const [editing, setEditing] = useState(false)
@@ -205,30 +226,14 @@ function CategoryRow({ cat, isFirst, isLast }) {
   const [newSubName, setNewSubName] = useState('')
 
   return (
-    <div className="border-b border-gray-100 last:border-0">
+    <div ref={rowRef} {...rowProps} className="border-b border-gray-100 bg-white last:border-0">
       <div className="flex items-center gap-3 px-4 py-3">
 
-        {/* Reorder */}
-        <div className="flex flex-col gap-0.5 shrink-0">
-          <Form method="post">
-            <input type="hidden" name="intent" value="move" />
-            <input type="hidden" name="id" value={cat.id} />
-            <input type="hidden" name="direction" value="up" />
-            <button disabled={isFirst || busy} title="Move up"
-              className="block text-gray-300 hover:text-gray-600 disabled:opacity-20">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 2l5 5H1z"/></svg>
-            </button>
-          </Form>
-          <Form method="post">
-            <input type="hidden" name="intent" value="move" />
-            <input type="hidden" name="id" value={cat.id} />
-            <input type="hidden" name="direction" value="down" />
-            <button disabled={isLast || busy} title="Move down"
-              className="block text-gray-300 hover:text-gray-600 disabled:opacity-20">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 10L1 5h10z"/></svg>
-            </button>
-          </Form>
-        </div>
+        {/* Drag to reorder */}
+        <span {...handleProps(rowRef)} title="Drag to reorder"
+          className="shrink-0 cursor-grab text-gray-300 hover:text-gray-500 active:cursor-grabbing">
+          <GripIcon />
+        </span>
 
         {/* Name */}
         <div className="flex-1 min-w-0">
@@ -305,8 +310,8 @@ function CategoryRow({ cat, isFirst, isLast }) {
 
       {/* Sub-categories */}
       <div className="px-10 pb-3 flex flex-wrap items-center gap-2">
-        {cat.subcategories.map((sub) => (
-          <SubRow key={sub.id} sub={sub} />
+        {subs.map((sub) => (
+          <SubRow key={sub.id} sub={sub} dragProps={(o) => subProps(sub, o)} />
         ))}
 
         {addingSub ? (
@@ -347,6 +352,7 @@ function CategoryRow({ cat, isFirst, isLast }) {
 
 export default function CategoriesAdmin() {
   const { tree } = useLoaderData()
+  const { order: cats, itemProps: catProps, handleProps: catHandle } = useDragReorder(tree)
   const data = useActionData()
   const [addingTop, setAddingTop] = useState(false)
   const [newTopName, setNewTopName] = useState('')
@@ -427,8 +433,8 @@ export default function CategoriesAdmin() {
         {tree.length === 0 ? (
           <p className="px-6 py-10 text-center text-sm text-gray-500">No categories yet. Add one above.</p>
         ) : (
-          tree.map((cat, i) => (
-            <CategoryRow key={cat.id} cat={cat} isFirst={i === 0} isLast={i === tree.length - 1} />
+          cats.map((cat) => (
+            <CategoryRow key={cat.id} cat={cat} rowProps={catProps(cat, { draggable: false })} handleProps={(ref) => catHandle(cat, ref)} />
           ))
         )}
       </div>
