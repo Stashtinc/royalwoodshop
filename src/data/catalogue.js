@@ -99,9 +99,16 @@ export function categoryTree(rows = products, dbTree = []) {
     }
   }
   const rank = (name) => (names.indexOf(name) + 1) || 99
+  // Sub-categories in the order set on the admin Categories page; any the
+  // database doesn't list (snapshot builds) follow, A–Z.
+  const subOrder = new Map(dbTree.map((c) => [c.name, c.subcategories]))
+  const subRank = (cat, sub) => { const i = (subOrder.get(cat) ?? []).indexOf(sub); return i === -1 ? Infinity : i }
   return [...map.entries()]
     .sort((a, b) => rank(a[0]) - rank(b[0]))
-    .map(([name, subs]) => ({ name, subcategories: [...subs].sort() }))
+    .map(([name, subs]) => ({
+      name,
+      subcategories: [...subs].sort((x, y) => (subRank(name, x) - subRank(name, y)) || x.localeCompare(y)),
+    }))
 }
 
 /** Only species that actually have products behind them. While the sheet is
