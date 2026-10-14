@@ -28,7 +28,7 @@ const readCode = (v) => CODE.get(String(v ?? '').trim().toUpperCase()) ?? null
  */
 /** Headers are typed by hand and wrap across lines — 'Product\n Name' and
  *  'Product Name' are the same column. Compare them flattened. */
-export const canon = (h) => String(h ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
+export const canon = (h) => String(h ?? '').replace(/[\u201C\u201D\u2033]/g, '"').replace(/\s+/g, ' ').trim().toLowerCase()
 
 const CODE_HEADERS = ['product code', 'code']
 
@@ -135,7 +135,7 @@ function speciesOf(p) {
   const out = [...p.species]
   const have = new Set(out.map((x) => x.name.toLowerCase()))
   for (const raw of p.other) {
-    const key = raw.toLowerCase()
+    const key = canon(raw)
     if (have.has(key)) continue
     have.add(key)
     out.push({ name: SPECIES_BY_LOWER.get(key) ?? raw, availability: null })

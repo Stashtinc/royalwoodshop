@@ -8,6 +8,7 @@ export const SPECIES = [
   'Primed MDF', 'White Oak', 'Red Oak', 'Hard Maple', 'Black Walnut', 'Mahogany',
   'Douglas Fir', 'Western Red Cedar', 'PVC', 'Steel', 'Plastic',
   'Hollow Core', 'Solid Core', 'Solid Stile & Rail',
+  '16"', '18"', '20"', '22"', '24"', '26"', '28"', '30"', '32"', '34"', '36"', '38"', 'SPF',
 ]
 
 export const AVAILABILITY = [
