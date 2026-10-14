@@ -390,7 +390,13 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   // fallback so this component still renders on its own.
   const allProducts = products ?? snapshotProducts
   const categoryCounts = useMemo(() => countBy(allProducts), [allProducts])
-  const catalogueCategoryOrder = useMemo(() => categoryTree(allProducts, dbCategories), [allProducts, dbCategories])
+  // Categories and sub-categories with no products are left out of the filter.
+  const catalogueCategoryOrder = useMemo(
+    () => categoryTree(allProducts, dbCategories)
+      .map((cat) => ({ ...cat, subcategories: cat.subcategories.filter((sub) => categoryCounts[`${cat.name}::${sub}`]) }))
+      .filter((cat) => categoryCounts[cat.name]),
+    [allProducts, dbCategories, categoryCounts],
+  )
   const speciesOptions = useMemo(() => speciesFacet(allProducts), [allProducts])
   const availabilityOptions = useMemo(() => availabilityFacet(allProducts), [allProducts])
   const [searchParams] = useSearchParams()
@@ -404,7 +410,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   // client's first render disagree with the served HTML and trip a hydration
   // mismatch. The effect below applies it a beat later instead.
   const [selectedSubs, setSelectedSubs] = useState(() =>
-    subsFromUrl({ initialCategory, categoryParam: null, tree: categoryTree(allProducts, dbCategories) }),
+    subsFromUrl({ initialCategory, categoryParam: null, tree: catalogueCategoryOrder }),
   )
   const [expandedCats, setExpandedCats] = useState(new Set())
   const [advancedOpen, setAdvancedOpen] = useState(false)
