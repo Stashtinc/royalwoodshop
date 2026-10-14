@@ -438,7 +438,10 @@ export async function listCategoriesAdmin() {
     parentId: categories.parentId,
     sortOrder: categories.sortOrder,
     inNav: categories.inNav,
-    productCount: sql`(select count(distinct pc.product_id)::int from product_categories pc where pc.category_id = categories.id)`.as('product_count'),
+    // Archived products are not counted: they are off the site.
+    productCount: sql`(select count(distinct pc.product_id)::int from product_categories pc
+      join products p on p.id = pc.product_id and p.status <> 'archived'
+      where pc.category_id = categories.id)`.as('product_count'),
   }).from(categories).orderBy(asc(categories.sortOrder), asc(categories.name))
 
   const subsByParent = new Map()

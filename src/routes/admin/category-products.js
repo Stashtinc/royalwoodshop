@@ -1,7 +1,7 @@
 import { requireUser } from '../../lib/auth.server'
 import { getDb } from '../../lib/db.server.js'
 import { products, productCategories, categories } from '../../db/schema.js'
-import { eq, asc } from 'drizzle-orm'
+import { and, eq, asc, ne } from 'drizzle-orm'
 
 export async function loader({ request }) {
   await requireUser(request)
@@ -13,7 +13,7 @@ export async function loader({ request }) {
     .from(products)
     .innerJoin(productCategories, eq(productCategories.productId, products.id))
     .innerJoin(categories, eq(categories.id, productCategories.categoryId))
-    .where(eq(categories.id, Number(id)))
+    .where(and(eq(categories.id, Number(id)), ne(products.status, 'archived')))
     .orderBy(asc(products.name))
     .limit(50)
   return Response.json(rows)
