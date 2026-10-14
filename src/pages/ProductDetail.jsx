@@ -296,7 +296,7 @@ export default function ProductDetail({ product: productProp = null, related: re
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="py-2 pr-3 font-sans text-xs font-semibold uppercase text-gray-500">Material</th>
+                    <th className="py-2 pr-3 font-sans text-xs font-semibold uppercase text-gray-500">Specifications</th>
                     <th className="py-2 px-3 font-sans text-xs font-semibold uppercase text-gray-500">Part ID</th>
                     <th className="py-2 px-3 font-sans text-xs font-semibold uppercase text-gray-500">Price</th>
                     <th className="py-2 pl-3 font-sans text-xs font-semibold uppercase text-gray-500">Availability</th>
@@ -421,7 +421,7 @@ export default function ProductDetail({ product: productProp = null, related: re
 
               {/* Specs */}
               <div className="flex flex-col gap-3">
-                <p className="font-serif text-sm font-bold text-tundora">Specifications</p>
+                <p className="font-serif text-sm font-bold text-tundora">Details</p>
                 <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {specs.map(({ label, value, render, fullWidth }) => (
                     <div key={label} className={`flex flex-col gap-0.5 rounded-xl bg-white p-3.5 border border-gray-100 ${fullWidth ? 'sm:col-span-2' : ''}`}>

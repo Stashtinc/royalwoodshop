@@ -50,7 +50,7 @@ export async function renderSpecSheet(product) {
   const rows = [
     ['Product code', product.productCode],
     ['Size', product.size],
-    ['Species', product.species?.length ? speciesSummary(product) : null],
+    ['Specifications', product.species?.length ? speciesSummary(product) : null],
     ['Category', product.category],
     ['Type', subsOf(product).join(', ')],
     ['Availability', product.availabilityLabel],
