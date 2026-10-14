@@ -747,6 +747,17 @@ export async function saveProductPartIds(productId, entries) {
   for (const r of existing) if (!firstRow.has(r.species)) firstRow.set(r.species, r.id)
 
   await db.transaction(async (tx) => {
+    // A Part ID the editor sends for a wood may already sit on this product as an
+    // extra row under another wood (the import filed it there). Its row is
+    // replaced, so the unique Part ID index does not reject the save.
+    const sent = Object.values(entries).map((e) => e.partId).filter(Boolean)
+    const kept = [...firstRow.values()]
+    if (sent.length) {
+      await tx.delete(productPartIds).where(and(
+        eq(productPartIds.productId, pid), inArray(productPartIds.partId, sent),
+        ...(kept.length ? [sql`${productPartIds.id} not in (${sql.join(kept.map((k) => sql`${k}`), sql`, `)})`] : []),
+      ))
+    }
     for (const [species, { partId, price, salePrice }] of Object.entries(entries)) {
       const id = firstRow.get(species)
       const empty = !partId && !price && !salePrice
