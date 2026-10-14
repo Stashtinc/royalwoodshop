@@ -35,6 +35,7 @@ export default [
     route('products/new', 'routes/admin/product-new.jsx'),
     route('products/:id', 'routes/admin/product-edit.jsx'),
     route('logs', 'routes/admin/logs.jsx'),
+    route('messages', 'routes/admin/messages.jsx'),
     route('posts', 'routes/admin/posts.jsx'),
     route('posts/:id', 'routes/admin/post-edit.jsx'),
     route('categories', 'routes/admin/categories.jsx'),
