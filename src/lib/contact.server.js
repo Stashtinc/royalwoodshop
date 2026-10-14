@@ -1,4 +1,4 @@
-import { count, desc, eq, isNull } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { contactMessages } from '../db/schema.js'
 
@@ -61,57 +61,7 @@ export async function saveAndNotify(values, { ip } = {}) {
   return { ok: Boolean(id) || sent.ok }
 }
 
-/**
- * What the admin Messages page shows about the email setup. Names only —
- * never the values — so nothing secret reaches the browser.
- */
-export function emailSettings() {
-  const has = (k) => Boolean(process.env[k]?.trim())
-  const required = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS']
-  const missing = required.filter((k) => !has(k))
-  return {
-    ready: missing.length === 0,
-    missing,
-    from: process.env.SMTP_FROM || process.env.SMTP_USER || null,
-    to: process.env.CONTACT_TO || 'info@royalwoodshop.com',
-  }
-}
-
-export async function listMessages({ page = 1, perPage = 25 } = {}) {
-  const db = await getDb()
-  const [{ total }] = await db.select({ total: count() }).from(contactMessages)
-  const [{ unsent }] = await db.select({ unsent: count() }).from(contactMessages).where(isNull(contactMessages.emailedAt))
-  const pages = Math.max(1, Math.ceil(total / perPage))
-  page = Math.min(Math.max(1, page), pages)
-  const rows = await db.select().from(contactMessages)
-    .orderBy(desc(contactMessages.createdAt))
-    .limit(perPage).offset((page - 1) * perPage)
-  return { rows, total, unsent, page, pages, perPage }
-}
-
-/** Emails a saved enquiry again (e.g. ones that arrived before email was set up). */
-export async function resendMessage(id) {
-  const db = await getDb()
-  const [row] = await db.select().from(contactMessages).where(eq(contactMessages.id, id))
-  if (!row) return { ok: false, error: 'Message not found' }
-  const sent = await sendEmail(row)
-  await db.update(contactMessages)
-    .set(sent.ok ? { emailedAt: new Date(), emailError: null } : { emailError: sent.error })
-    .where(eq(contactMessages.id, id))
-  return sent
-}
-
-/** A test email to the enquiry inbox, so the setup can be checked without using the public form. */
-export async function sendTestEmail(byEmail) {
-  return sendEmail({
-    name: 'Website test',
-    email: byEmail || process.env.SMTP_USER || 'info@royalwoodshop.com',
-    phone: '',
-    message: 'This is a test from the website admin (Messages → Send test email). If you can read this, contact form enquiries will reach this inbox.',
-  }, { subject: 'Test: website contact form email is working' })
-}
-
-async function sendEmail({ name, email, phone, message }, { subject } = {}) {
+async function sendEmail({ name, email, phone, message }) {
   const host = process.env.SMTP_HOST?.trim()
   if (!host) {
     if (process.env.NODE_ENV === 'production') {
@@ -126,14 +76,13 @@ async function sendEmail({ name, email, phone, message }, { subject } = {}) {
       host,
       port,
       secure: port === 465,
-      auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS?.replace(/\s+/g, '') } : undefined,
-      connectionTimeout: 15000,
+      auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
     })
     await transport.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: process.env.CONTACT_TO || 'info@royalwoodshop.com',
       replyTo: `"${name.replace(/"/g, '')}" <${email}>`,
-      subject: subject || `Website enquiry from ${name}`,
+      subject: `Website enquiry from ${name}`,
       text: [
         `Name: ${name}`,
         `Email: ${email}`,
