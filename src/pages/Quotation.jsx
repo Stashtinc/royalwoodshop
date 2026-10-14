@@ -51,7 +51,7 @@ const lineItems = [
   },
   {
     step: '4',
-    title: 'Create catalogue (539 products) and advanced search',
+    title: 'Create catalogue (649 products) and advanced search',
     who: 'Development — in progress',
     inProgress: true,
     buckets: 2,
@@ -137,7 +137,7 @@ const paymentRows = [
   { milestone: 'On acceptance', trigger: 'Development begins', pct: 0.3, paid: true },
   { milestone: 'Public website and catalogue delivered for review', trigger: 'End of Step 2', pct: 0.3, paid: true },
   { milestone: 'Admin screen delivered for review', trigger: 'End of Step 3', pct: 0.2, paid: true },
-  { milestone: 'On launch', trigger: 'Site live, redirects verified', pct: 0.2, due: true },
+  { milestone: 'On launch', trigger: 'Site live, redirects verified', pct: 0.2, paid: true },
 ]
 
 const hourlyPeriods = [
@@ -166,9 +166,19 @@ const hourlyPeriods = [
     label: 'Sep 17 – Sep 29',
     hours: 40.27,
     rate: 65,
+    paid: true,
+  },
+  {
+    // In progress: set hours (and a timesheet) when the period is invoiced.
+    label: 'Sep 30 – Oct 15',
+    hours: null,
+    rate: 65,
     paid: false,
   },
 ]
+
+/** A period with no hours yet is still running: shown, but not billed or totalled. */
+const billed = (p) => p.hours != null
 
 
 const fmt = (n) => '$' + n.toLocaleString('en-US')
@@ -398,6 +408,18 @@ export default function Quotation() {
             Hourly Time — $65 CAD / hr
           </p>
           {hourlyPeriods.map((period) => {
+            if (!billed(period)) {
+              return (
+                <div key={period.label} className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5 font-sans text-sm last:border-0">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="text-gray-700 font-medium">{period.label}</span>
+                    <span className="text-gray-400">Hours to be confirmed at the end of the period</span>
+                    <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">In progress</span>
+                  </div>
+                  <span className="shrink-0 font-semibold text-gray-400">—</span>
+                </div>
+              )
+            }
             const amount = Math.round(period.hours * period.rate)
             return (
               <div key={period.label} className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5 font-sans text-sm last:border-0">
@@ -426,7 +448,7 @@ export default function Quotation() {
             )
           })}
           {(() => {
-            const due = hourlyPeriods.filter(p => !p.paid)
+            const due = hourlyPeriods.filter(p => !p.paid && billed(p))
             if (!due.length) return null
             const dueTotal = due.reduce((s, p) => s + Math.round(p.hours * p.rate), 0)
             return (
@@ -521,7 +543,7 @@ export default function Quotation() {
           ))}
 
           {/* Due: hourly periods */}
-          {hourlyPeriods.filter(p => !p.paid).map((period) => (
+          {hourlyPeriods.filter(p => !p.paid && billed(p)).map((period) => (
             <div key={period.label} className="flex items-center justify-between border-t border-amber-100 bg-amber-50/60 px-5 py-3.5 font-sans text-sm">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-amber-900">Hourly — {period.label} ({period.hours} hrs @ ${period.rate})</span>
@@ -534,7 +556,7 @@ export default function Quotation() {
           {/* Grand total due */}
           {(() => {
             const dueMilestones = paymentRows.filter(r => r.due)
-            const dueHourly = hourlyPeriods.filter(p => !p.paid)
+            const dueHourly = hourlyPeriods.filter(p => !p.paid && billed(p))
             if (!dueMilestones.length && !dueHourly.length) return null
             const dueUSD = dueMilestones.reduce((s, r) => s + subtotal * r.pct, 0)
             const dueCAD = dueHourly.reduce((s, p) => s + Math.round(p.hours * p.rate), 0)
