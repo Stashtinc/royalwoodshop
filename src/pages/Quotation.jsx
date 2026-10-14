@@ -10,7 +10,8 @@ const lineItems = [
   {
     step: '1',
     title: 'Clean up the product information',
-    who: 'Royal Wood Shop',
+    who: 'Royal Wood Shop — completed',
+    completed: true,
     buckets: null,
     noCharge: true,
     bullets: [
@@ -52,8 +53,8 @@ const lineItems = [
   {
     step: '4',
     title: 'Create catalogue (649 products) and advanced search',
-    who: 'Development — in progress',
-    inProgress: true,
+    who: 'Development — completed',
+    completed: true,
     buckets: 2,
     bullets: [
       'Catalogue listing pages',
@@ -81,7 +82,8 @@ const lineItems = [
   {
     step: '6',
     title: 'Switch over, with all old links forwarded',
-    who: 'Development',
+    who: 'Development — completed',
+    completed: true,
     buckets: 1,
     bullets: [
       '2,148 redirects across four legacy URL patterns, tested',
@@ -106,7 +108,8 @@ const lineItems = [
   {
     step: '8',
     title: 'Migration and contingency',
-    who: 'Development',
+    who: 'Development — completed',
+    completed: true,
     buckets: 2,
     bullets: [
       'Final data migration and verification',
@@ -168,12 +171,6 @@ const hourlyPeriods = [
     rate: 65,
     paid: true,
   },
-  {
-    label: 'Sep 30 – Oct 15',
-    hours: 62.39,
-    rate: 65,
-    paid: false,
-  },
 ]
 
 /** A period with no hours yet is still running: shown, but not billed or totalled. */
@@ -223,7 +220,7 @@ export default function Quotation() {
               <div className="text-right text-gray-700 space-y-1">
                 <p className="font-semibold text-royal-blue">RWS-2026-001</p>
                 <p>29 September 2026</p>
-                <p>In Progress</p>
+                <p className="font-semibold text-emerald-600">Complete</p>
                 <p>USD / CAD</p>
               </div>
             </div>
