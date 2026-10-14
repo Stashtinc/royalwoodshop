@@ -241,16 +241,20 @@ async function previousCodes(db) {
  *   `orphans`   — no product was ever created for the code; nothing to archive,
  *                 but the removal is still worth reporting.
  */
-async function findRemoved(db, previous, current, { layout = 'species' } = {}) {
+async function findRemoved(db, previous, current, { layout = 'species', noCodeNames = [] } = {}) {
   if (layout === 'master') {
     // Master is the source of truth for the full catalogue — archive every
-    // published product whose code is not in the sheet.
+    // published product whose code is not in the sheet. A product with no
+    // code is looked for by its name instead, so deleting its row works too.
     const allPublished = await db
       .select({ id: products.id, code: products.productCode, name: products.name, status: products.status })
       .from(products)
       .where(eq(products.status, 'published'))
+    const norm = (v) => String(v ?? '').trim().replace(/\s+/g, ' ').toLowerCase()
+    const namesInSheet = new Set(noCodeNames.map(norm))
+    const hasCode = (r) => String(r.code ?? '').trim() !== ''
     return {
-      products: allPublished.filter((r) => r.code && !current.has(r.code)),
+      products: allPublished.filter((r) => (hasCode(r) ? !current.has(r.code) : !namesInSheet.has(norm(r.name)))),
       orphans: [],
     }
   }
@@ -396,7 +400,7 @@ export async function analyse(rows, { layout = 'species', downloadedAt = null } 
 
   const sheetCodes = new Set(parsed.map((p) => p.code))
   const previous = await previousCodes(db)
-  const { products: removed, orphans: removedOrphans } = await findRemoved(db, previous, sheetCodes, { layout })
+  const { products: removed, orphans: removedOrphans } = await findRemoved(db, previous, sheetCodes, { layout, noCodeNames: noCode })
 
   const codes = [...new Set(parsed.map((p) => p.code))]
   const found = codes.length

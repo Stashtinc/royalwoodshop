@@ -718,8 +718,8 @@ export default function Import() {
               </p>
               <ul className="mt-2 max-h-48 overflow-y-auto text-xs">
                 {s.removed.map((r) => (
-                  <li key={r.code} className="py-0.5">
-                    <span className="font-mono text-amber-800">{r.code}</span>
+                  <li key={r.id ?? r.code} className="py-0.5">
+                    <span className="font-mono text-amber-800">{r.code || '(no code)'}</span>
                     <span className="ml-2 text-amber-900">{r.name}</span>
                   </li>
                 ))}
