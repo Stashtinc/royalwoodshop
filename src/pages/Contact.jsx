@@ -56,6 +56,9 @@ export default function Contact() {
             </div>
           ) : (
             <Form method="post" className="flex flex-col gap-5">
+              <p className="font-sans text-sm text-gray-500">
+                Fields marked <span className="text-red-600">*</span> are required.
+              </p>
               {/* Honeypot: hidden from people, irresistible to bots. */}
               <div aria-hidden="true" className="absolute -left-[9999px]">
                 <label>Company<input type="text" name="company" tabIndex={-1} autoComplete="off" /></label>
@@ -63,7 +66,7 @@ export default function Contact() {
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="name" className="font-sans text-sm font-medium text-tundora">
-                  Name
+                  Name <span aria-hidden="true" className="text-red-600">*</span>
                 </label>
                 <input
                   id="name"
@@ -78,7 +81,7 @@ export default function Contact() {
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="email" className="font-sans text-sm font-medium text-tundora">
-                  Email
+                  Email <span aria-hidden="true" className="text-red-600">*</span>
                 </label>
                 <input
                   id="email"
@@ -93,7 +96,7 @@ export default function Contact() {
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="phone" className="font-sans text-sm font-medium text-tundora">
-                  Phone
+                  Phone <span className="font-normal text-gray-500">(optional)</span>
                 </label>
                 <input
                   id="phone"
@@ -106,7 +109,7 @@ export default function Contact() {
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="message" className="font-sans text-sm font-medium text-tundora">
-                  Message
+                  Message <span aria-hidden="true" className="text-red-600">*</span>
                 </label>
                 <textarea
                   id="message"
