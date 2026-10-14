@@ -165,7 +165,7 @@ export default function ProductNew() {
         </section>
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
-          <h2 className="font-serif font-bold text-tundora">Species &amp; Availability</h2>
+          <h2 className="font-serif font-bold text-tundora">Details &amp; Availability</h2>
           <p className="-mt-2 text-xs text-gray-500">
             Set how each wood ships. The product's overall availability is derived automatically from these.
           </p>
