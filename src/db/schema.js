@@ -218,7 +218,7 @@ export const productImages = pgTable('product_images', {
   altText: varchar('alt_text', { length: 300 }).notNull(),
   width: integer('width'),
   height: integer('height'),
-  role: imageRoleEnum('role').notNull().default('product_photo'),
+  role: imageRoleEnum('role').notNull().default('profile_drawing'),
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({

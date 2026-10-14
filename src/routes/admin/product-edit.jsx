@@ -91,7 +91,7 @@ export async function action({ request, params }) {
   }
 
   if (intent === 'image-role') {
-    await updateImage(f.get('imageId'), { role: String(f.get('role') ?? 'product_photo') })
+    await updateImage(f.get('imageId'), { role: String(f.get('role') ?? 'profile_drawing') })
     await log(user, 'image.updated', {
       entityType: 'product', entityId: params.id,
       entityLabel: (await getProduct(params.id))?.name,

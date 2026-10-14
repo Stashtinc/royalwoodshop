@@ -312,10 +312,8 @@ async function readUploads() {
   return { files: new Set(names), widths }
 }
 
-const imageRole = (name) =>
-  /(^|[^a-z0-9])3d([^a-z0-9]|$)|profile/i.test(name) ? 'profile_drawing'
-    : /install/i.test(name) ? 'installed_photo'
-      : 'product_photo'
+// Every catalogue image is a profile drawing, shown whole (never cropped).
+const imageRole = () => 'profile_drawing'
 
 /**
  * Category names on the sheet are shouted — TRIM & MOULDINGS — because that is

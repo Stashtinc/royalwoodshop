@@ -592,7 +592,7 @@ export async function listImages(productId) {
     .orderBy(asc(productImages.sortOrder), asc(productImages.id))
 }
 
-export async function addImage(productId, { storageKey, altText, role = 'product_photo', width = null, height = null }) {
+export async function addImage(productId, { storageKey, altText, role = 'profile_drawing', width = null, height = null }) {
   const db = await getDb()
   const [{ next }] = await db.select({
     next: sql`coalesce(max(${productImages.sortOrder}), -1) + 1`,
