@@ -472,6 +472,25 @@ export async function listCategoriesAdmin() {
     .map((c) => ({ ...c, subcategories: subsByParent.get(c.id) ?? [] }))
 }
 
+/**
+ * Another category with this name under the same parent (case-insensitive) —
+ * two "French" sub-categories look like one in every menu. Returns its name or null.
+ */
+export async function siblingNameTaken(name, { parentId = null, id = null } = {}) {
+  const db = await getDb()
+  let parent = parentId
+  if (id && parentId === null) {
+    const [self] = await db.select({ parentId: categories.parentId }).from(categories).where(eq(categories.id, Number(id)))
+    parent = self?.parentId ?? null
+  }
+  const [hit] = await db.select({ name: categories.name }).from(categories).where(and(
+    sql`lower(trim(${categories.name})) = lower(trim(${name}))`,
+    parent ? eq(categories.parentId, Number(parent)) : sql`${categories.parentId} is null`,
+    id ? sql`${categories.id} <> ${Number(id)}` : sql`true`,
+  )).limit(1)
+  return hit?.name ?? null
+}
+
 export async function createCategory({ name, parentId, inNav }) {
   const db = await getDb()
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/, '')

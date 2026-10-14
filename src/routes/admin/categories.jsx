@@ -5,7 +5,7 @@ import { useDragReorder } from '../../components/admin/useDragReorder'
 import Toast from '../../components/admin/Toast'
 import { requireUser } from '../../lib/auth.server'
 import {
-  listCategoriesAdmin, createCategory, updateCategory,
+  listCategoriesAdmin, createCategory, updateCategory, siblingNameTaken,
   deleteCategoryAdmin, moveCategoryOrder, reorderCategories, writeNavCategoriesJson,
 } from '../../lib/admin-queries.server'
 import { log } from '../../lib/activity.server'
@@ -25,6 +25,7 @@ export async function action({ request }) {
     if (!name) return { error: 'Name is required.' }
     const parentId = f.get('parentId') ? Number(f.get('parentId')) : null
     const inNav = f.get('inNav') === 'yes'
+    if (await siblingNameTaken(name, { parentId })) return { error: `There is already a category called "${name}" here. Use a different name.` }
     const id = await createCategory({ name, parentId, inNav })
     await log(user, 'category.created', {
       entityType: 'category', entityId: id, entityLabel: name,
@@ -36,6 +37,7 @@ export async function action({ request }) {
     const id = Number(f.get('id'))
     const name = String(f.get('name') ?? '').trim()
     if (!name) return { error: 'Name cannot be blank.' }
+    if (await siblingNameTaken(name, { id })) return { error: `There is already a category called "${name}" here. Use a different name.` }
     await updateCategory(id, { name })
     await log(user, 'category.updated', { entityType: 'category', entityId: id, entityLabel: name })
     return { saved: 'Renamed.' }
@@ -380,9 +382,7 @@ export default function CategoriesAdmin() {
         </button>
       </div>
 
-      {data?.error && (
-        <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-800">{data.error}</p>
-      )}
+      <Toast message={data?.error} stamp={data} tone="error" />
 
       {addingTop && (
         <div className="rounded-2xl border border-royal-blue/30 bg-blue-50/40 p-4">
