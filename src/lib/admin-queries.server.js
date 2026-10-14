@@ -70,7 +70,7 @@ export async function saveProductCategories(productId, { primaryCategoryId, cate
   }
 }
 
-export async function listProducts({ q = '', page = 1, perPage = 25, missing = '', category = '', species = '', availability = '', sortBy = 'code', sortDir = 'asc', status = 'active', photosFirst = true } = {}) {
+export async function listProducts({ q = '', page = 1, perPage = 25, missing = '', category = '', categoryId = null, subCategoryId = null, species = '', availability = '', sortBy = 'code', sortDir = 'asc', status = 'active', photosFirst = true } = {}) {
   const db = await getDb()
   const where = []
   // Default: hide archived. Pass status='all' or status='archived' to see them.
@@ -92,6 +92,12 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
   if (missing === 'no_image') where.push(sql`not exists (select 1 from product_images pi where pi.product_id = ${products.id})`)
   if (missing === 'has_image') where.push(sql`exists (select 1 from product_images pi where pi.product_id = ${products.id})`)
   if (category) where.push(ilike(categories.name, category))
+  // A category matches products filed under it or under any of its sub-categories.
+  if (subCategoryId) {
+    where.push(sql`(${products.primaryCategoryId} = ${subCategoryId} or exists (select 1 from product_categories pc where pc.product_id = ${products.id} and pc.category_id = ${subCategoryId}))`)
+  } else if (categoryId) {
+    where.push(sql`exists (select 1 from categories c where (c.id = ${categoryId} or c.parent_id = ${categoryId}) and (c.id = ${products.primaryCategoryId} or exists (select 1 from product_categories pc where pc.product_id = ${products.id} and pc.category_id = c.id)))`)
+  }
   if (species) where.push(sql`${speciesSubquery}::text[] @> array[${species}]::text[]`)
   if (availability) where.push(eq(products.availability, availability))
 
@@ -162,6 +168,12 @@ export async function bulkArchiveProducts({ q = '', missing = '', category = '',
   if (missing === 'availability') where.push(sql`${products.availability} is null`)
   if (missing === 'description') where.push(sql`(${products.description} is null or ${products.description} = '')`)
   if (category) where.push(ilike(categories.name, category))
+  // A category matches products filed under it or under any of its sub-categories.
+  if (subCategoryId) {
+    where.push(sql`(${products.primaryCategoryId} = ${subCategoryId} or exists (select 1 from product_categories pc where pc.product_id = ${products.id} and pc.category_id = ${subCategoryId}))`)
+  } else if (categoryId) {
+    where.push(sql`exists (select 1 from categories c where (c.id = ${categoryId} or c.parent_id = ${categoryId}) and (c.id = ${products.primaryCategoryId} or exists (select 1 from product_categories pc where pc.product_id = ${products.id} and pc.category_id = c.id)))`)
+  }
   if (species) where.push(sql`${speciesSubquery}::text[] @> array[${species}]::text[]`)
   if (availability) where.push(eq(products.availability, availability))
 
@@ -194,6 +206,12 @@ export async function bulkPublishProducts({ q = '', missing = '', category = '',
     ))
   }
   if (category) where.push(ilike(categories.name, category))
+  // A category matches products filed under it or under any of its sub-categories.
+  if (subCategoryId) {
+    where.push(sql`(${products.primaryCategoryId} = ${subCategoryId} or exists (select 1 from product_categories pc where pc.product_id = ${products.id} and pc.category_id = ${subCategoryId}))`)
+  } else if (categoryId) {
+    where.push(sql`exists (select 1 from categories c where (c.id = ${categoryId} or c.parent_id = ${categoryId}) and (c.id = ${products.primaryCategoryId} or exists (select 1 from product_categories pc where pc.product_id = ${products.id} and pc.category_id = c.id)))`)
+  }
 
   const matched = await db
     .select({ id: products.id })

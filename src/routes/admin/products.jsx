@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link, Form, useActionData, useLoaderData, useSearchParams, useSubmit, useNavigation, useNavigate } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { listProducts, listCategories, bulkArchiveProducts, bulkPublishProducts, bulkDeleteProducts, activateProductsByIds, archiveProductsByIds } from '../../lib/admin-queries.server'
+import { listProducts, listCategoriesWithSubs, bulkArchiveProducts, bulkPublishProducts, bulkDeleteProducts, activateProductsByIds, archiveProductsByIds } from '../../lib/admin-queries.server'
 import { deleteUpload } from '../../lib/uploads.server'
 import { syncProductsJson } from '../../lib/sync.server'
 import { log } from '../../lib/activity.server'
@@ -19,6 +19,7 @@ export async function loader({ request }) {
   const savedId = url.searchParams.get('saved') ? Number(url.searchParams.get('saved')) : null
   const allowed = [25, 50, 100]
   const requested = Number(url.searchParams.get('perPage') ?? 25)
+  const idParam = (k) => (Number(url.searchParams.get(k)) > 0 ? Number(url.searchParams.get(k)) : null)
   const [data, categoryOptions] = await Promise.all([
     listProducts({
       q: url.searchParams.get('q') ?? '',
@@ -26,6 +27,8 @@ export async function loader({ request }) {
       perPage: allowed.includes(requested) ? requested : 25,
       missing: url.searchParams.get('missing') ?? '',
       category: url.searchParams.get('category') ?? '',
+      categoryId: idParam('cat'),
+      subCategoryId: idParam('sub'),
       species: url.searchParams.get('species') ?? '',
       availability: url.searchParams.get('availability') ?? '',
       sortBy: url.searchParams.get('sortBy') ?? 'updated',
@@ -34,7 +37,7 @@ export async function loader({ request }) {
       // Right after a save, the saved product leads the list whether or not it has a photo.
       photosFirst: !url.searchParams.get('saved'),
     }),
-    listCategories(),
+    listCategoriesWithSubs(),
   ])
   return { ...data, categoryOptions, savedId }
 }
@@ -155,7 +158,7 @@ function FilterPill({ label, value, options, onChange, activeClass }) {
         </svg>
       </button>
       {open && (
-        <div className="absolute top-full left-0 z-20 mt-1.5 min-w-[11rem] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+        <div className="absolute top-full left-0 z-20 mt-1.5 max-h-80 min-w-[11rem] overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -182,6 +185,9 @@ export default function Products() {
   const q = params.get('q') ?? ''
   const category = params.get('category') ?? ''
   const species = params.get('species') ?? ''
+  const cat = params.get('cat') ?? ''
+  const sub = params.get('sub') ?? ''
+  const subOptions = categoryOptions.find((c) => String(c.id) === cat)?.subcategories ?? []
   const statusFilter = STATUS_VIEWS.includes(params.get('status')) ? params.get('status') : 'active'
   const savedRowRef = useRef(null)
 
@@ -403,7 +409,6 @@ export default function Products() {
           value={statusFilter === 'active' ? (sortBy === 'views' && !category ? '__popular__' : category) : `__${statusFilter}__`}
           options={[
             { value: '', label: 'All types' },
-            ...categoryOptions.map((c) => ({ value: c.name, label: c.name })),
             { value: '__popular__', label: 'By popularity' },
             { value: '__draft__', label: 'Drafts' },
             { value: '__archived__', label: 'Archived' },
@@ -428,6 +433,40 @@ export default function Products() {
           activeClass={statusFilter === 'archived' ? 'border-amber-500 bg-amber-500 text-white' : statusFilter === 'draft' ? 'border-sky-600 bg-sky-600 text-white' : 'border-royal-blue bg-royal-blue text-white'}
         />
         {statusFilter !== 'active' && <input type="hidden" name="status" value={statusFilter} />}
+        {/* Typing a search keeps the chosen filters. */}
+        {cat && <input type="hidden" name="cat" value={cat} />}
+        {sub && <input type="hidden" name="sub" value={sub} />}
+        {species && <input type="hidden" name="species" value={species} />}
+        <FilterPill
+          label="All categories"
+          value={cat}
+          options={[
+            { value: '', label: 'All categories' },
+            ...categoryOptions.map((c) => ({ value: String(c.id), label: c.name })),
+          ]}
+          onChange={(val) => {
+            const next = new URLSearchParams(params)
+            val ? next.set('cat', val) : next.delete('cat')
+            next.delete('sub'); next.delete('category'); next.delete('page')
+            navigate(`?${next.toString()}`, { replace: true })
+          }}
+        />
+        {subOptions.length > 0 && (
+          <FilterPill
+            label="All sub-categories"
+            value={sub}
+            options={[
+              { value: '', label: 'All sub-categories' },
+              ...subOptions.map((c) => ({ value: String(c.id), label: c.name })),
+            ]}
+            onChange={(val) => {
+              const next = new URLSearchParams(params)
+              val ? next.set('sub', val) : next.delete('sub')
+              next.delete('page')
+              navigate(`?${next.toString()}`, { replace: true })
+            }}
+          />
+        )}
         <FilterPill
           label="All species"
           value={species}
