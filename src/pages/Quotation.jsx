@@ -169,9 +169,8 @@ const hourlyPeriods = [
     paid: true,
   },
   {
-    // In progress: set hours (and a timesheet) when the period is invoiced.
     label: 'Sep 30 – Oct 15',
-    hours: null,
+    hours: 62.39,
     rate: 65,
     paid: false,
   },
