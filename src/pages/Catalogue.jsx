@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useRouteLoaderData, useSearchParams } from 'react-router'
+import { Link, useLocation, useRouteLoaderData, useSearchParams } from 'react-router'
 import EyeIcon from '../components/EyeIcon'
 import { srcSet, thumbSrc, imageFit, showImageFallback, imageFallbackRef } from '../lib/images'
 import {
@@ -457,12 +457,26 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   // Manual sidebar clicks do not touch the URL, so they are never clobbered.
   const categoryParam = searchParams.get('category')
   const subParam = searchParams.get('sub')
+  // Sidebar picks are remembered against this history entry, so Back from a
+  // product returns to the same sub-category rather than the whole category.
+  const { key: historyKey } = useLocation()
+  const savedKey = `rws-catalogue-subs:${historyKey}`
   useEffect(() => {
+    let saved = null
+    try { saved = JSON.parse(sessionStorage.getItem(savedKey) ?? 'null') } catch {}
+    const known = new Set(catalogueCategoryOrder.flatMap((c) => c.subcategories.map((sub) => `${c.name}::${sub}`)))
     setSelectedSubs(
-      subsFromUrl({ initialCategory, categoryParam, subParam, tree: catalogueCategoryOrder }),
+      Array.isArray(saved) && saved.some((k) => known.has(k))
+        ? new Set(saved.filter((k) => known.has(k)))
+        : subsFromUrl({ initialCategory, categoryParam, subParam, tree: catalogueCategoryOrder }),
     )
     setPage(1)
-  }, [categoryParam, subParam, initialCategory, catalogueCategoryOrder])
+  }, [categoryParam, subParam, initialCategory, catalogueCategoryOrder, savedKey])
+
+  function rememberSubs(next) {
+    try { sessionStorage.setItem(savedKey, JSON.stringify([...next])) } catch {}
+    return next
+  }
 
   function withPageReset(setter) {
     return (value) => {
@@ -475,9 +489,9 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
     const key = `${category}::${sub}`
     setSelectedSubs((prev) => {
       // If this sub is already the only thing selected, restore all
-      if (prev.size === 1 && prev.has(key)) return allSubKeys(catalogueCategoryOrder)
+      if (prev.size === 1 && prev.has(key)) return rememberSubs(allSubKeys(catalogueCategoryOrder))
       // Otherwise exclusively select just this sub across all categories
-      return new Set([key])
+      return rememberSubs(new Set([key]))
     })
     setPage(1)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -493,10 +507,10 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
         prev.size === keys.length
       if (exclusivelySelected) {
         // Toggle off — restore all categories
-        return allSubKeys(catalogueCategoryOrder)
+        return rememberSubs(allSubKeys(catalogueCategoryOrder))
       }
       // Exclusively select this category — deselect everything else
-      return new Set(keys)
+      return rememberSubs(new Set(keys))
     })
     setPage(1)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -517,7 +531,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
     setSizeCategory('All')
     setSpecies('All')
     setAvailability('All')
-    setSelectedSubs(allSubKeys(catalogueCategoryOrder))
+    setSelectedSubs(rememberSubs(allSubKeys(catalogueCategoryOrder)))
     setPage(1)
   }
 

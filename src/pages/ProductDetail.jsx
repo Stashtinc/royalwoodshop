@@ -386,7 +386,7 @@ export default function ProductDetail({ product: productProp = null, related: re
                 {/* Back to wherever they browsed from, filters intact; a visitor
                     who landed here directly goes to the product's category. */}
                 <Link
-                  to={`/products/${product.categorySlug}`}
+                  to={`/products/${product.categorySlug}${product.subcategory ? `?sub=${encodeURIComponent(product.subcategory)}` : ''}`}
                   onClick={(e) => {
                     // idx is React Router's own count of in-app history entries;
                     // 0 means this is the first page of the visit.
@@ -397,7 +397,15 @@ export default function ProductDetail({ product: productProp = null, related: re
                   <span aria-hidden="true">←</span> Back to catalogue
                 </Link>
                 <p className="font-sans text-xs font-bold tracking-widest text-royal-blue uppercase">
-                  {product.subcategory} · {product.category}
+                  <Link to={`/products/${product.categorySlug}`} className="hover:underline">{product.category}</Link>
+                  {product.subcategory && (
+                    <>
+                      {' · '}
+                      <Link to={`/products/${product.categorySlug}?sub=${encodeURIComponent(product.subcategory)}`} className="hover:underline">
+                        {product.subcategory}
+                      </Link>
+                    </>
+                  )}
                 </p>
                 <h1 className="font-serif text-3xl font-bold leading-tight text-tundora lg:text-4xl">
                   {product.name}
