@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Form, Link, useActionData, useNavigation } from 'react-router'
+import { Form, Link, useActionData, useLoaderData, useNavigation, useRevalidator } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { parseUpload, analyse, apply } from '../../lib/species-import.server'
 import {
@@ -13,7 +13,8 @@ import { SPECIES, AVAILABILITY, AVAILABILITY_LABEL } from '../../lib/catalogue-c
 
 export async function loader({ request }) {
   await requireUser(request)
-  return null
+  const { siteChangesSinceSheet } = await import('../../lib/site-changes.server')
+  return { siteChanges: await siteChangesSinceSheet() }
 }
 
 /**
@@ -425,7 +426,79 @@ function RowEditor({ change, initial, onSave, onCancel }) {
   )
 }
 
+const changeDate = new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+const who = (email) => (email ? email.split('@')[0] : 'someone')
+
+/** What the download just taken carries from the website since the last download or import. */
+function DownloadChanges({ c, onClose }) {
+  const n = c.items.length + c.bulk.length
+  const sinceText = c.since
+    ? `since the last ${c.since.kind} (${changeDate.format(new Date(c.since.at))}${c.since.by ? `, ${who(c.since.by)}` : ''})`
+    : 'in the last 30 days'
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm text-gray-700">
+          <span className="font-medium text-tundora">Master downloaded.</span>{' '}
+          {n === 0
+            ? <>No products were changed on the website {sinceText}.</>
+            : <>It includes changes made on the website {sinceText}:</>}
+        </p>
+        <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">✕</button>
+      </div>
+      {n > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Stat label="Products changed on the website" value={c.items.length} tone="good" />
+          <Stat label="Bulk actions (archive, publish, delete)" value={c.bulk.length} />
+        </div>
+      )}
+      {c.items.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <p className="border-b border-gray-100 bg-gray-50 px-4 py-2 text-xs tracking-wide text-gray-600 uppercase">
+            {c.items.length} product{c.items.length === 1 ? '' : 's'} changed on the website
+          </p>
+          <ul className="max-h-96 overflow-y-auto">
+            {c.items.map((p) => (
+              <li key={p.id} className="border-b border-gray-100 px-4 py-2 text-sm last:border-0">
+                <span className="font-mono text-xs text-gray-500">{p.code ?? '—'}</span>
+                {p.deleted
+                  ? <span className="ml-2 text-gray-800">{p.name} <span className="text-xs text-red-700">(deleted — not in the sheet)</span></span>
+                  : <Link to={`/admin/products/${p.id}`} className="ml-2 text-gray-800 hover:text-royal-blue">{p.name}</Link>}
+                <span className="ml-2 text-xs text-gray-400">
+                  {changeDate.format(new Date(p.at))}{p.by.length ? ` · ${p.by.map(who).join(', ')}` : ''}
+                </span>
+                <ul className="mt-1 ml-4 text-xs text-gray-600">
+                  {Object.entries(p.fields).map(([field, v]) => (
+                    <li key={field}>
+                      <span className="font-medium">{field}</span>:{' '}
+                      <span className="text-gray-400 line-through">{String(v.from ?? '—').slice(0, 60)}</span>{' '}
+                      → <span className="text-royal-blue">{v.to == null || v.to === '' ? '(cleared)' : String(v.to).slice(0, 60)}</span>
+                    </li>
+                  ))}
+                  {p.notes.length > 0 && <li>{p.notes.join(' · ')}</li>}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {c.bulk.length > 0 && (
+        <ul className="rounded-xl border border-gray-200 px-4 py-2 text-sm text-gray-700">
+          {c.bulk.map((b, i) => (
+            <li key={i} className="py-0.5">
+              {b.label} <span className="text-xs text-gray-400">{changeDate.format(new Date(b.at))}{b.by ? ` · ${who(b.by)}` : ''}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export default function Import() {
+  const { siteChanges } = useLoaderData()
+  const revalidator = useRevalidator()
+  const [downloaded, setDownloaded] = useState(null)
   const data = useActionData()
   const nav = useNavigation()
   const busy = nav.state === 'submitting'
@@ -454,6 +527,11 @@ export default function Import() {
         <div className="flex shrink-0 items-center gap-2">
           <a
             href="/admin/export-master"
+            onClick={() => {
+              // Show what this download carries, then reload so the next one counts from now.
+              setDownloaded(siteChanges)
+              setTimeout(() => revalidator.revalidate(), 4000)
+            }}
             className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 hover:text-gray-900"
           >
             <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -473,6 +551,8 @@ export default function Import() {
           </button>
         </div>
       </div>
+
+      {downloaded && !data && <DownloadChanges c={downloaded} onClose={() => setDownloaded(null)} />}
 
       {data?.error && (
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">{data.error}</p>

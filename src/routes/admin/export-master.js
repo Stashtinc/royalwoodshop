@@ -1,6 +1,7 @@
 import { requireUser } from '../../lib/auth.server'
 import { getDb } from '../../lib/db.server.js'
 import { SKU_SHEET, SKU_HEADERS, skuRows } from '../../lib/sku-master.server.js'
+import { log } from '../../lib/activity.server.js'
 
 /**
  * The Master Product List, one row per SKU (see lib/sku-master.server.js).
@@ -17,7 +18,7 @@ const HDR_ALIGNMENT = { horizontal: 'center', vertical: 'bottom', wrapText: true
 const THIN = { style: 'thin', color: { argb: 'FF000000' } }
 
 export async function loader({ request }) {
-  await requireUser(request)
+  const user = await requireUser(request)
 
   const rows = await skuRows(await getDb())
   if (!rows.length) return new Response('No products found.', { status: 404 })
@@ -55,6 +56,8 @@ export async function loader({ request }) {
   const now = new Date()
   wb.subject = `Downloaded from the website ${now.toISOString()}`
   const buf = await wb.xlsx.writeBuffer()
+  // The next download lists website changes from this point on.
+  await log(user, 'master.downloaded', { details: { rows: rows.length } })
   const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   return new Response(buf, {
     headers: {

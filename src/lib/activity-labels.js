@@ -9,6 +9,7 @@ export const ACTION_LABEL = {
   'setup.catalogue': 'Catalogue imported',
   'setup.redirects': 'Redirects loaded',
   'import.species': 'Species sheet imported',
+  'master.downloaded': 'Master downloaded',
   'site.published': 'Site published',
   'product.status': 'Visibility changed',
   'product.created': 'Product added',
