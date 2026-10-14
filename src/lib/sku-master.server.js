@@ -100,7 +100,9 @@ export async function skuRows(db) {
   for (const p of rows) {
     // Primary category first, as the column-per-species sheet had it.
     const pl = (placements.get(p.id) ?? []).sort((a, b) => (b.category === p.category) - (a.category === p.category))
-    const cats = pl.length ? [...new Set(pl.map((x) => x.category))].join('|') : (p.category ?? '')
+    // One category per sub-category, repeated when two subs share it: the import
+    // pairs Category and type sub-cat by position, so they must line up exactly.
+    const cats = pl.length ? pl.map((x) => x.category).join('|') : (p.category ?? '')
     const base = {
       code: p.code ?? '', image: imagesOf.get(p.id) ?? '', name: p.name ?? '', category: cats,
       sub: pl.map((x) => x.sub).join('|'), size: p.size ?? '', description: p.description ?? '',
