@@ -568,14 +568,14 @@ export default function Import() {
 
           <div className="grid gap-3 sm:grid-cols-4">
             <Stat label="Products will change" value={s.willChange} tone={s.willChange ? 'good' : 'warn'} />
-            <Stat label="New products (draft)" value={s.willCreate.length} tone={s.willCreate.length ? 'good' : 'default'} />
+            <Stat label="New products" value={s.willCreate.length} tone={s.willCreate.length ? 'good' : 'default'} />
             <Stat label="Already up to date" value={s.alreadyCorrect} />
             <Stat label="Nothing ticked" value={s.blank} />
           </div>
 
           <p className="text-sm text-gray-600">
             {s.matched} rows matched an existing product.
-            {s.willCreate.length > 0 && ` ${s.willCreate.length} new product code${s.willCreate.length === 1 ? '' : 's'} will be created as drafts.`}
+            {s.willCreate.length > 0 && ` ${s.willCreate.length} new product code${s.willCreate.length === 1 ? '' : 's'} will be created (published if the sheet names a category, otherwise as drafts).`}
             {' '}{s.alreadyCorrect} already match the database and will be skipped.
             {s.blank > 0 && ` ${s.blank} have nothing ticked and are left as-is.`}
           </p>
@@ -1008,7 +1008,7 @@ export default function Import() {
         <div className="flex flex-col gap-5">
           <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-900">
             Done. {r.written} product{r.written === 1 ? '' : 's'} updated
-            {r.created > 0 && `, ${r.created} new product${r.created === 1 ? '' : 's'} created as drafts`}
+            {r.created > 0 && `, ${r.created} new product${r.created === 1 ? '' : 's'} created`}
             {r.partIdsStored != null && `, ${r.partIdsStored} Part IDs saved`}.
             {!data.syncError && ' Site data synced — changes are live.'}
           </p>
@@ -1021,6 +1021,7 @@ export default function Import() {
           {r.created > 0 && (
             <p className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-900">
               New products with a category are <strong>published immediately</strong>. Any without a category are left as drafts — open them in the admin to assign a category and publish.
+              Existing drafts are never published by an import: publish them from Products → Drafts.
             </p>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
