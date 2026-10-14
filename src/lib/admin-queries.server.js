@@ -84,6 +84,7 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
       ilike(products.name, `%${q.trim()}%`),
       ilike(products.productCode, `%${q.trim()}%`),
       ilike(products.slug, `%${q.trim()}%`),
+      sql`exists (select 1 from product_part_ids pp where pp.product_id = ${products.id} and pp.part_id ilike ${`%${q.trim()}%`})`,
     ))
   }
   if (missing === 'species') where.push(sql`${speciesSubquery} = '{}'`)
@@ -720,9 +721,15 @@ export async function partIdsInUse(partIds, exceptId = null) {
   const wanted = partIds.filter(Boolean)
   if (!wanted.length) return []
   const db = await getDb()
-  const rows = await db.select({ partId: productPartIds.partId, productId: productPartIds.productId })
-    .from(productPartIds).where(inArray(productPartIds.partId, wanted))
-  return rows.filter((r) => r.productId !== Number(exceptId)).map((r) => r.partId)
+  const rows = await db.select({
+    partId: productPartIds.partId, productId: productPartIds.productId, species: productPartIds.species,
+    name: products.name, code: products.productCode,
+  })
+    .from(productPartIds).innerJoin(products, eq(products.id, productPartIds.productId))
+    .where(inArray(productPartIds.partId, wanted))
+  // Says where it is, so it can be found: "T&G-1719-DF-R (Douglas Fir on 1X6 V-Groove Panelling, T&G-1719-KP-16)".
+  return rows.filter((r) => r.productId !== Number(exceptId))
+    .map((r) => `${r.partId} (${r.species} on ${r.name.trim()}${r.code ? `, ${r.code}` : ''})`)
 }
 
 /**

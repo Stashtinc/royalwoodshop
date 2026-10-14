@@ -386,7 +386,7 @@ export default function Products() {
             type="search"
             defaultValue={q}
             onChange={(e) => { e.currentTarget.dataset.typing = 'true'; onSearchChange(e) }}
-            placeholder="Search name, product code or slug"
+            placeholder="Search name, product code, Part ID or slug"
             aria-label="Search products"
             className="w-full rounded-lg border border-gray-300 py-2 pr-9 pl-9 text-sm outline-none focus:border-royal-blue"
           />

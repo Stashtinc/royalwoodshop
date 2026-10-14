@@ -172,7 +172,7 @@ export async function action({ request, params }) {
   const { entries: partEntries, error: partError } = readPartEntries(f)
   if (partError) return { error: partError }
   const taken = await partIdsInUse(Object.values(partEntries).map((e) => e.partId), params.id)
-  if (taken.length) return { error: `Already used on another product: ${taken.join(', ')}` }
+  if (taken.length) return { error: `Part ID already in use: ${taken.join('; ')}. Search for it in Products to find it.` }
 
   const before = await getProduct(params.id)
   // Only a change of code is checked, so a product that already shares one can still be saved.

@@ -42,7 +42,7 @@ export async function action({ request }) {
   const { entries: partEntries, error: partError } = readPartEntries(f)
   if (partError) return { error: partError }
   const taken = await partIdsInUse(Object.values(partEntries).map((e) => e.partId))
-  if (taken.length) return { error: `Already used on another product: ${taken.join(', ')}` }
+  if (taken.length) return { error: `Part ID already in use: ${taken.join('; ')}. Search for it in Products to find it.` }
 
   const files = f.getAll('images').filter((x) => typeof x !== 'string' && x.size > 0)
   const { maxMb } = describeLimits()
