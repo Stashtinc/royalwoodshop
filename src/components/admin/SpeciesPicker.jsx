@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { SPECIES, AVAILABILITY } from '../../lib/catalogue-constants'
+import { useConfirm } from './ConfirmDialog'
 
 // `large` matches the page's standard fields (Lead time etc.), for the Other row.
 const AvailSelect = ({ name, defaultValue, large = false }) => (
@@ -34,6 +35,75 @@ const FlexSelect = ({ defaultValue }) => (
   </select>
 )
 
+const FIELD = 'rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-royal-blue'
+const PRICE_OK = (v) => v == null || /^\d+(\.\d{1,2})?$/.test(v)
+
+/** "+ Add Species": a wood that is not in the standard list, with its own price. */
+function SpeciesDialog({ taken, onAdd, onCancel }) {
+  const [name, setName] = useState('')
+  const [avail, setAvail] = useState('')
+  const [price, setPrice] = useState('')
+  const [salePrice, setSalePrice] = useState('')
+  const [error, setError] = useState(null)
+
+  const submit = () => {
+    const n = name.trim().replace(/\s+/g, ' ')
+    const money = (v) => v.trim().replace(/[$,\s]/g, '') || null
+    const p = money(price)
+    const sp = money(salePrice)
+    if (!n) return setError('Enter a name.')
+    if (taken.some((t) => t.toLowerCase() === n.toLowerCase())) return setError(`${n} is already listed.`)
+    if (!PRICE_OK(p) || !PRICE_OK(sp)) return setError('Prices must be numbers, like 12.50.')
+    onAdd({ name: n, avail, price: p, salePrice: sp })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onCancel}>
+      <div role="dialog" aria-modal="true" aria-label="Add Species"
+        className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h2 className="font-serif text-lg font-bold text-tundora">Add Species</h2>
+        <div className="mt-4 flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-sm text-gray-600">
+            Name
+            <input value={name} onChange={(e) => setName(e.target.value)} autoFocus className={FIELD} />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-gray-600">
+            Availability
+            <select value={avail} onChange={(e) => setAvail(e.target.value)} className={FIELD}>
+              <option value="">— not milled —</option>
+              <option value="none_set">milled, no code</option>
+              {AVAILABILITY.map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1 text-sm text-gray-600">
+              Price
+              <input value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" className={FIELD} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-gray-600">
+              Sale Price
+              <input value={salePrice} onChange={(e) => setSalePrice(e.target.value)} inputMode="decimal" className={FIELD} />
+            </label>
+          </div>
+        </div>
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        <div className="mt-5 flex justify-end gap-3">
+          <button type="button" onClick={onCancel}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400">
+            Cancel
+          </button>
+          <button type="button" onClick={submit}
+            className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark">
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /**
  * Per-species availability picker.
  *
@@ -49,6 +119,12 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
   const seed = initialOther.length ? initialOther.map((_, i) => i) : [0]
   const [rows, setRows] = useState(seed)
   const nextId = useRef(seed.length)
+  const [subs, setSubs] = useState([])
+  const [adding, setAdding] = useState(false)
+  // Standard species that were removed: their cells are blank. gen bumps remount a cell.
+  const [cleared, setCleared] = useState(() => new Set())
+  const [gen, setGen] = useState({})
+  const [confirm, confirmDialog] = useConfirm()
 
   const addRow = () => {
     setRows((r) => [...r, nextId.current++])
@@ -57,27 +133,52 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
     setRows((r) => r.filter((x) => x !== id))
   }
 
+  const removeSpecies = (s) => {
+    if (subs.some((x) => x.name === s)) setSubs((list) => list.filter((x) => x.name !== s))
+    else {
+      setCleared((c) => new Set([...c, s]))
+      setGen((g) => ({ ...g, [s]: (g[s] ?? 0) + 1 }))
+    }
+  }
+  const askRemove = async (s) => {
+    if (await confirm({ title: `Remove ${s}?`, message: `Are you sure you want to remove ${s}?`, action: 'Remove' })) removeSpecies(s)
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
-        {SPECIES.flatMap((s) => (s === 'Steel' ? ['Flex', s] : [s])).map((s) => {
+        {[...SPECIES.flatMap((s) => (s === 'Steel' ? ['Flex', s] : [s])), ...subs.map((x) => x.name)].map((s) => {
           const isFlex = s === 'Flex'
-          const current = isFlex ? (initialFlex ?? null) : s in initialAvail ? (initialAvail[s] ?? '') : null
+          // A species added with the dialog has no standard entry; its cell starts from what was entered.
+          const sub = subs.find((x) => x.name === s)
+          // A cleared species (removed, not added as a custom one) remounts blank.
+          const blank = cleared.has(s)
+          const pick = (v) => (blank ? '' : v)
+          const current = isFlex ? (blank ? null : initialFlex ?? null) : blank ? null : sub ? (sub.avail ?? '') : s in initialAvail ? (initialAvail[s] ?? '') : null
           return (
-            <div key={s} className="flex flex-col gap-1">
+            <div key={`${s}:${gen[s] ?? 0}`} className="group flex flex-col gap-1">
               <label className="flex items-center justify-between gap-2">
-                <span className={`text-sm ${current !== null ? 'text-gray-800' : 'text-gray-400'}`}>
+                <span className={`flex items-center gap-1 text-sm ${current !== null ? 'text-gray-800' : 'text-gray-400'}`}>
                   {s}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); askRemove(s) }}
+                    title={`Remove ${s}`}
+                    aria-label={`Remove ${s}`}
+                    className="text-base leading-none text-gray-400 opacity-0 hover:text-red-500 group-hover:opacity-100 focus:opacity-100"
+                  >
+                    ×
+                  </button>
                 </span>
                 {isFlex
-                  ? <FlexSelect defaultValue={initialFlex} />
+                  ? <FlexSelect defaultValue={blank ? null : initialFlex} />
                   : <AvailSelect name={`species:${s}`} defaultValue={current} />}
               </label>
               <div className="flex flex-col gap-1">
                 <input
                   type="text"
                   name={`partId:${s}`}
-                  defaultValue={initialPartIds[s] ?? ''}
+                  defaultValue={pick(initialPartIds[s] ?? '')}
                   placeholder="Part ID"
                   className="rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
                 />
@@ -85,7 +186,7 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
                   <input
                     type="text"
                     name={`partPrice:${s}`}
-                    defaultValue={initialPartPrices[s] ?? ''}
+                    defaultValue={pick(initialPartPrices[s] ?? sub?.price ?? '')}
                     placeholder="Price"
                     inputMode="decimal"
                     className="flex-1 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
@@ -93,7 +194,7 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
                   <input
                     type="text"
                     name={`partSalePrice:${s}`}
-                    defaultValue={initialPartSalePrices[s] ?? ''}
+                    defaultValue={pick(initialPartSalePrices[s] ?? sub?.salePrice ?? '')}
                     placeholder="Sale Price"
                     inputMode="decimal"
                     className="flex-1 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
@@ -103,7 +204,28 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
             </div>
           )
         })}
+        {/* Add Species — a wood with its own availability and price; saved with the product */}
+        <div className="flex items-start">
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="flex items-center gap-1 rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:border-gray-400 hover:text-gray-800"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            Add Species
+          </button>
+        </div>
       </div>
+      {confirmDialog}
+      {adding && (
+        <SpeciesDialog
+          taken={[...SPECIES, ...subs.map((s) => s.name)]}
+          onCancel={() => setAdding(false)}
+          onAdd={(sub) => { setSubs((list) => [...list, sub]); setAdding(false) }}
+        />
+      )}
 
       {/* Other — for species not in the standard list, supports multiple rows */}
       <div className="flex flex-col gap-2 border-t border-gray-100 pt-3">
