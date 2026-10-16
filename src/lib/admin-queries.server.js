@@ -397,6 +397,13 @@ export async function saveProduct(id, data) {
   const chosen = data.species ?? []
   await db.delete(productAttributes).where(eq(productAttributes.productId, Number(id)))
   if (chosen.length) {
+    // A species added on the product page (e.g. 48" Double) is not a value yet: create it,
+    // or its tick is silently dropped on save.
+    await db.insert(attributeValues)
+      .values(chosen.map((s) => ({
+        attributeId: attr.id, slug: s.toLowerCase().replace(/[^a-z0-9]+/g, '-'), value: s, sortOrder: 9999,
+      })))
+      .onConflictDoNothing()
     const vals = await db.select({ id: attributeValues.id, value: attributeValues.value })
       .from(attributeValues)
       .where(and(eq(attributeValues.attributeId, attr.id), inArray(attributeValues.value, chosen)))
