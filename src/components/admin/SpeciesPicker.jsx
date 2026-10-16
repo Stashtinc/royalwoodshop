@@ -124,6 +124,7 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
   const [adding, setAdding] = useState(false)
   // Standard species that were removed: their cells are blank. gen bumps remount a cell.
   const [cleared, setCleared] = useState(() => new Set())
+  const [removed, setRemoved] = useState([])
   const [gen, setGen] = useState({})
   const [confirm, confirmDialog] = useConfirm()
 
@@ -135,8 +136,11 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
   }
 
   const removeSpecies = (s) => {
-    if (subs.some((x) => x.name === s)) setSubs((list) => list.filter((x) => x.name !== s))
-    else {
+    if (subs.some((x) => x.name === s)) {
+      setSubs((list) => list.filter((x) => x.name !== s))
+      // Sent on save so the species Part ID row (and its price) is cleared too.
+      setRemoved((r) => [...new Set([...r, s])])
+    } else {
       setCleared((c) => new Set([...c, s]))
       setGen((g) => ({ ...g, [s]: (g[s] ?? 0) + 1 }))
     }
@@ -219,6 +223,7 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
           </button>
         </div>
       </div>
+      {removed.map((n) => <input key={n} type="hidden" name="removed_species" value={n} />)}
       {confirmDialog}
       {adding && (
         <SpeciesDialog
@@ -317,6 +322,10 @@ export function readPartEntries(f) {
       price: money(`partPrice:${wood}`),
       salePrice: money(`partSalePrice:${wood}`),
     }
+  }
+  // Removed custom species: an empty entry clears their Part ID row, unless the form sent one again.
+  for (const n of f.getAll("removed_species").map((x) => String(x).trim())) {
+    if (n && !(n in entries)) entries[n] = { partId: null, price: null, salePrice: null }
   }
   const bad = Object.entries(entries).find(([, e]) =>
     [e.price, e.salePrice].some((v) => v != null && !/^\d+(\.\d{1,2})?$/.test(v)))
