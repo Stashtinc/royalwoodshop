@@ -124,7 +124,7 @@ export function speciesFacet(rows = products) {
 }
 
 const AVAILABILITY_LABELS = {
-  in_stock: 'In Stock',
+  in_stock: 'Stock Item',
   quick_ship: 'Quick Ship',
   made_to_order: 'Made-to-Order',
 }

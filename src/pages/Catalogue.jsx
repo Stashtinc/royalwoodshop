@@ -179,7 +179,7 @@ function LoadingSpinner() {
 }
 
 const AVAILABILITY_PILL = {
-  in_stock:      { label: 'In Stock',       className: 'bg-green-100 text-green-800' },
+  in_stock:      { label: 'Stock Item',       className: 'bg-green-100 text-green-800' },
   quick_ship:    { label: 'Quick Ship',     className: 'bg-amber-100 text-amber-800' },
   made_to_order: { label: 'Made-to-Order',  className: 'bg-gray-100 text-gray-600' },
 }
@@ -848,7 +848,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                 <div className="flex flex-wrap gap-1.5">
                   {[
                     { key: 'All', label: 'All' },
-                    { key: 'in_stock', label: 'In Stock' },
+                    { key: 'in_stock', label: 'Stock Item' },
                     { key: 'quick_ship', label: 'Quick Ship' },
                     { key: 'made_to_order', label: 'Made to Order' },
                   ].map(({ key, label }) => (

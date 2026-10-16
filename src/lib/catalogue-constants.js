@@ -12,7 +12,7 @@ export const SPECIES = [
 ]
 
 export const AVAILABILITY = [
-  ['in_stock', 'In Stock'],
+  ['in_stock', 'Stock Item'],
   ['quick_ship', 'Quick Ship'],
   ['made_to_order', 'Made-to-Order'],
 ]
