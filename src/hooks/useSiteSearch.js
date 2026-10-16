@@ -16,11 +16,17 @@ export default function useSiteSearch(limit = 6) {
   const [query, setQuery] = useState('')
 
   const results = useMemo(() => {
-    if (!query.trim()) return []
-    return fuse
+    const q = query.trim().toLowerCase()
+    if (!q) return []
+    const byName = fuse
       .search(query, { limit })
       .filter((match) => match.score <= MAX_SCORE)
       .map((match) => match.item)
+    // Descriptions are long, so they match on plain text, not fuzzy scoring.
+    const byDescription = q.length >= 3
+      ? searchIndex.filter((item) => item.description?.toLowerCase().includes(q) && !byName.includes(item))
+      : []
+    return [...byName, ...byDescription].slice(0, limit)
   }, [query, limit])
 
   return { query, setQuery, results }

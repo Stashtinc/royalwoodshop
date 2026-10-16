@@ -28,6 +28,7 @@ const allEntries = [
   ...catalogueProducts.map((product) => ({
     label: product.name,
     code: product.productCode,
+    description: product.description ?? '',
     path: `/products?code=${encodeURIComponent(product.productCode)}`,
     group: 'Products',
   })),
