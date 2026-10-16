@@ -120,7 +120,7 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
   const [rows, setRows] = useState(seed)
   const nextId = useRef(seed.length)
   // Species added earlier (saved as non-standard) load back as grid cells, not Other rows.
-  const [subs, setSubs] = useState(() => initialOther.map((o) => ({ name: o.name, avail: o.avail ?? "" })))
+  const [subs, setSubs] = useState(() => initialOther.map((o) => ({ name: o.name, avail: o.avail ?? "", price: initialPartPrices[o.name] ?? null, salePrice: initialPartSalePrices[o.name] ?? null })))
   const [adding, setAdding] = useState(false)
   // Standard species that were removed: their cells are blank. gen bumps remount a cell.
   const [cleared, setCleared] = useState(() => new Set())
@@ -191,7 +191,7 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
                   <input
                     type="text"
                     name={`partPrice:${s}`}
-                    defaultValue={pick(initialPartPrices[s] ?? sub?.price ?? '')}
+                    defaultValue={pick(sub ? sub.price ?? '' : initialPartPrices[s] ?? '')}
                     placeholder="Price"
                     inputMode="decimal"
                     className="flex-1 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
@@ -199,7 +199,7 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
                   <input
                     type="text"
                     name={`partSalePrice:${s}`}
-                    defaultValue={pick(initialPartSalePrices[s] ?? sub?.salePrice ?? '')}
+                    defaultValue={pick(sub ? sub.salePrice ?? '' : initialPartSalePrices[s] ?? '')}
                     placeholder="Sale Price"
                     inputMode="decimal"
                     className="flex-1 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
