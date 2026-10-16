@@ -84,6 +84,7 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
       ilike(products.name, `%${q.trim()}%`),
       ilike(products.productCode, `%${q.trim()}%`),
       ilike(products.slug, `%${q.trim()}%`),
+      ilike(products.description, `%${q.trim()}%`),
       sql`exists (select 1 from product_part_ids pp where pp.product_id = ${products.id} and pp.part_id ilike ${`%${q.trim()}%`})`,
     ))
   }
