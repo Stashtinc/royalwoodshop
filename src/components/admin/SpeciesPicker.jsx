@@ -116,10 +116,11 @@ function SpeciesDialog({ taken, onAdd, onCancel }) {
  * initialFlex:  availability key or null
  */
 export default function SpeciesPicker({ initialAvail = {}, initialOther = [], initialFlex = null, initialPartIds = {}, initialPartPrices = {}, initialPartSalePrices = {} }) {
-  const seed = initialOther.length ? initialOther.map((_, i) => i) : [0]
+  const seed = [0]
   const [rows, setRows] = useState(seed)
   const nextId = useRef(seed.length)
-  const [subs, setSubs] = useState([])
+  // Species added earlier (saved as non-standard) load back as grid cells, not Other rows.
+  const [subs, setSubs] = useState(() => initialOther.map((o) => ({ name: o.name, avail: o.avail ?? "" })))
   const [adding, setAdding] = useState(false)
   // Standard species that were removed: their cells are blank. gen bumps remount a cell.
   const [cleared, setCleared] = useState(() => new Set())
@@ -246,11 +247,11 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
           <div key={id} className="flex items-center gap-2">
             <input
               name="other_species_name"
-              defaultValue={initialOther[idx]?.name ?? ''}
+              defaultValue=""
               placeholder="Species name"
               className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-royal-blue"
             />
-            <AvailSelect name="other_species_avail" defaultValue={initialOther[idx]?.avail ?? ''} large />
+            <AvailSelect name="other_species_avail" defaultValue="" large />
             {rows.length > 1 && (
               <button
                 type="button"
