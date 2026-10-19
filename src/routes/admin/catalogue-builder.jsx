@@ -379,7 +379,7 @@ export default function CatalogueBuilder() {
                   <Form method="post">
                     <input type="hidden" name="intent" value="remove" />
                     <input type="hidden" name="itemId" value={item.itemId} />
-                    <button type="submit" className="text-xs text-red-600 hover:text-red-800">Remove</button>
+                    <button type="submit" aria-label="Remove" title="Remove" className="px-1 text-lg leading-none text-gray-400 hover:text-red-600">×</button>
                   </Form>
                 )}
               />
