@@ -239,12 +239,7 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
                     const item = order[i]
                     return (
                       <li key={item.itemId} {...itemProps(item)}
-                        className="flex cursor-grab items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 shadow-sm data-[dragging=true]:opacity-50">
-                        <svg aria-hidden="true" width="12" height="16" viewBox="0 0 12 16" className="shrink-0 text-gray-400" fill="currentColor">
-                          <circle cx="3" cy="3" r="1.5" /><circle cx="9" cy="3" r="1.5" />
-                          <circle cx="3" cy="8" r="1.5" /><circle cx="9" cy="8" r="1.5" />
-                          <circle cx="3" cy="13" r="1.5" /><circle cx="9" cy="13" r="1.5" />
-                        </svg>
+                        className="flex cursor-grab items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 data-[dragging=true]:opacity-50">
                         <span className="min-w-0 flex-1">
                           {item.name}
                           {item.productCode && <span className="ml-2 font-mono text-xs text-gray-500">{item.productCode}</span>}
