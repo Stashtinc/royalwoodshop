@@ -68,7 +68,7 @@ export default function AdminCatalogue() {
             </thead>
             <tbody>
               {catalogues.map((c) => (
-                <tr key={c.id} className="relative border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                <tr key={c.id} className="relative border-b border-gray-100 last:border-0 hover:bg-amber-50">
                   <td className="px-4 py-3 font-medium text-gray-800"><Link to={`/admin/catalogue/${c.id}`} className="after:absolute after:inset-0">{c.title}</Link></td>
                   <td className="px-4 py-3 text-gray-600">{c.productCount}</td>
                   <td className="px-4 py-3 text-gray-600">{c.showPrices ? 'On' : 'Off'}</td>
