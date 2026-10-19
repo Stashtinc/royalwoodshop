@@ -222,8 +222,8 @@ export default function CatalogueBuilder() {
             />
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
-            <table className="w-full text-left text-sm">
+          <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+            <table className="min-w-[860px] w-full text-left text-xs">
               <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase text-gray-500">
                 <tr>
                   <th className="w-10 px-4 py-3">
@@ -236,11 +236,12 @@ export default function CatalogueBuilder() {
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Species</th>
                   <th className="px-4 py-3">Availability</th>
+                  <th className="px-4 py-3">Views</th>
                 </tr>
               </thead>
               <tbody>
                 {results.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
                 )}
                 {results.map((p) => {
                   const added = inCatalogue.has(p.id)
@@ -266,6 +267,7 @@ export default function CatalogueBuilder() {
                       <td className="px-4 py-2 text-gray-600">{p.category ?? '—'}</td>
                       <td className="px-4 py-2 text-gray-600">{p.species ?? '—'}</td>
                       <td className="px-4 py-2 text-gray-600">{p.availability ? (AVAILABILITY_LABEL[p.availability] ?? p.availability) : '—'}</td>
+                      <td className="px-4 py-2 text-gray-600">{p.views ?? 0}</td>
                     </tr>
                   )
                 })}

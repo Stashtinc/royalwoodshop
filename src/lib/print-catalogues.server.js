@@ -117,6 +117,7 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filt
     name: products.name,
     productCode: products.productCode,
     status: products.status,
+    views: products.views,
     availability: products.availability,
     category: sql`(select c.name from categories c where c.id = products.primary_category_id)`.as("category"),
     species: sql`(select string_agg(av.value, ', ' order by av.sort_order) from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species')`.as("species"),
