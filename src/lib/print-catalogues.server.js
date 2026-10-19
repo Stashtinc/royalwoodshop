@@ -190,3 +190,16 @@ export async function setCoverBackground(id, storageKey) {
     .set({ coverImageKey: storageKey, updatedAt: new Date() })
     .where(eq(printCatalogues.id, Number(id)))
 }
+
+/** Takes products out of a catalogue by product id. The products themselves are not touched. */
+export async function removeProductsFromCatalogue(catalogueId, productIds) {
+  const db = await getDb()
+  const ids = productIds.map(Number).filter(Boolean)
+  if (ids.length) {
+    await db.delete(printCatalogueItems).where(and(
+      eq(printCatalogueItems.catalogueId, Number(catalogueId)),
+      inArray(printCatalogueItems.productId, ids),
+    ))
+  }
+  await touchCatalogue(catalogueId)
+}

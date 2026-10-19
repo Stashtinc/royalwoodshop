@@ -8,7 +8,7 @@ import { AVAILABILITY_LABEL, SPECIES } from '../../lib/catalogue-constants'
 import {
   getPrintCatalogue, updatePrintCatalogue, addProductsToCatalogue,
   removeItemFromCatalogue, searchProductsForCatalogue, reorderCatalogueItems, listCategoryOptions,
-  updateCover, setCoverBackground,
+  updateCover, setCoverBackground, removeProductsFromCatalogue,
 } from '../../lib/print-catalogues.server'
 import SectionTabs from '../../components/admin/SectionTabs'
 import CataloguePreview from '../../components/admin/CataloguePreview'
@@ -38,6 +38,15 @@ export async function action({ request, params }) {
     const showPrices = f.get('showPrices') === 'on'
     await updatePrintCatalogue(id, { title, showPrices })
     await log(user, 'print_catalogue.update', { entityType: 'print_catalogue', entityId: id, entityLabel: title.trim() || 'Product Catalogue' })
+  }
+
+  if (intent === 'sync-products') {
+    const addIds = String(f.get('addIds') ?? '').split(',').map(Number).filter(Boolean)
+    const removeIds = String(f.get('removeIds') ?? '').split(',').map(Number).filter(Boolean)
+    if (addIds.length) await addProductsToCatalogue(id, addIds)
+    if (removeIds.length) await removeProductsFromCatalogue(id, removeIds)
+    await log(user, 'print_catalogue.sync_products', { entityType: 'print_catalogue', entityId: id, details: { addIds, removeIds } })
+    return null
   }
 
   if (intent === 'add-many') {
@@ -155,18 +164,22 @@ export default function CatalogueBuilder() {
   const rows = useMemo(() => catalogue.items.map((i) => ({ ...i, id: i.itemId })), [catalogue.items])
   const { order, itemProps } = useDragReorder(rows)
 
-  // Bulk selection in the product table.
-  // Keeps each ticked product (for its thumbnail and name), keyed by id.
-  const [selected, setSelected] = useState(() => new Map())
-  const addable = results.filter((p) => !inCatalogue.has(p.id))
-  const allChecked = addable.length > 0 && addable.every((p) => selected.has(p.id))
+  // Ticks in the product table. Starts from the products already in the catalogue;
+  // ticking adds, unticking removes. Save changes applies both.
+  const fromCatalogue = () => new Map(catalogue.items.map((i) => [i.productId, { id: i.productId, name: i.name, image: i.image, imageWidth: i.imageWidth }]))
+  const [selected, setSelected] = useState(fromCatalogue)
+  useEffect(() => { setSelected(fromCatalogue()) }, [catalogue.items])
+  const allChecked = results.length > 0 && results.every((p) => selected.has(p.id))
   const toggle = (p) => setSelected((prev) => {
     const next = new Map(prev)
     if (next.has(p.id)) next.delete(p.id)
     else next.set(p.id, p)
     return next
   })
-  const toggleAll = () => setSelected(allChecked ? new Map() : new Map(addable.map((p) => [p.id, p])))
+  const toggleAll = () => setSelected(allChecked ? new Map() : new Map(results.map((p) => [p.id, p])))
+  const addIds = [...selected.keys()].filter((id) => !inCatalogue.has(id))
+  const removeIds = [...inCatalogue].filter((id) => !selected.has(id))
+  const changed = addIds.length + removeIds.length > 0
 
   return (
     <div>
@@ -215,7 +228,7 @@ export default function CatalogueBuilder() {
                 <tr>
                   <th className="w-10 px-4 py-3">
                     <input type="checkbox" aria-label="Select all" checked={allChecked} onChange={toggleAll}
-                      disabled={addable.length === 0} className="h-4 w-4 rounded border-gray-300 accent-royal-blue" />
+                      disabled={results.length === 0} className="h-4 w-4 rounded border-gray-300 accent-royal-blue" />
                   </th>
                   <th className="px-2 py-3"><span className="sr-only">Picture</span></th>
                   <th className="px-4 py-3">Code</th>
@@ -234,7 +247,7 @@ export default function CatalogueBuilder() {
                   return (
                     <tr key={p.id} className="border-b border-gray-100 last:border-0 hover:bg-amber-50">
                       <td className="px-4 py-2">
-                        <input type="checkbox" aria-label={`Select ${p.name}`} disabled={added}
+                        <input type="checkbox" aria-label={`Select ${p.name}`}
                           checked={selected.has(p.id)} onChange={() => toggle(p)}
                           className="h-4 w-4 rounded border-gray-300 accent-royal-blue disabled:opacity-40" />
                       </td>
@@ -297,7 +310,7 @@ export default function CatalogueBuilder() {
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Add products</h2>
             {selected.size === 0 ? (
-              <p className="mt-2 text-sm text-gray-500">Tick products in the table, then add them here.</p>
+              <p className="mt-2 text-sm text-gray-500">Tick products in the table to add them. Untick to remove them.</p>
             ) : (
               <ul className="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1">
                 {[...selected.values()].map((p) => (
@@ -313,17 +326,16 @@ export default function CatalogueBuilder() {
                 ))}
               </ul>
             )}
-            {selected.size > 0 && (
-              <Form method="post" onSubmit={() => setSelected(new Map())} className="mt-4 flex gap-2">
-                <input type="hidden" name="intent" value="add-many" />
-                <input type="hidden" name="productIds" value={[...selected.keys()].join(',')} />
-                <button type="submit" disabled={selected.size === 0}
-                  className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:cursor-not-allowed disabled:opacity-40">
-                  Add {selected.size || ''} to catalogue
+            {changed && (
+              <Form method="post" className="mt-4 flex flex-wrap items-center gap-3">
+                <input type="hidden" name="intent" value="sync-products" />
+                <input type="hidden" name="addIds" value={addIds.join(',')} />
+                <input type="hidden" name="removeIds" value={removeIds.join(',')} />
+                <button type="submit" className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark">
+                  Save changes
                 </button>
-                {selected.size > 0 && (
-                  <button type="button" onClick={() => setSelected(new Map())} className="px-2 text-sm text-gray-500 hover:text-gray-800">Clear</button>
-                )}
+                <span className="text-xs text-gray-500">{addIds.length} to add, {removeIds.length} to remove</span>
+                <button type="button" onClick={() => setSelected(fromCatalogue())} className="px-2 text-sm text-gray-500 hover:text-gray-800">Reset</button>
               </Form>
             )}
           </section>
