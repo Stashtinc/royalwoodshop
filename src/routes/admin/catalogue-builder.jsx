@@ -67,7 +67,7 @@ export default function CatalogueBuilder() {
         <Link to="/admin/catalogue" className="text-sm text-gray-500 hover:text-gray-800">← All catalogues</Link>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1fr]">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_3fr]">
         <section className={card}>
           <h2 className="font-serif text-lg font-bold text-tundora">Catalogue</h2>
           <Form method="post" className="mt-4 flex flex-col gap-4">
