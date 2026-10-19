@@ -170,3 +170,23 @@ export async function listCategoryOptions() {
   const db = await getDb()
   return db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.name))
 }
+
+/** Cover options: title and date stamp. An empty date means the print date. */
+export async function updateCover(id, { title, coverDate }) {
+  const db = await getDb()
+  await db.update(printCatalogues)
+    .set({
+      title: (title ?? '').trim() || DEFAULT_TITLE,
+      coverDate: (coverDate ?? '').trim() || null,
+      updatedAt: new Date(),
+    })
+    .where(eq(printCatalogues.id, Number(id)))
+}
+
+/** Sets the cover background to a stored image path, or clears it with null. */
+export async function setCoverBackground(id, storageKey) {
+  const db = await getDb()
+  await db.update(printCatalogues)
+    .set({ coverImageKey: storageKey, updatedAt: new Date() })
+    .where(eq(printCatalogues.id, Number(id)))
+}

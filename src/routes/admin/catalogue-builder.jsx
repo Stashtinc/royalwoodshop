@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Form, Link, useLoaderData, useSubmit } from 'react-router'
+import { Form, Link, useActionData, useLoaderData, useSubmit } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
+import { saveUpload } from '../../lib/uploads.server'
 import { thumbSrc } from '../../lib/images'
 import { AVAILABILITY_LABEL, SPECIES } from '../../lib/catalogue-constants'
 import {
   getPrintCatalogue, updatePrintCatalogue, addProductsToCatalogue,
   removeItemFromCatalogue, searchProductsForCatalogue, reorderCatalogueItems, listCategoryOptions,
+  updateCover, setCoverBackground,
 } from '../../lib/print-catalogues.server'
 import SectionTabs from '../../components/admin/SectionTabs'
 import CataloguePreview from '../../components/admin/CataloguePreview'
@@ -46,6 +48,25 @@ export async function action({ request, params }) {
     }
   }
 
+  if (intent === 'cover') {
+    await updateCover(id, { title: String(f.get('title') ?? ''), coverDate: String(f.get('coverDate') ?? '') })
+    await log(user, 'print_catalogue.cover', { entityType: 'print_catalogue', entityId: id })
+    return null
+  }
+
+  if (intent === 'cover-background') {
+    const saved = await saveUpload(f.get('file'), { slug: 'print-catalogue-cover' })
+    if (saved.error) return { coverError: saved.error }
+    await setCoverBackground(id, saved.storageKey)
+    await log(user, 'print_catalogue.cover_background', { entityType: 'print_catalogue', entityId: id })
+    return null
+  }
+
+  if (intent === 'cover-background-remove') {
+    await setCoverBackground(id, null)
+    return null
+  }
+
   if (intent === 'reorder') {
     await reorderCatalogueItems(id, String(f.get('ids') ?? '').split(','))
   }
@@ -64,6 +85,7 @@ const card = 'rounded-xl border border-gray-200 bg-white p-6'
 
 export default function CatalogueBuilder() {
   const { catalogue, q: initialQ, results: firstPage, hasMore: firstHasMore, categories } = useLoaderData()
+  const actionData = useActionData()
   const inCatalogue = new Set(catalogue.items.map((i) => i.productId))
 
   // Picker: batches load as you scroll. A new search or filter starts again from the first batch.
@@ -307,6 +329,44 @@ export default function CatalogueBuilder() {
             <div className="mt-4">
               <CataloguePreview
                 title={catalogue.title}
+                coverDate={catalogue.coverDate}
+                coverImage={catalogue.coverImageKey}
+                coverOptions={
+                  <div className="space-y-4">
+                    <Form method="post" className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4">
+                      <input type="hidden" name="intent" value="cover" />
+                      <label className="flex flex-col gap-1 text-sm text-gray-600">
+                        Title
+                        <input name="title" defaultValue={catalogue.title} className={input} />
+                      </label>
+                      <label className="flex flex-col gap-1 text-sm text-gray-600">
+                        Date
+                        <input name="coverDate" defaultValue={catalogue.coverDate ?? ''} placeholder="Blank uses the print date" className={input} />
+                      </label>
+                      <div>
+                        <button type="submit" className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark">Save cover</button>
+                      </div>
+                    </Form>
+                    <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4">
+                      <p className="text-sm text-gray-700">Background image</p>
+                      <p className="text-xs text-gray-500">
+                        {catalogue.coverImageKey ? 'A background is set. It fills the cover behind the logo and title.' : 'No background. The cover is plain white.'}
+                      </p>
+                      <Form method="post" encType="multipart/form-data" className="flex flex-wrap items-center gap-2">
+                        <input type="hidden" name="intent" value="cover-background" />
+                        <input type="file" name="file" accept="image/jpeg,image/png,image/webp,image/avif" className="text-sm" />
+                        <button type="submit" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:border-gray-400">Upload</button>
+                      </Form>
+                      {catalogue.coverImageKey && (
+                        <Form method="post">
+                          <input type="hidden" name="intent" value="cover-background-remove" />
+                          <button type="submit" className="text-sm text-red-600 hover:text-red-800">Remove background</button>
+                        </Form>
+                      )}
+                      {actionData?.coverError && <p className="text-sm text-red-600">{actionData.coverError}</p>}
+                    </div>
+                  </div>
+                }
                 order={order}
                 showPrices={showPrices}
                 itemProps={itemProps}

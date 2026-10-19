@@ -105,13 +105,18 @@ function ProductRow({ item, showPrices, rowRef }) {
   )
 }
 
-/** The cover, as printed: logo centred, title, and the date at the bottom. */
-function CoverContent({ title }) {
+/** The cover, as printed: optional background, logo centred, title, and the date at the bottom. */
+function CoverContent({ title, date, background }) {
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative' }}>
-      <img src={logoBlue} alt="" style={{ width: 130 }} />
-      <div style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 30, color: '#111', marginTop: 28 }}>{title}</div>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 10, color: '#555' }}>{dateText()}</div>
+    <div style={{ height: '100%', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+      {background && (
+        <img src={background} alt="" style={{ position: 'absolute', left: -MARGIN, top: -MARGIN, width: PAGE_W, height: PAGE_H, objectFit: 'cover' }} />
+      )}
+      <div style={{ position: 'relative', background: background ? 'rgba(255,255,255,0.9)' : 'transparent', padding: background ? '24px 28px' : 0 }}>
+        <img src={logoBlue} alt="" style={{ width: 130, display: 'block', margin: '0 auto' }} />
+        <div style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 30, color: '#111', marginTop: 28 }}>{title}</div>
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 10, color: '#555' }}>{date || dateText()}</div>
     </div>
   )
 }
@@ -130,7 +135,7 @@ function Page({ scale, selected = false, children, ...rest }) {
   )
 }
 
-export default function CataloguePreview({ title, order, showPrices, itemProps, removeForm }) {
+export default function CataloguePreview({ title, coverDate, coverImage, coverOptions, order, showPrices, itemProps, removeForm }) {
   const measureRefs = useRef([])
   const boxRef = useRef(null)
   const [heights, setHeights] = useState([])
@@ -177,7 +182,7 @@ export default function CataloguePreview({ title, order, showPrices, itemProps, 
           // The cover takes over the pane at full width
           <div className="mx-auto" style={{ width: PAGE_W * coverScale }}>
             <Page scale={coverScale}>
-              <CoverContent title={title} />
+              <CoverContent title={title} date={coverDate} background={coverImage} />
             </Page>
           </div>
         ) : (
@@ -187,7 +192,7 @@ export default function CataloguePreview({ title, order, showPrices, itemProps, 
             {/* Cover, with Edit on hover, and an empty slot beside it */}
             <div className="group relative" style={{ width: cellW, height: cellH }}>
               <Page scale={scale} onClick={() => setCoverOpen(true)}>
-                <CoverContent title={title} />
+                <CoverContent title={title} date={coverDate} background={coverImage} />
               </Page>
               <button type="button" onClick={() => setCoverOpen(true)}
                 className="absolute right-2 top-2 z-30 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 opacity-0 shadow transition-opacity hover:border-royal-blue group-focus-within:opacity-100 group-hover:opacity-100">
@@ -216,8 +221,7 @@ export default function CataloguePreview({ title, order, showPrices, itemProps, 
         </div>
       ) : null}
 
-      {/* Cover edit options go here */}
-      {coverOpen && <div className="mt-4" />}
+      {coverOpen && <div className="mt-4">{coverOptions}</div>}
 
       {/* The items on the tapped page, for reference */}
       {!coverOpen && (

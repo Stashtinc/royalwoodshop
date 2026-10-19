@@ -437,6 +437,7 @@ export const printCatalogues = pgTable('print_catalogues', {
   title: varchar('title', { length: 200 }).notNull().default('Product Catalogue'),
   showPrices: boolean('show_prices').notNull().default(false),
   coverImageKey: text('cover_image_key'),
+  coverDate: varchar('cover_date', { length: 60 }),
   createdByEmail: varchar('created_by_email', { length: 255 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
