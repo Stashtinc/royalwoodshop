@@ -225,34 +225,36 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
 
       {coverOpen && <div className="mt-4">{coverOptions}</div>}
 
-      {/* The items on the tapped page, for reference */}
+      {/* Every product, grouped by page, so any product can be dragged to any position. The tapped page is highlighted. */}
       {!coverOpen && (
         <div className="mt-4">
           {order.length === 0 && <p className="text-xs text-gray-500">No products yet. Add some from the table on the left.</p>}
-          {order.length > 0 && chosen == null && <p className="text-xs text-gray-500">Tap a page to list what is on it below.</p>}
-          {chosen != null && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Page {chosen + 1}: {pages[chosen].length} product{pages[chosen].length === 1 ? '' : 's'}</p>
-              <ol className="mt-2 divide-y divide-gray-200">
-                {pages[chosen].map((i) => {
-                  const item = order[i]
-                  return (
-                    <li key={item.itemId} {...itemProps(item)}
-                      className="flex cursor-grab items-center justify-between gap-3 py-2 text-sm text-gray-800 data-[dragging=true]:opacity-50">
-                      <span>
-                        {item.name}
-                        {item.productCode && <span className="ml-2 font-mono text-xs text-gray-500">{item.productCode}</span>}
-                        {item.status === 'archived' && (
-                          <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
-                        )}
-                      </span>
-                      {removeForm && <span className="shrink-0">{removeForm(item)}</span>}
-                    </li>
-                  )
-                })}
-              </ol>
-            </div>
-          )}
+          {order.length > 0 && chosen == null && <p className="text-xs text-gray-500">Tap a page to highlight it. Drag any product to reorder.</p>}
+          <div className="space-y-4">
+            {pages.map((page, p) => (
+              <div key={p} className={chosen === p ? "rounded-lg bg-blue-50 p-3" : "p-3"}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Page {p + 1}: {page.length} product{page.length === 1 ? "" : "s"}</p>
+                <ol className="mt-2 divide-y divide-gray-200">
+                  {page.map((i) => {
+                    const item = order[i]
+                    return (
+                      <li key={item.itemId} {...itemProps(item)}
+                        className="flex cursor-grab items-center justify-between gap-3 py-2 text-sm text-gray-800 data-[dragging=true]:opacity-50">
+                        <span>
+                          {item.name}
+                          {item.productCode && <span className="ml-2 font-mono text-xs text-gray-500">{item.productCode}</span>}
+                          {item.status === "archived" && (
+                            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
+                          )}
+                        </span>
+                        {removeForm && <span className="shrink-0">{removeForm(item)}</span>}
+                      </li>
+                    )
+                  })}
+                </ol>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
