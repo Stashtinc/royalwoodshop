@@ -113,6 +113,16 @@ export default function CatalogueBuilder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore, loading, results.length])
 
+  // Settings: the switch saves at once, the title when the field loses focus.
+  const titleRef = useRef(null)
+  const submit = useSubmit()
+  const [showPrices, setShowPrices] = useState(catalogue.showPrices)
+  const saveSettings = (change) => submit({
+    intent: 'save',
+    title: change.title ?? titleRef.current?.value ?? catalogue.title,
+    showPrices: (change.showPrices ?? showPrices) ? 'on' : '',
+  }, { method: 'post' })
+
   // Products in the catalogue, drag to reorder. The hook needs an id on each row.
   const rows = useMemo(() => catalogue.items.map((i) => ({ ...i, id: i.itemId })), [catalogue.items])
   const { order, itemProps } = useDragReorder(rows)
