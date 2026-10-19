@@ -81,27 +81,38 @@ export async function removeItemFromCatalogue(catalogueId, itemId) {
   await touchCatalogue(catalogueId)
 }
 
-/** Products to add: not archived, matched on name, code, slug or Part ID. */
-export async function searchProductsForCatalogue(q, limit = 20) {
-  const term = `%${String(q ?? '').trim()}%`
+/** Products for the picker: not archived. An empty query lists them all, A to Z. */
+export async function searchProductsForCatalogue(q, limit = 100) {
+  const term = `%${String(q ?? "").trim()}%`
+  const hasQuery = String(q ?? "").trim() !== ""
   const db = await getDb()
   return db.select({
     id: products.id,
     name: products.name,
     productCode: products.productCode,
     status: products.status,
+    availability: products.availability,
+    category: sql`(select c.name from categories c where c.id = products.primary_category_id)`.as("category"),
+    species: sql`(select string_agg(av.value, ', ' order by av.sort_order) from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species')`.as("species"),
+    image: sql`(select pi.storage_key from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as("image"),
+    imageWidth: sql`(select pi.width from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as("imageWidth"),
   }).from(products)
     .where(and(
-      ne(products.status, 'archived'),
-      or(
+      ne(products.status, "archived"),
+      hasQuery ? or(
         ilike(products.name, term),
         ilike(products.productCode, term),
         ilike(products.slug, term),
-        sql`exists (select 1 from ${productPartIds} pp where pp.product_id = ${products.id} and pp.part_id ilike ${term})`,
-      ),
+        sql`exists (select 1 from product_part_ids pp where pp.product_id = products.id and pp.part_id ilike ${term})`,
+      ) : undefined,
     ))
     .orderBy(asc(products.name))
     .limit(limit)
+}
+
+/** Adds several products in one go. Ones already in the catalogue are skipped. */
+export async function addProductsToCatalogue(catalogueId, productIds) {
+  for (const productId of productIds) await addProductToCatalogue(catalogueId, productId)
 }
 
 async function touchCatalogue(id) {
