@@ -303,7 +303,7 @@ export default function CatalogueBuilder() {
 
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Layout</h2>
-            <p className="mt-1 text-xs text-gray-500">The printed pages, to scale. Drag a product to reorder.</p>
+            <p className="mt-1 text-xs text-gray-500">The printed pages, to scale. Click a page to see its details. Drag a product to reorder.</p>
             <div className="mt-4">
               <CataloguePreview title={catalogue.title} order={order} showPrices={showPrices} itemProps={itemProps} />
             </div>
@@ -317,7 +317,6 @@ export default function CatalogueBuilder() {
                     <span>
                       <span className="mr-2 text-gray-400">{i + 1}.</span>
                       {item.name}
-                      {item.productCode && <span className="ml-2 font-mono text-xs text-gray-500">{item.productCode}</span>}
                       {item.status === 'archived' && (
                         <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
                       )}

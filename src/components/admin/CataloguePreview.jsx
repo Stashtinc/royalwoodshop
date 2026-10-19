@@ -59,6 +59,18 @@ function paginate(heights) {
   return pages
 }
 
+/** Overview of a product on a page: picture and name only. Details show when the page is opened. */
+function CompactRow({ item }) {
+  return (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div style={{ width: 56, height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {item.image && <img src={item.image} alt="" style={{ maxWidth: 56, maxHeight: 56, objectFit: 'contain' }} />}
+      </div>
+      <div style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 13, color: '#111' }}>{item.name}</div>
+    </div>
+  )
+}
+
 function ProductRow({ item, showPrices, rowRef }) {
   const specs = specRows(item)
   const prices = showPrices ? priceLines(item) : []
@@ -108,7 +120,7 @@ function ProductRow({ item, showPrices, rowRef }) {
 /** One printed page at true size, scaled down to `scale`. The dashed frame is the margin. */
 function Page({ scale, children, ...rest }) {
   return (
-    <div {...rest} style={{ position: 'relative', width: PAGE_W * scale, height: PAGE_H * scale, overflow: 'hidden', flexShrink: 0 }}>
+    <div {...rest} style={{ position: 'relative', width: PAGE_W * scale, height: PAGE_H * scale, overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}>
       <div style={{ position: 'absolute', left: 0, top: 0, width: PAGE_W, height: PAGE_H, transform: `scale(${scale})`, transformOrigin: 'top left', background: '#fff', boxSizing: 'border-box', padding: MARGIN, boxShadow: 'none' }}>
         <div aria-hidden="true" style={{ position: 'absolute', left: MARGIN, top: MARGIN, right: MARGIN, bottom: MARGIN, border: '1px dashed #d1d5db', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', height: '100%' }}>{children}</div>
@@ -122,6 +134,8 @@ export default function CataloguePreview({ title, order, showPrices, itemProps }
   const boxRef = useRef(null)
   const [heights, setHeights] = useState([])
   const [boxW, setBoxW] = useState(0)
+  // The page whose details are open (one at a time), or null.
+  const [openPage, setOpenPage] = useState(null)
 
   // Track the pane's width so the pages scale to fit two across.
   useLayoutEffect(() => {
@@ -168,12 +182,12 @@ export default function CataloguePreview({ title, order, showPrices, itemProps }
 
         {/* Product pages, two across */}
         {pages.map((page, p) => (
-          <Page key={p} scale={scale}>
+          <Page key={p} scale={scale} onClick={() => setOpenPage(openPage === p ? null : p)}>
             <div style={{ fontSize: 8, letterSpacing: 1, textTransform: 'uppercase', color: '#9ca3af', marginBottom: 8 }}>Page {p + 1}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
               {page.map((i) => (
                 <div key={order[i].itemId} {...itemProps(order[i])} style={{ cursor: 'grab' }}>
-                  <ProductRow item={order[i]} showPrices={showPrices} />
+                  {openPage === p ? <ProductRow item={order[i]} showPrices={showPrices} /> : <CompactRow item={order[i]} />}
                 </div>
               ))}
             </div>
