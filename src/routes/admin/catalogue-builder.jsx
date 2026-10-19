@@ -9,6 +9,7 @@ import {
   removeItemFromCatalogue, searchProductsForCatalogue, reorderCatalogueItems, listCategoryOptions,
 } from '../../lib/print-catalogues.server'
 import SectionTabs from '../../components/admin/SectionTabs'
+import logoBlue from '../../assets/images/logo-blue.svg'
 import FilterPill from '../../components/admin/FilterPill'
 import { useDragReorder } from '../../components/admin/useDragReorder'
 
@@ -57,6 +58,22 @@ export async function action({ request, params }) {
 
   return null
 }
+
+// How a product's prices read in the preview: each species, or the product price when it has none.
+function priceLines(item) {
+  const money = (v) => (v == null || v === '' ? null : `$${Number(v).toFixed(2)}`)
+  if (item.prices?.length) {
+    return item.prices.map((p) => ({
+      label: p.species,
+      price: money(p.price),
+      sale: money(p.salePrice),
+    }))
+  }
+  if (item.price != null) return [{ label: null, price: money(item.price), sale: money(item.salePrice) }]
+  return []
+}
+
+const PREVIEW_DATE = () => new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })
 
 const input = 'rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-royal-blue'
 const card = 'rounded-xl border border-gray-200 bg-white p-6'
@@ -147,9 +164,9 @@ export default function CatalogueBuilder() {
         <Link to="/admin/catalogue" className="text-sm text-gray-500 hover:text-gray-800">← All catalogues</Link>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {/* Left two-thirds: product table with bulk selection */}
-        <div className="lg:col-span-2">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <input
               value={search.q}
@@ -328,6 +345,70 @@ export default function CatalogueBuilder() {
           </section>
         </div>
       </div>
+
+      {/* Preview: how the printed catalogue will look, in print order */}
+      <section className="mt-6 rounded-xl border border-gray-200 bg-gray-100 p-6">
+        <h2 className="font-serif text-lg font-bold text-tundora">Preview</h2>
+        <p className="mt-1 text-xs text-gray-500">How the printed catalogue will look. Page breaks in the PDF may differ.</p>
+        <div className="mt-6 flex flex-col items-center gap-8">
+          {/* Cover page */}
+          <div className="flex aspect-[8.5/11] w-full max-w-[560px] flex-col items-center justify-between bg-white p-12 text-center shadow-md">
+            <img src={logoBlue} alt="The Royal Wood Shop" className="h-16 w-auto" />
+            <h3 className="font-serif text-4xl font-bold text-tundora">{catalogue.title}</h3>
+            <p className="text-sm text-gray-500">{PREVIEW_DATE()}</p>
+          </div>
+
+          {/* Product pages, in print order */}
+          {order.length > 0 && (
+            <div className="w-full max-w-[560px] space-y-8 bg-white p-10 shadow-md">
+              {order.map((item) => {
+                const lines = [
+                  ['Size', item.sizeDisplay],
+                  ['Specifications', item.species],
+                  ['Category', item.category],
+                  ['Availability', item.availability ? (AVAILABILITY_LABEL[item.availability] ?? item.availability) : null],
+                  ['Lead time', item.leadTime],
+                ].filter(([, v]) => v)
+                const prices = catalogue.showPrices ? priceLines(item) : []
+                return (
+                  <article key={item.itemId} className="flex gap-5 border-b border-gray-200 pb-8 last:border-0">
+                    {item.image && (
+                      <img src={thumbSrc(item.image, item.imageWidth)} alt="" className="h-28 w-28 shrink-0 object-contain" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-serif text-lg font-bold text-tundora">{item.name}</h4>
+                      {item.productCode && <p className="font-mono text-xs text-gray-500">{item.productCode}</p>}
+                      {item.description && <p className="mt-2 line-clamp-4 text-sm text-gray-700">{item.description}</p>}
+                      {lines.length > 0 && (
+                        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+                          {lines.map(([label, value]) => (
+                            <div key={label} className="contents">
+                              <dt className="font-semibold text-gray-600">{label}</dt>
+                              <dd className="text-gray-800">{value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      )}
+                      {prices.length > 0 && (
+                        <ul className="mt-3 space-y-0.5 text-sm">
+                          {prices.map((p, i) => (
+                            <li key={i} className="text-gray-800">
+                              {p.label && <span className="mr-2 text-gray-600">{p.label}</span>}
+                              {p.sale ? (
+                                <><span className="mr-2 text-gray-400 line-through">{p.price}</span><span className="font-semibold">{p.sale}</span></>
+                              ) : <span className="font-semibold">{p.price}</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   )
 }

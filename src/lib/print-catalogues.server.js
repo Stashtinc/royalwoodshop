@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, ne, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, ne, or, sql } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { printCatalogues, printCatalogueItems, products, productPartIds, categories } from '../db/schema.js'
 
@@ -31,21 +31,46 @@ export async function deletePrintCatalogue(id) {
   await db.delete(printCatalogues).where(eq(printCatalogues.id, Number(id)))
 }
 
-/** One catalogue with its items in print order, or null when it does not exist. */
+/** One catalogue with its items in print order, or null when it does not exist.
+ *  Each item carries what the print layout needs: picture, description, specs and prices. */
 export async function getPrintCatalogue(id) {
   const db = await getDb()
   const [cat] = await db.select().from(printCatalogues).where(eq(printCatalogues.id, Number(id))).limit(1)
   if (!cat) return null
-  const items = await db.select({
+  const rows = await db.select({
     itemId: printCatalogueItems.id,
     productId: products.id,
     name: products.name,
     productCode: products.productCode,
     status: products.status,
+    description: products.description,
+    sizeDisplay: products.sizeDisplay,
+    availability: products.availability,
+    leadTime: products.leadTime,
+    price: products.price,
+    salePrice: products.salePrice,
+    category: sql`(select c.name from categories c where c.id = products.primary_category_id)`.as('category'),
+    species: sql`(select string_agg(av.value, ', ' order by av.sort_order) from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species')`.as('species'),
+    image: sql`(select pi.storage_key from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as('image'),
+    imageWidth: sql`(select pi.width from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as('imageWidth'),
   }).from(printCatalogueItems)
     .innerJoin(products, eq(products.id, printCatalogueItems.productId))
     .where(eq(printCatalogueItems.catalogueId, cat.id))
     .orderBy(asc(printCatalogueItems.sortOrder), asc(printCatalogueItems.id))
+
+  // Per-species prices, as on the product page (Part ID rows that carry a price).
+  const productIds = [...new Set(rows.map((r) => r.productId))]
+  const partRows = productIds.length
+    ? await db.select({ productId: productPartIds.productId, species: productPartIds.species, price: productPartIds.price, salePrice: productPartIds.salePrice })
+      .from(productPartIds)
+      .where(and(inArray(productPartIds.productId, productIds), sql`${productPartIds.price} is not null`))
+    : []
+  const pricesByProduct = new Map()
+  for (const p of partRows) {
+    if (!pricesByProduct.has(p.productId)) pricesByProduct.set(p.productId, [])
+    pricesByProduct.get(p.productId).push({ species: p.species, price: p.price, salePrice: p.salePrice })
+  }
+  const items = rows.map((r) => ({ ...r, prices: pricesByProduct.get(r.productId) ?? [] }))
   return { ...cat, items }
 }
 
