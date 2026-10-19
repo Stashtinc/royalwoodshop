@@ -338,7 +338,7 @@ export default function CatalogueBuilder() {
 
               {/* Pages, in print order */}
               {pages.map((page, p) => (
-                <div key={p} className="w-full space-y-3 bg-white p-5 shadow">
+                <div key={p} className="flex aspect-[8.5/11] w-full flex-col gap-3 overflow-hidden bg-white p-5 shadow">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Page {p + 1}</p>
                   {page.map(({ item, index }) => {
                     const prices = catalogue.showPrices ? priceLines(item) : []
