@@ -328,9 +328,11 @@ export default function CatalogueBuilder() {
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Layout</h2>
             <p className="mt-1 text-xs text-gray-500">How the printed catalogue will look. Drag a product to reorder; page breaks in the PDF may differ.</p>
-            <div className="mt-4 grid grid-cols-2 gap-4 rounded-lg bg-gray-100 p-4">
+            <div className="relative mt-4 grid grid-cols-2 gap-0 overflow-hidden rounded-lg bg-gray-100">
+              {/* Centre line where the two halves meet */}
+              <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-px bg-gray-400" />
               {/* Cover */}
-              <div className="flex aspect-[8.5/11] w-full flex-col items-center justify-between bg-white p-6 text-center shadow">
+              <div className="flex aspect-[8.5/11] w-full flex-col items-center justify-between bg-white p-6 text-center">
                 <img src={logoBlue} alt="The Royal Wood Shop" className="h-10 w-auto" />
                 <h3 className="font-serif text-xl font-bold text-tundora">{catalogue.title}</h3>
                 <p className="text-xs text-gray-500">{PREVIEW_DATE()}</p>
@@ -340,7 +342,7 @@ export default function CatalogueBuilder() {
 
               {/* Pages, in print order */}
               {pages.map((page, p) => (
-                <div key={p} className="flex aspect-[8.5/11] w-full flex-col gap-3 overflow-hidden bg-white p-5 shadow">
+                <div key={p} className="flex aspect-[8.5/11] w-full flex-col gap-3 overflow-hidden bg-white p-5">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Page {p + 1}</p>
                   {page.map(({ item, index }) => {
                     const prices = catalogue.showPrices ? priceLines(item) : []
