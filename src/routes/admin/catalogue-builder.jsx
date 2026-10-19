@@ -164,9 +164,9 @@ export default function CatalogueBuilder() {
         <Link to="/admin/catalogue" className="text-sm text-gray-500 hover:text-gray-800">← All catalogues</Link>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Left two-thirds: product table with bulk selection */}
-        <div className="min-w-0">
+        <div className="lg:col-span-2 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <input
               value={search.q}
