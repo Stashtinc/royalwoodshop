@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { Form, Link, useLoaderData } from 'react-router'
+import { useMemo, useRef, useState } from 'react'
+import { Form, Link, useLoaderData, useSubmit } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
 import {
@@ -57,6 +57,15 @@ export default function CatalogueBuilder() {
   const { catalogue, q, results } = useLoaderData()
   const inCatalogue = new Set(catalogue.items.map((i) => i.productId))
   // The drag hook needs an id on each row; the catalogue item id serves.
+  const titleRef = useRef(null)
+  const submit = useSubmit()
+  const [showPrices, setShowPrices] = useState(catalogue.showPrices)
+  // Saves the settings as they change. Title saves on leaving the field; the switch saves at once.
+  const saveSettings = (change) => submit({
+    intent: 'save',
+    title: change.title ?? titleRef.current?.value ?? catalogue.title,
+    showPrices: (change.showPrices ?? showPrices) ? 'on' : '',
+  }, { method: 'post' })
   const rows = useMemo(() => catalogue.items.map((i) => ({ ...i, id: i.itemId })), [catalogue.items])
   const { order, itemProps } = useDragReorder(rows)
 
@@ -70,20 +79,29 @@ export default function CatalogueBuilder() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_3fr]">
         <section className={card}>
           <h2 className="font-serif text-lg font-bold text-tundora">Catalogue</h2>
-          <Form method="post" className="mt-4 flex flex-col gap-4">
-            <input type="hidden" name="intent" value="save" />
+          <div className="mt-4 flex flex-col gap-5">
             <label className="flex flex-col gap-1 text-sm text-gray-600">
               Title
-              <input name="title" defaultValue={catalogue.title} className={input} />
+              <input
+                ref={titleRef}
+                defaultValue={catalogue.title}
+                onBlur={(e) => { if (e.currentTarget.value !== catalogue.title) saveSettings({ title: e.currentTarget.value }) }}
+                className={input}
+              />
             </label>
-            <label className="flex items-center gap-3 text-sm text-gray-700">
-              <input type="checkbox" name="showPrices" defaultChecked={catalogue.showPrices} className="h-4 w-4 accent-royal-blue" />
-              Show prices
-            </label>
-            <div>
-              <button type="submit" className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark">Save</button>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-gray-700">Show prices</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showPrices}
+                onClick={() => { const next = !showPrices; setShowPrices(next); saveSettings({ showPrices: next }) }}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${showPrices ? "bg-royal-blue" : "bg-gray-300"}`}
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${showPrices ? "translate-x-5" : "translate-x-0.5"}`} />
+              </button>
             </div>
-          </Form>
+          </div>
         </section>
 
         <section className={card}>
