@@ -1,11 +1,13 @@
+import { useMemo } from 'react'
 import { Form, Link, useLoaderData } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
 import {
   getPrintCatalogue, updatePrintCatalogue, addProductToCatalogue,
-  removeItemFromCatalogue, searchProductsForCatalogue,
+  removeItemFromCatalogue, searchProductsForCatalogue, reorderCatalogueItems,
 } from '../../lib/print-catalogues.server'
 import SectionTabs from '../../components/admin/SectionTabs'
+import { useDragReorder } from '../../components/admin/useDragReorder'
 
 export async function loader({ request, params }) {
   await requireUser(request)
@@ -35,6 +37,10 @@ export async function action({ request, params }) {
     await log(user, 'print_catalogue.add_product', { entityType: 'print_catalogue', entityId: id, details: { productId } })
   }
 
+  if (intent === 'reorder') {
+    await reorderCatalogueItems(id, String(f.get('ids') ?? '').split(','))
+  }
+
   if (intent === 'remove') {
     const itemId = Number(f.get('itemId'))
     await removeItemFromCatalogue(id, itemId)
@@ -50,6 +56,9 @@ const card = 'rounded-xl border border-gray-200 bg-white p-6'
 export default function CatalogueBuilder() {
   const { catalogue, q, results } = useLoaderData()
   const inCatalogue = new Set(catalogue.items.map((i) => i.productId))
+  // The drag hook needs an id on each row; the catalogue item id serves.
+  const rows = useMemo(() => catalogue.items.map((i) => ({ ...i, id: i.itemId })), [catalogue.items])
+  const { order, itemProps } = useDragReorder(rows)
 
   return (
     <div>
@@ -107,12 +116,13 @@ export default function CatalogueBuilder() {
 
       <section className={`${card} mt-6`}>
         <h2 className="font-serif text-lg font-bold text-tundora">Products in this catalogue ({catalogue.items.length})</h2>
+        {catalogue.items.length > 1 && <p className="mt-1 text-xs text-gray-500">Drag a row to change the print order.</p>}
         {catalogue.items.length === 0 ? (
           <p className="mt-4 text-sm text-gray-500">No products yet. Search above to add some.</p>
         ) : (
           <ol className="mt-4 divide-y divide-gray-100">
-            {catalogue.items.map((item, i) => (
-              <li key={item.itemId} className="flex items-center justify-between gap-3 py-3">
+            {order.map((item, i) => (
+              <li key={item.itemId} {...itemProps(item)} className="flex cursor-grab items-center justify-between gap-3 py-3 data-[dragging=true]:opacity-50">
                 <span className="text-sm text-gray-800">
                   <span className="mr-3 text-gray-400">{i + 1}.</span>
                   {item.name} <span className="font-mono text-xs text-gray-500">{item.productCode}</span>

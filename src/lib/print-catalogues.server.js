@@ -108,3 +108,18 @@ async function touchCatalogue(id) {
   const db = await getDb()
   await db.update(printCatalogues).set({ updatedAt: new Date() }).where(eq(printCatalogues.id, Number(id)))
 }
+
+/** Saves a new print order. itemIds are in the order they should print; gaps of 10 as before. */
+export async function reorderCatalogueItems(catalogueId, itemIds) {
+  const db = await getDb()
+  const cid = Number(catalogueId)
+  const ids = itemIds.map(Number).filter(Boolean)
+  await db.transaction(async (tx) => {
+    for (const [i, itemId] of ids.entries()) {
+      await tx.update(printCatalogueItems)
+        .set({ sortOrder: (i + 1) * 10 })
+        .where(and(eq(printCatalogueItems.id, itemId), eq(printCatalogueItems.catalogueId, cid)))
+    }
+  })
+  await touchCatalogue(cid)
+}
