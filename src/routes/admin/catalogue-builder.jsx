@@ -121,16 +121,17 @@ export default function CatalogueBuilder() {
   const { order, itemProps } = useDragReorder(rows)
 
   // Bulk selection in the product table.
-  const [selected, setSelected] = useState(() => new Set())
+  // Keeps each ticked product (for its thumbnail and name), keyed by id.
+  const [selected, setSelected] = useState(() => new Map())
   const addable = results.filter((p) => !inCatalogue.has(p.id))
   const allChecked = addable.length > 0 && addable.every((p) => selected.has(p.id))
-  const toggle = (id) => setSelected((prev) => {
-    const next = new Set(prev)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
+  const toggle = (p) => setSelected((prev) => {
+    const next = new Map(prev)
+    if (next.has(p.id)) next.delete(p.id)
+    else next.set(p.id, p)
     return next
   })
-  const toggleAll = () => setSelected(allChecked ? new Set() : new Set(addable.map((p) => p.id)))
+  const toggleAll = () => setSelected(allChecked ? new Map() : new Map(addable.map((p) => [p.id, p])))
 
   return (
     <div>
@@ -175,7 +176,7 @@ export default function CatalogueBuilder() {
                     <tr key={p.id} className="border-b border-gray-100 last:border-0 hover:bg-amber-50">
                       <td className="px-4 py-2">
                         <input type="checkbox" aria-label={`Select ${p.name}`} disabled={added}
-                          checked={selected.has(p.id)} onChange={() => toggle(p.id)}
+                          checked={selected.has(p.id)} onChange={() => toggle(p)}
                           className="h-4 w-4 rounded border-gray-300 accent-royal-blue disabled:opacity-40" />
                       </td>
                       <td className="px-2 py-2">
@@ -235,19 +236,33 @@ export default function CatalogueBuilder() {
 
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Add products</h2>
-            <p className="mt-2 text-sm text-gray-500">
-              {selected.size === 0 ? 'Tick products in the table, then add them here.' : `${selected.size} selected`}
-            </p>
+            {selected.size === 0 ? (
+              <p className="mt-2 text-sm text-gray-500">Tick products in the table, then add them here.</p>
+            ) : (
+              <ul className="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1">
+                {[...selected.values()].map((p) => (
+                  <li key={p.id} className="flex items-center gap-3">
+                    {p.image ? (
+                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-gray-200">
+                        <img src={thumbSrc(p.image, p.imageWidth)} alt="" className="h-full w-full object-contain p-0.5" />
+                      </div>
+                    ) : <div className="h-10 w-10 shrink-0 rounded-lg bg-gray-100" />}
+                    <span className="flex-1 truncate text-sm text-gray-800">{p.name}</span>
+                    <button type="button" onClick={() => toggle(p)} aria-label={`Remove ${p.name}`} className="text-gray-400 hover:text-red-500">×</button>
+                  </li>
+                ))}
+              </ul>
+            )}
             {selected.size > 0 && (
-              <Form method="post" onSubmit={() => setSelected(new Set())} className="mt-4 flex gap-2">
+              <Form method="post" onSubmit={() => setSelected(new Map())} className="mt-4 flex gap-2">
                 <input type="hidden" name="intent" value="add-many" />
-                <input type="hidden" name="productIds" value={[...selected].join(',')} />
+                <input type="hidden" name="productIds" value={[...selected.keys()].join(',')} />
                 <button type="submit" disabled={selected.size === 0}
                   className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:cursor-not-allowed disabled:opacity-40">
                   Add {selected.size || ''} to catalogue
                 </button>
                 {selected.size > 0 && (
-                  <button type="button" onClick={() => setSelected(new Set())} className="px-2 text-sm text-gray-500 hover:text-gray-800">Clear</button>
+                  <button type="button" onClick={() => setSelected(new Map())} className="px-2 text-sm text-gray-500 hover:text-gray-800">Clear</button>
                 )}
               </Form>
             )}
