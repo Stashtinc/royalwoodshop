@@ -180,37 +180,43 @@ export default function CataloguePreview({ title, order, showPrices, itemProps, 
           </Page>
           <div style={{ width: cellW, height: cellH }} />
 
-          {/* Product pages, two across: pictures only; click a page to see its details below */}
+          {/* Product pages, two across, exactly as printed; tap a page to list its items below */}
           {pages.map((page, p) => (
             <Page key={p} scale={scale} selected={chosen === p} onClick={() => setSelected(p)}>
               <div style={{ fontSize: 8, letterSpacing: 1, textTransform: 'uppercase', color: '#9ca3af', marginBottom: 8 }}>Page {p + 1}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
-                {page.map((i) => <PictureRow key={order[i].itemId} item={order[i]} />)}
+                {page.map((i) => <ProductRow key={order[i].itemId} item={order[i]} showPrices={showPrices} />)}
               </div>
             </Page>
           ))}
         </div>
       </div>
 
-      {/* Details for the page that was clicked */}
+      {/* The items on the tapped page, for reference */}
       <div className="mt-4">
         {order.length === 0 && <p className="text-xs text-gray-500">No products yet. Add some from the table on the left.</p>}
-        {order.length > 0 && chosen == null && <p className="text-xs text-gray-500">Click a page above to see what is on it.</p>}
+        {order.length > 0 && chosen == null && <p className="text-xs text-gray-500">Tap a page above to list what is on it.</p>}
         {chosen != null && (
-          <div className="space-y-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Page {chosen + 1}</p>
-            {pages[chosen].map((i) => {
-              const item = order[i]
-              return (
-                <div key={item.itemId} {...itemProps(item)} className="cursor-grab border-b border-gray-200 pb-5 last:border-0 data-[dragging=true]:opacity-50">
-                  <ProductRow item={item} showPrices={showPrices} />
-                  {item.status === 'archived' && (
-                    <span className="mt-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
-                  )}
-                  {removeForm && <div className="mt-2">{removeForm(item)}</div>}
-                </div>
-              )
-            })}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Page {chosen + 1}: {pages[chosen].length} product{pages[chosen].length === 1 ? '' : 's'}</p>
+            <ol className="mt-2 divide-y divide-gray-200">
+              {pages[chosen].map((i) => {
+                const item = order[i]
+                return (
+                  <li key={item.itemId} {...itemProps(item)}
+                    className="flex cursor-grab items-center justify-between gap-3 py-2 text-sm text-gray-800 data-[dragging=true]:opacity-50">
+                    <span>
+                      {item.name}
+                      {item.productCode && <span className="ml-2 font-mono text-xs text-gray-500">{item.productCode}</span>}
+                      {item.status === 'archived' && (
+                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
+                      )}
+                    </span>
+                    {removeForm && <span className="shrink-0">{removeForm(item)}</span>}
+                  </li>
+                )
+              })}
+            </ol>
           </div>
         )}
       </div>

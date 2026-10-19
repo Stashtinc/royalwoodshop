@@ -303,7 +303,7 @@ export default function CatalogueBuilder() {
 
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Layout</h2>
-            <p className="mt-1 text-xs text-gray-500">The printed pages, to scale. Click a page to see what is on it. Drag a product to reorder.</p>
+            <p className="mt-1 text-xs text-gray-500">Exactly as printed. Tap a page to list what is on it below.</p>
             <div className="mt-4">
               <CataloguePreview
                 title={catalogue.title}
