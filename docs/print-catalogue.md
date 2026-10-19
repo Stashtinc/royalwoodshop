@@ -93,7 +93,7 @@ Schema: `src/db/schema.js`. The Postgres database is Neon or Railway in producti
 
 **Read path for public pages:** `getAllProducts(db)` in `src/db/queries.js` builds the product object used by the product page and the spec sheet. It includes `species`, `speciesAvailability`, `partIds`, `images`, `categories`. The print catalogue should use this same function so it shows what the site shows.
 
-**Price display:** the public site shows the product price, and the Part ID table shows per-species prices. Which price the catalogue shows is an open question (see below).
+**Price display:** the product page shows a price for each species from the Part ID rows (species, Part ID, price, sale price). The catalogue does the same.
 
 ---
 
@@ -146,6 +146,12 @@ print_catalogue_items
 
 Items store only the product ID, so a reprint reads the current product data. Nothing is copied.
 
+### Price toggle (decided)
+
+- Each catalogue has a **Show prices** switch (`print_catalogues.show_prices`, default off). Off means no price text anywhere in the PDF.
+- On means each product row lists its species prices, like the product page: species name, then the price (with the sale price struck through or beside it when set). A product with no per-species prices falls back to its product `price` and `sale_price`. A product with no price at all shows nothing.
+- The toggle is set in the builder and applies when the PDF is generated, so the same catalogue can be printed with or without prices.
+
 ### Suggested build order (9 chunks)
 
 Each chunk ends with something that can be tested. Confirm the order when you start.
@@ -162,8 +168,7 @@ Each chunk ends with something that can be tested. Confirm the order when you st
 
 ### Open questions for you
 
-1. **Price when a product has per-species prices:** show the product's `price` and `sale_price`, or list a price for each species from the Part ID rows, or "from $X"?
-2. **Image per product:** use the first `profile_drawing` (as the site does), the first `product_photo`, or let staff pick one per product?
-3. **Deleted or archived products already in a catalogue:** skip them in the PDF with a note, or remove them from the catalogue when they are archived?
-4. **Cover page:** title only, or also a date, letterhead and a contact block (address and phone as on the spec sheet)?
-5. **Who can build catalogues:** all admin users, or only some?
+1. **Image per product:** use the first `profile_drawing` (as the site does), the first `product_photo`, or let staff pick one per product?
+2. **Deleted or archived products already in a catalogue:** skip them in the PDF with a note, or remove them from the catalogue when they are archived?
+3. **Cover page:** title only, or also a date, letterhead and a contact block (address and phone as on the spec sheet)?
+4. **Who can build catalogues:** all admin users, or only some?
