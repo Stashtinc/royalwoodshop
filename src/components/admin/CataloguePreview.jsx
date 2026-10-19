@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { Form } from 'react-router'
 import logoBlue from '../../assets/images/logo-blue.svg'
 import { AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
 
@@ -7,7 +6,7 @@ import { AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
  * The printed catalogue, drawn at true size and scaled to fit the pane.
  * Pages are 8.5 x 11 in at 72 points per inch, so layout here matches the PDF:
  * 0.75 in margins, each product at its real height, and pages filled in order.
- * Below the pane, the products on each page are listed so they can be reordered or removed.
+ * Tap a page to list its items below. Hover the cover for Edit, which opens the cover in the pane.
  */
 export const PAGE_W = 612
 export const PAGE_H = 792
@@ -60,15 +59,6 @@ function paginate(heights) {
   return pages
 }
 
-/** Picture only, the same height as in the printed row, for the layout pane. */
-function PictureRow({ item }) {
-  return (
-    <div style={{ width: IMG, height: IMG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {item.image && <img src={item.image} alt="" style={{ maxWidth: IMG, maxHeight: IMG, objectFit: 'contain' }} />}
-    </div>
-  )
-}
-
 function ProductRow({ item, showPrices, rowRef }) {
   const specs = specRows(item)
   const prices = showPrices ? priceLines(item) : []
@@ -115,6 +105,17 @@ function ProductRow({ item, showPrices, rowRef }) {
   )
 }
 
+/** The cover, as printed: logo centred, title, and the date at the bottom. */
+function CoverContent({ title }) {
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative' }}>
+      <img src={logoBlue} alt="" style={{ width: 130 }} />
+      <div style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 30, color: '#111', marginTop: 28 }}>{title}</div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 10, color: '#555' }}>{dateText()}</div>
+    </div>
+  )
+}
+
 /** One printed page at true size, scaled down to `scale`. The dashed frame is the margin. */
 function Page({ scale, selected = false, children, ...rest }) {
   return (
@@ -134,10 +135,12 @@ export default function CataloguePreview({ title, order, showPrices, itemProps, 
   const boxRef = useRef(null)
   const [heights, setHeights] = useState([])
   const [boxW, setBoxW] = useState(0)
-  // The page chosen in the pane; its details show below. Null until one is clicked.
+  // The page tapped in the spread, whose items are listed below. Null until one is tapped.
   const [selected, setSelected] = useState(null)
+  // The cover, opened from its Edit button: it takes over the pane.
+  const [coverOpen, setCoverOpen] = useState(false)
 
-  // Track the pane's width so the pages scale to fit two across.
+  // Track the pane's width so the pages scale to fit.
   useLayoutEffect(() => {
     const el = boxRef.current
     if (!el) return undefined
@@ -152,6 +155,7 @@ export default function CataloguePreview({ title, order, showPrices, itemProps, 
   }, [order, showPrices, title])
 
   const scale = boxW ? Math.min(0.6, (boxW - 16) / 2 / PAGE_W) : 0.3
+  const coverScale = boxW ? (boxW - 16) / PAGE_W : 0.5
   const pages = paginate(order.map((_, i) => heights[i] ?? 0))
   const cellW = PAGE_W * scale
   const cellH = PAGE_H * scale
@@ -169,59 +173,82 @@ export default function CataloguePreview({ title, order, showPrices, itemProps, 
           ))}
         </div>
 
-        <div className="relative mx-auto grid grid-cols-2 gap-y-4" style={{ width: cellW * 2 }}>
-          <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-px bg-gray-200" />
-
-          {/* Cover, with an empty slot beside it */}
-          <Page scale={scale}>
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative' }}>
-              <img src={logoBlue} alt="" style={{ width: 130 }} />
-              <div style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 30, color: '#111', marginTop: 28 }}>{title}</div>
-              <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 10, color: '#555' }}>{dateText()}</div>
-            </div>
-          </Page>
-          <div style={{ width: cellW, height: cellH }} />
-
-          {/* Product pages, two across, exactly as printed; tap a page to list its items below */}
-          {pages.map((page, p) => (
-            <Page key={p} scale={scale} selected={chosen === p} onClick={() => setSelected(p)}>
-              <div style={{ fontSize: 8, letterSpacing: 1, textTransform: 'uppercase', color: '#9ca3af', marginBottom: 8 }}>Page {p + 1}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
-                {page.map((i) => <ProductRow key={order[i].itemId} item={order[i]} showPrices={showPrices} />)}
-              </div>
+        {coverOpen ? (
+          // The cover takes over the pane at full width
+          <div className="mx-auto" style={{ width: PAGE_W * coverScale }}>
+            <Page scale={coverScale}>
+              <CoverContent title={title} />
             </Page>
-          ))}
-        </div>
-      </div>
+          </div>
+        ) : (
+          <div className="relative mx-auto grid grid-cols-2 gap-y-4" style={{ width: cellW * 2 }}>
+            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-px bg-gray-200" />
 
-      {/* The items on the tapped page, for reference */}
-      <div className="mt-4">
-        {order.length === 0 && <p className="text-xs text-gray-500">No products yet. Add some from the table on the left.</p>}
-        {order.length > 0 && chosen == null && <p className="text-xs text-gray-500">Tap a page above to list what is on it.</p>}
-        {chosen != null && (
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Page {chosen + 1}: {pages[chosen].length} product{pages[chosen].length === 1 ? '' : 's'}</p>
-            <ol className="mt-2 divide-y divide-gray-200">
-              {pages[chosen].map((i) => {
-                const item = order[i]
-                return (
-                  <li key={item.itemId} {...itemProps(item)}
-                    className="flex cursor-grab items-center justify-between gap-3 py-2 text-sm text-gray-800 data-[dragging=true]:opacity-50">
-                    <span>
-                      {item.name}
-                      {item.productCode && <span className="ml-2 font-mono text-xs text-gray-500">{item.productCode}</span>}
-                      {item.status === 'archived' && (
-                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
-                      )}
-                    </span>
-                    {removeForm && <span className="shrink-0">{removeForm(item)}</span>}
-                  </li>
-                )
-              })}
-            </ol>
+            {/* Cover, with Edit on hover, and an empty slot beside it */}
+            <div className="group relative" style={{ width: cellW, height: cellH }}>
+              <Page scale={scale} onClick={() => setCoverOpen(true)}>
+                <CoverContent title={title} />
+              </Page>
+              <button type="button" onClick={() => setCoverOpen(true)}
+                className="absolute right-2 top-2 z-30 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 opacity-0 shadow transition-opacity hover:border-royal-blue group-focus-within:opacity-100 group-hover:opacity-100">
+                Edit
+              </button>
+            </div>
+            <div style={{ width: cellW, height: cellH }} />
+
+            {/* Product pages, two across, exactly as printed; tap a page to list its items below */}
+            {pages.map((page, p) => (
+              <Page key={p} scale={scale} selected={chosen === p} onClick={() => setSelected(p)}>
+                <div style={{ fontSize: 8, letterSpacing: 1, textTransform: 'uppercase', color: '#9ca3af', marginBottom: 8 }}>Page {p + 1}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
+                  {page.map((i) => <ProductRow key={order[i].itemId} item={order[i]} showPrices={showPrices} />)}
+                </div>
+              </Page>
+            ))}
           </div>
         )}
       </div>
+
+      {coverOpen ? (
+        <div className="mt-3 flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Cover</p>
+          <button type="button" onClick={() => setCoverOpen(false)} className="text-sm text-royal-blue hover:underline">Back to layout</button>
+        </div>
+      ) : null}
+
+      {/* Cover edit options go here */}
+      {coverOpen && <div className="mt-4" />}
+
+      {/* The items on the tapped page, for reference */}
+      {!coverOpen && (
+        <div className="mt-4">
+          {order.length === 0 && <p className="text-xs text-gray-500">No products yet. Add some from the table on the left.</p>}
+          {order.length > 0 && chosen == null && <p className="text-xs text-gray-500">Tap a page to list what is on it below.</p>}
+          {chosen != null && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Page {chosen + 1}: {pages[chosen].length} product{pages[chosen].length === 1 ? '' : 's'}</p>
+              <ol className="mt-2 divide-y divide-gray-200">
+                {pages[chosen].map((i) => {
+                  const item = order[i]
+                  return (
+                    <li key={item.itemId} {...itemProps(item)}
+                      className="flex cursor-grab items-center justify-between gap-3 py-2 text-sm text-gray-800 data-[dragging=true]:opacity-50">
+                      <span>
+                        {item.name}
+                        {item.productCode && <span className="ml-2 font-mono text-xs text-gray-500">{item.productCode}</span>}
+                        {item.status === 'archived' && (
+                          <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
+                        )}
+                      </span>
+                      {removeForm && <span className="shrink-0">{removeForm(item)}</span>}
+                    </li>
+                  )
+                })}
+              </ol>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
