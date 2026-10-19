@@ -217,7 +217,7 @@ export default function CatalogueBuilder() {
             <div className="flex gap-1 rounded-lg border border-gray-300 p-0.5 text-sm">
               {[['all', 'All'], ['selected', `Selected (${selected.size})`]].map(([key, label]) => (
                 <button key={key} type="button" onClick={() => setView(key)}
-                  className={`rounded-md px-3 py-1 ${view === key ? 'bg-gray-900 text-white' : 'text-gray-600 hover:text-gray-900'}`}>
+                  className={`rounded-md px-3 py-1 ${view === key ? 'bg-royal-blue text-white' : 'text-gray-600 hover:text-gray-900'}`}>
                   {label}
                 </button>
               ))}
