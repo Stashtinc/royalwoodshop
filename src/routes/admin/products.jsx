@@ -303,11 +303,11 @@ export default function Products() {
           {statusFilter === 'draft' && (
             <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-medium text-sky-800">Drafts</span>
           )}
+        </div>
+        <div className="flex items-center gap-4">
           <p className="text-sm text-gray-500">
             {total} total
           </p>
-        </div>
-        <div className="flex items-center gap-2">
           {bulkEdit ? (
             <>
               {selectedIds.size > 0 && statusFilter !== 'active' && (
