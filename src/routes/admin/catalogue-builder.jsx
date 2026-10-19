@@ -286,23 +286,7 @@ export default function CatalogueBuilder() {
         <div className="flex flex-col gap-6 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-1">
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Add products</h2>
-            {selected.size === 0 ? (
-              <p className="mt-2 text-sm text-gray-500">Tick products in the table to add them. Untick to remove them.</p>
-            ) : (
-              <ul className="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1">
-                {[...selected.values()].map((p) => (
-                  <li key={p.id} className="flex items-center gap-3">
-                    {p.image ? (
-                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-gray-200">
-                        <img src={thumbSrc(p.image, p.imageWidth)} alt="" className="h-full w-full object-contain p-0.5" />
-                      </div>
-                    ) : <div className="h-10 w-10 shrink-0 rounded-lg bg-gray-100" />}
-                    <span className="flex-1 truncate text-sm text-gray-800">{p.name}</span>
-                    <button type="button" onClick={() => toggle(p)} aria-label={`Remove ${p.name}`} className="text-gray-400 hover:text-red-500">×</button>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {!changed && <p className="mt-2 text-sm text-gray-500">Tick or untick products in the table. Changes apply when you save.</p>}
             {changed && (
               <Form method="post" className="mt-4 flex flex-wrap items-center gap-3">
                 <input type="hidden" name="intent" value="sync-products" />
