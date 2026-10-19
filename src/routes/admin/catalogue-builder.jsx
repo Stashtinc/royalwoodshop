@@ -170,6 +170,20 @@ export default function CatalogueBuilder() {
   // ticking adds, unticking removes. Save changes applies both.
   const fromCatalogue = () => new Map(catalogue.items.map((i) => [i.productId, { id: i.productId, name: i.name, image: i.image, imageWidth: i.imageWidth }]))
   const [selected, setSelected] = useState(fromCatalogue)
+  const [view, setView] = useState('all')
+  const selectedKey = [...selected.keys()].sort((x, y) => x - y).join(',')
+  useEffect(() => {
+    if (view !== 'selected') return
+    setHasMore(false)
+    if (!selectedKey) { setResults([]); return }
+    fetch(`/admin/catalogue-products?ids=${selectedKey}`).then((r) => r.json()).then((d) => setResults(d.results))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, selectedKey])
+  useEffect(() => {
+    if (view === 'all') loadBatch(latestRef.current, 0, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view])
+
   useEffect(() => { setSelected(fromCatalogue()) }, [catalogue.items])
   const allChecked = results.length > 0 && results.every((p) => selected.has(p.id))
   const toggle = (p) => setSelected((prev) => {
@@ -200,16 +214,14 @@ export default function CatalogueBuilder() {
               placeholder="Search name, product code, Part ID or slug"
               className={`${input} min-w-[12rem] flex-1`}
             />
-            <FilterPill
-              label="All types"
-              value={search.status}
-              options={[
-                { value: '', label: 'All types' },
-                { value: 'published', label: 'Published' },
-                { value: 'draft', label: 'Drafts' },
-              ]}
-              onChange={(v) => setFilter('status', v)}
-            />
+            <div className="flex gap-1 rounded-lg border border-gray-300 p-0.5 text-sm">
+              {[['all', 'All'], ['selected', `Selected (${selected.size})`]].map(([key, label]) => (
+                <button key={key} type="button" onClick={() => setView(key)}
+                  className={`rounded-md px-3 py-1 ${view === key ? 'bg-gray-900 text-white' : 'text-gray-600 hover:text-gray-900'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
             <FilterPill
               label="All categories"
               value={search.category}
@@ -224,6 +236,22 @@ export default function CatalogueBuilder() {
             />
           </div>
 
+          {changed && (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+  {changed && (
+    <Form method="post" className="mt-4 flex flex-wrap items-center gap-3">
+      <input type="hidden" name="intent" value="sync-products" />
+      <input type="hidden" name="addIds" value={addIds.join(',')} />
+      <input type="hidden" name="removeIds" value={removeIds.join(',')} />
+      <button type="submit" className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark">
+        Save changes
+      </button>
+      <span className="text-xs text-gray-500">{addIds.length} to add, {removeIds.length} to remove</span>
+      <button type="button" onClick={() => setSelected(fromCatalogue())} className="px-2 text-sm text-gray-500 hover:text-gray-800">Reset</button>
+    </Form>
+  )}
+            </div>
+          )}
           <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
             <table className="min-w-[860px] w-full text-left text-xs">
               <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase text-gray-500">
@@ -284,22 +312,6 @@ export default function CatalogueBuilder() {
         {/* Right third: settings, add, and the print order */}
         {/* Right column scrolls on its own while the page stays put */}
         <div className="flex flex-col gap-6 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-1">
-          <section className={card}>
-            <h2 className="font-serif text-lg font-bold text-tundora">Add products</h2>
-            {!changed && <p className="mt-2 text-sm text-gray-500">Tick or untick products in the table. Changes apply when you save.</p>}
-            {changed && (
-              <Form method="post" className="mt-4 flex flex-wrap items-center gap-3">
-                <input type="hidden" name="intent" value="sync-products" />
-                <input type="hidden" name="addIds" value={addIds.join(',')} />
-                <input type="hidden" name="removeIds" value={removeIds.join(',')} />
-                <button type="submit" className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark">
-                  Save changes
-                </button>
-                <span className="text-xs text-gray-500">{addIds.length} to add, {removeIds.length} to remove</span>
-                <button type="button" onClick={() => setSelected(fromCatalogue())} className="px-2 text-sm text-gray-500 hover:text-gray-800">Reset</button>
-              </Form>
-            )}
-          </section>
           <section className={card}>
             <div className="flex gap-6 border-b border-gray-200">
               {[['layout', 'Layout'], ['settings', 'Settings']].map(([key, label]) => (

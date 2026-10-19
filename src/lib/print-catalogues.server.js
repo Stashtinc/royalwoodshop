@@ -110,7 +110,7 @@ export async function removeItemFromCatalogue(catalogueId, itemId) {
 export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filters = {}) {
   const term = `%${String(q ?? "").trim()}%`
   const hasQuery = String(q ?? "").trim() !== ""
-  const { category = "", species = "", status = "" } = filters
+  const { category = "", species = "", status = "", ids = null } = filters
   const db = await getDb()
   return db.select({
     id: products.id,
@@ -127,6 +127,7 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filt
     .where(and(
       ne(products.status, "archived"),
       status ? eq(products.status, status) : undefined,
+      ids ? inArray(products.id, ids) : undefined,
       category ? sql`(products.primary_category_id = ${Number(category)} or exists (select 1 from product_categories pc where pc.product_id = products.id and pc.category_id = ${Number(category)}))` : undefined,
       species ? sql`exists (select 1 from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species' and av.value = ${species})` : undefined,
       hasQuery ? or(
