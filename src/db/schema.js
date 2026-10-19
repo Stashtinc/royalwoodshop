@@ -428,6 +428,31 @@ export const productAttributesRelations = relations(productAttributes, ({ one })
   value: one(attributeValues, { fields: [productAttributes.attributeValueId], references: [attributeValues.id] }),
 }))
 
+/* ------------------------------------------------------ print catalogues */
+
+/** A saved selection of products, printed as one PDF. Items hold product IDs
+ *  only, so a reprint shows the current product details. */
+export const printCatalogues = pgTable('print_catalogues', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 200 }).notNull().default('Product Catalogue'),
+  showPrices: boolean('show_prices').notNull().default(false),
+  coverImageKey: text('cover_image_key'),
+  createdByEmail: varchar('created_by_email', { length: 255 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const printCatalogueItems = pgTable('print_catalogue_items', {
+  id: serial('id').primaryKey(),
+  catalogueId: integer('catalogue_id').notNull().references(() => printCatalogues.id, { onDelete: 'cascade' }),
+  productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniq: uniqueIndex('print_catalogue_items_unique').on(t.catalogueId, t.productId),
+  orderIdx: index('print_catalogue_items_order_idx').on(t.catalogueId, t.sortOrder),
+}))
+
 export const productImagesRelations = relations(productImages, ({ one }) => ({
   product: one(products, { fields: [productImages.productId], references: [products.id] }),
 }))
