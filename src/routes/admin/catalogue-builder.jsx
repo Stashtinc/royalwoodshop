@@ -95,6 +95,8 @@ const card = 'rounded-xl border border-gray-200 bg-white p-6'
 export default function CatalogueBuilder() {
   const { catalogue, q: initialQ, results: firstPage, hasMore: firstHasMore, categories } = useLoaderData()
   const actionData = useActionData()
+  // Right-hand column: Layout (products to add, preview) or Settings (title, show prices).
+  const [rightTab, setRightTab] = useState('layout')
   // Cover title and date, held here so the cover preview updates as you type.
   const [coverTitle, setCoverTitle] = useState(catalogue.title)
   const [coverDateText, setCoverDateText] = useState(catalogue.coverDate ?? '')
@@ -282,6 +284,16 @@ export default function CatalogueBuilder() {
         {/* Right third: settings, add, and the print order */}
         {/* Right column scrolls on its own while the page stays put */}
         <div className="flex flex-col gap-6 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-1">
+          {/* Layout | Settings */}
+          <div className="flex gap-6 border-b border-gray-200">
+            {[['layout', 'Layout'], ['settings', 'Settings']].map(([key, label]) => (
+              <button key={key} type="button" onClick={() => setRightTab(key)}
+                className={`-mb-px border-b-2 pb-2 font-serif text-lg font-bold ${rightTab === key ? 'border-royal-blue text-tundora' : 'border-transparent text-gray-400 hover:text-tundora'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {rightTab === 'settings' && (
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Catalogue</h2>
             <div className="mt-4 flex flex-col gap-5">
@@ -308,7 +320,9 @@ export default function CatalogueBuilder() {
               </div>
             </div>
           </section>
-
+          )}
+          {rightTab === 'layout' && (
+            <>
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Add products</h2>
             {selected.size === 0 ? (
@@ -399,6 +413,8 @@ export default function CatalogueBuilder() {
               />
             </div>
           </section>
+            </>
+          )}
         </div>
       </div>
 
