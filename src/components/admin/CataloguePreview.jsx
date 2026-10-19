@@ -124,13 +124,15 @@ function CoverContent({ title, date, background }) {
 /** One printed page at true size, scaled down to `scale`. The dashed frame is the margin. */
 function Page({ scale, selected = false, children, ...rest }) {
   return (
-    <div {...rest} style={{ position: 'relative', width: PAGE_W * scale, height: PAGE_H * scale, overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}>
+    <div {...rest} className="group" style={{ position: 'relative', width: PAGE_W * scale, height: PAGE_H * scale, overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}>
       <div style={{ position: 'absolute', left: 0, top: 0, width: PAGE_W, height: PAGE_H, transform: `scale(${scale})`, transformOrigin: 'top left', background: '#fff', boxSizing: 'border-box', padding: MARGIN }}>
         <div aria-hidden="true" style={{ position: 'absolute', left: MARGIN, top: MARGIN, right: MARGIN, bottom: MARGIN, border: '1px dashed #d1d5db', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', height: '100%' }}>{children}</div>
       </div>
       {/* Selection frame, drawn on top of the page */}
       {selected && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, border: '3px solid #2563eb', boxSizing: 'border-box', zIndex: 20, pointerEvents: 'none' }} />}
+      {/* Light outline on hover, so it is clear the page can be tapped */}
+      {!selected && <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 border-2 border-transparent transition-colors group-hover:border-blue-300" />}
     </div>
   )
 }
