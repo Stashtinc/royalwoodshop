@@ -9,7 +9,7 @@ import {
   removeItemFromCatalogue, searchProductsForCatalogue, reorderCatalogueItems, listCategoryOptions,
 } from '../../lib/print-catalogues.server'
 import SectionTabs from '../../components/admin/SectionTabs'
-import logoBlue from '../../assets/images/logo-blue.svg'
+import CataloguePreview from '../../components/admin/CataloguePreview'
 import FilterPill from '../../components/admin/FilterPill'
 import { useDragReorder } from '../../components/admin/useDragReorder'
 
@@ -58,25 +58,6 @@ export async function action({ request, params }) {
 
   return null
 }
-
-// How a product's prices read in the preview: each species, or the product price when it has none.
-function priceLines(item) {
-  const money = (v) => (v == null || v === '' ? null : `$${Number(v).toFixed(2)}`)
-  if (item.prices?.length) {
-    return item.prices.map((p) => ({
-      label: p.species,
-      price: money(p.price),
-      sale: money(p.salePrice),
-    }))
-  }
-  if (item.price != null) return [{ label: null, price: money(item.price), sale: money(item.salePrice) }]
-  return []
-}
-
-const PREVIEW_DATE = () => new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })
-
-// Products per printed page. Approximate: the PDF fits rows to each page.
-const PAGE_SIZE = 3
 
 const input = 'rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-royal-blue'
 const card = 'rounded-xl border border-gray-200 bg-white p-6'
@@ -146,12 +127,6 @@ export default function CatalogueBuilder() {
   // Products in the catalogue, drag to reorder. The hook needs an id on each row.
   const rows = useMemo(() => catalogue.items.map((i) => ({ ...i, id: i.itemId })), [catalogue.items])
   const { order, itemProps } = useDragReorder(rows)
-  const pages = useMemo(() => {
-    const indexed = order.map((item, index) => ({ item, index }))
-    const out = []
-    for (let i = 0; i < indexed.length; i += PAGE_SIZE) out.push(indexed.slice(i, i + PAGE_SIZE))
-    return out
-  }, [order])
 
   // Bulk selection in the product table.
   // Keeps each ticked product (for its thumbnail and name), keyed by id.
@@ -173,7 +148,7 @@ export default function CatalogueBuilder() {
         <Link to="/admin/catalogue" className="text-sm text-gray-500 hover:text-gray-800">← All catalogues</Link>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-3">
         {/* Left two-thirds: product table with bulk selection */}
         <div className="lg:col-span-2 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -263,7 +238,8 @@ export default function CatalogueBuilder() {
         </div>
 
         {/* Right third: settings, add, and the print order */}
-        <div className="flex flex-col gap-6">
+        {/* Right column scrolls on its own while the page stays put */}
+        <div className="flex flex-col gap-6 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-1">
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Catalogue</h2>
             <div className="mt-4 flex flex-col gap-5">
@@ -327,67 +303,34 @@ export default function CatalogueBuilder() {
 
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Layout</h2>
-            <p className="mt-1 text-xs text-gray-500">How the printed catalogue will look. Drag a product to reorder; page breaks in the PDF may differ.</p>
-            <div className="relative mt-4 grid grid-cols-2 gap-x-0 gap-y-6 overflow-hidden rounded-lg bg-gray-100 p-4">
-              {/* Centre line where the two halves meet */}
-              <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-px bg-gray-200" />
-              {/* Cover */}
-              <div className="relative flex aspect-[8.5/11] w-full flex-col items-center justify-between bg-white p-4 text-center">
-                <div aria-hidden="true" className="pointer-events-none absolute inset-4 border border-dashed border-gray-300" />
-                <img src={logoBlue} alt="The Royal Wood Shop" className="h-10 w-auto" />
-                <h3 className="font-serif text-xl font-bold text-tundora">{catalogue.title}</h3>
-                <p className="text-xs text-gray-500">{PREVIEW_DATE()}</p>
-              </div>
-              {/* Empty slot beside the cover */}
-              <div aria-hidden="true" className="aspect-[8.5/11]" />
-
-              {/* Pages, in print order */}
-              {pages.map((page, p) => (
-                <div key={p} className="relative flex aspect-[8.5/11] w-full flex-col gap-6 overflow-hidden bg-white p-4">
-                  <div aria-hidden="true" className="pointer-events-none absolute inset-4 border border-dashed border-gray-300" />
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Page {p + 1}</p>
-                  {page.map(({ item, index }) => {
-                    const prices = catalogue.showPrices ? priceLines(item) : []
-                    return (
-                      <div key={item.itemId} {...itemProps(item)}
-                        className="flex cursor-grab gap-3 border-b border-gray-100 pb-3 last:border-0 data-[dragging=true]:opacity-50">
-                        {item.image && (
-                          <img src={thumbSrc(item.image, item.imageWidth)} alt="" className="h-14 w-14 shrink-0 object-contain" />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-tundora">{index + 1}. {item.name}</p>
-                          {item.productCode && <p className="font-mono text-[11px] text-gray-500">{item.productCode}</p>}
-                          {item.status === 'archived' && (
-                            <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-800">Archived: not printed</span>
-                          )}
-                          {prices.length > 0 && (
-                            <ul className="mt-1 space-y-0.5 text-xs">
-                              {prices.map((pl, i) => (
-                                <li key={i} className="text-gray-800">
-                                  {pl.label && <span className="mr-2 text-gray-600">{pl.label}</span>}
-                                  {pl.sale ? (
-                                    <><span className="mr-1 text-gray-400 line-through">{pl.price}</span><span className="font-semibold">{pl.sale}</span></>
-                                  ) : <span className="font-semibold">{pl.price}</span>}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                        <Form method="post" className="shrink-0">
-                          <input type="hidden" name="intent" value="remove" />
-                          <input type="hidden" name="itemId" value={item.itemId} />
-                          <button type="submit" className="text-xs text-red-600 hover:text-red-800">Remove</button>
-                        </Form>
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
-
-              {catalogue.items.length === 0 && (
-                <p className="col-span-2 text-xs text-gray-500">No products yet. Add some from the table on the left.</p>
-              )}
+            <p className="mt-1 text-xs text-gray-500">The printed pages, to scale. Drag a product to reorder.</p>
+            <div className="mt-4">
+              <CataloguePreview title={catalogue.title} order={order} showPrices={showPrices} itemProps={itemProps} />
             </div>
+            {catalogue.items.length === 0 ? (
+              <p className="mt-4 text-xs text-gray-500">No products yet. Add some from the table on the left.</p>
+            ) : (
+              <ol className="mt-4 space-y-2">
+                {order.map((item, i) => (
+                  <li key={item.itemId} {...itemProps(item)}
+                    className="flex cursor-grab items-center justify-between gap-3 text-sm text-gray-800 data-[dragging=true]:opacity-50">
+                    <span>
+                      <span className="mr-2 text-gray-400">{i + 1}.</span>
+                      {item.name}
+                      {item.productCode && <span className="ml-2 font-mono text-xs text-gray-500">{item.productCode}</span>}
+                      {item.status === 'archived' && (
+                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
+                      )}
+                    </span>
+                    <Form method="post" className="shrink-0">
+                      <input type="hidden" name="intent" value="remove" />
+                      <input type="hidden" name="itemId" value={item.itemId} />
+                      <button type="submit" className="text-xs text-red-600 hover:text-red-800">Remove</button>
+                    </Form>
+                  </li>
+                ))}
+              </ol>
+            )}
           </section>
         </div>
       </div>
