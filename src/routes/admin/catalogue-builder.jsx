@@ -86,6 +86,11 @@ const card = 'rounded-xl border border-gray-200 bg-white p-6'
 export default function CatalogueBuilder() {
   const { catalogue, q: initialQ, results: firstPage, hasMore: firstHasMore, categories } = useLoaderData()
   const actionData = useActionData()
+  // Cover title and date, held here so the cover preview updates as you type.
+  const [coverTitle, setCoverTitle] = useState(catalogue.title)
+  const [coverDateText, setCoverDateText] = useState(catalogue.coverDate ?? '')
+  useEffect(() => { setCoverTitle(catalogue.title) }, [catalogue.title])
+  useEffect(() => { setCoverDateText(catalogue.coverDate ?? '') }, [catalogue.coverDate])
   const inCatalogue = new Set(catalogue.items.map((i) => i.productId))
 
   // Picker: batches load as you scroll. A new search or filter starts again from the first batch.
@@ -328,8 +333,8 @@ export default function CatalogueBuilder() {
             <p className="mt-1 text-xs text-gray-500">Tap a page to list what is on it below.</p>
             <div className="mt-4">
               <CataloguePreview
-                title={catalogue.title}
-                coverDate={catalogue.coverDate}
+                title={coverTitle}
+                coverDate={coverDateText}
                 coverImage={catalogue.coverImageKey}
                 coverOptions={
                   <div className="space-y-4">
@@ -337,11 +342,11 @@ export default function CatalogueBuilder() {
                       <input type="hidden" name="intent" value="cover" />
                       <label className="flex flex-col gap-1 text-sm text-gray-600">
                         Title
-                        <input name="title" defaultValue={catalogue.title} className={input} />
+                        <input name="title" value={coverTitle} onChange={(e) => setCoverTitle(e.target.value)} className={input} />
                       </label>
                       <label className="flex flex-col gap-1 text-sm text-gray-600">
                         Date
-                        <input name="coverDate" defaultValue={catalogue.coverDate ?? ''} placeholder="Blank uses the print date" className={input} />
+                        <input name="coverDate" value={coverDateText} onChange={(e) => setCoverDateText(e.target.value)} placeholder="Blank uses the print date" className={input} />
                       </label>
                       <div>
                         <button type="submit" className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark">Save cover</button>
