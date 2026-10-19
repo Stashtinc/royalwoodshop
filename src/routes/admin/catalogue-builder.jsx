@@ -332,7 +332,8 @@ export default function CatalogueBuilder() {
               {/* Centre line where the two halves meet */}
               <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-px bg-gray-400" />
               {/* Cover */}
-              <div className="flex aspect-[8.5/11] w-full flex-col items-center justify-between bg-white p-6 text-center">
+              <div className="relative flex aspect-[8.5/11] w-full flex-col items-center justify-between bg-white p-4 text-center">
+                <div aria-hidden="true" className="pointer-events-none absolute inset-4 border border-dashed border-gray-300" />
                 <img src={logoBlue} alt="The Royal Wood Shop" className="h-10 w-auto" />
                 <h3 className="font-serif text-xl font-bold text-tundora">{catalogue.title}</h3>
                 <p className="text-xs text-gray-500">{PREVIEW_DATE()}</p>
@@ -342,7 +343,8 @@ export default function CatalogueBuilder() {
 
               {/* Pages, in print order */}
               {pages.map((page, p) => (
-                <div key={p} className="flex aspect-[8.5/11] w-full flex-col gap-3 overflow-hidden bg-white p-5">
+                <div key={p} className="relative flex aspect-[8.5/11] w-full flex-col gap-6 overflow-hidden bg-white p-4">
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-4 border border-dashed border-gray-300" />
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Page {p + 1}</p>
                   {page.map(({ item, index }) => {
                     const prices = catalogue.showPrices ? priceLines(item) : []
