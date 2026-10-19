@@ -166,9 +166,21 @@ Each chunk ends with something that can be tested. Confirm the order when you st
 8. PDF product rows: image, name, code, description, spec rows, page breaks.
 9. Price column when switched on, PDF download button, final QA on phone and desktop. Then merge.
 
-### Open questions for you
+### Decisions (confirmed)
 
-1. **Image per product:** use the first `profile_drawing` (as the site does), the first `product_photo`, or let staff pick one per product?
-2. **Deleted or archived products already in a catalogue:** skip them in the PDF with a note, or remove them from the catalogue when they are archived?
-3. **Cover page:** title only, or also a date, letterhead and a contact block (address and phone as on the spec sheet)?
-4. **Who can build catalogues:** all admin users, or only some?
+1. **Product image:** the first image (the one the site shows first). An option to show two images per product is wanted later; not in the first build.
+2. **Archived and deleted products:** left out of the PDF. An archived or deleted product in a saved catalogue is skipped when it is printed.
+3. **Cover page:** an uploadable background image, the Royal Wood Shop logo centred, an editable title, and a date stamp at the very bottom.
+4. **Who can build catalogues:** any admin user.
+
+### Cover page details (for chunks 3 to 7)
+
+- **Background image:** uploaded per catalogue through the existing upload helpers (`saveUpload` / `saveImageBuffer` in `src/lib/uploads.server.js`). Stored as `cover_image_key` on `print_catalogues`. Optional; without it the cover is plain white.
+- **Logo:** `src/assets/images/logo-blue.svg` (or `logo.svg`). pdfkit cannot embed SVG, so it is converted once to PNG with `sharp` and reused, the same way product images are converted.
+- **Title:** `print_catalogues.title`, edited in the builder.
+- **Date stamp:** the date the PDF is generated, at the bottom of the page. Not stored, so a reprint shows the reprint date.
+
+### Changes to the proposed tables
+
+`print_catalogues` gains `cover_image_key text` (nullable). Nothing else changes.
+
