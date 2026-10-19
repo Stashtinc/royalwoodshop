@@ -330,7 +330,7 @@ export default function CatalogueBuilder() {
             <p className="mt-1 text-xs text-gray-500">How the printed catalogue will look. Drag a product to reorder; page breaks in the PDF may differ.</p>
             <div className="relative mt-4 grid grid-cols-2 gap-x-0 gap-y-6 overflow-hidden rounded-lg bg-gray-100 p-4">
               {/* Centre line where the two halves meet */}
-              <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-px bg-gray-400" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-px bg-gray-200" />
               {/* Cover */}
               <div className="relative flex aspect-[8.5/11] w-full flex-col items-center justify-between bg-white p-4 text-center">
                 <div aria-hidden="true" className="pointer-events-none absolute inset-4 border border-dashed border-gray-300" />
