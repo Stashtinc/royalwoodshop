@@ -284,45 +284,6 @@ export default function CatalogueBuilder() {
         {/* Right third: settings, add, and the print order */}
         {/* Right column scrolls on its own while the page stays put */}
         <div className="flex flex-col gap-6 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:pr-1">
-          {/* Layout | Settings */}
-          <div className="flex gap-6 border-b border-gray-200">
-            {[['layout', 'Layout'], ['settings', 'Settings']].map(([key, label]) => (
-              <button key={key} type="button" onClick={() => setRightTab(key)}
-                className={`-mb-px border-b-2 pb-2 font-serif text-lg font-bold ${rightTab === key ? 'border-royal-blue text-tundora' : 'border-transparent text-gray-400 hover:text-tundora'}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-          {rightTab === 'settings' && (
-          <section className={card}>
-            <h2 className="font-serif text-lg font-bold text-tundora">Catalogue</h2>
-            <div className="mt-4 flex flex-col gap-5">
-              <label className="flex flex-col gap-1 text-sm text-gray-600">
-                Title
-                <input
-                  ref={titleRef}
-                  defaultValue={catalogue.title}
-                  onBlur={(e) => { if (e.currentTarget.value !== catalogue.title) saveSettings({ title: e.currentTarget.value }) }}
-                  className={input}
-                />
-              </label>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm text-gray-700">Show prices</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={showPrices}
-                  onClick={() => { const next = !showPrices; setShowPrices(next); saveSettings({ showPrices: next }) }}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${showPrices ? 'bg-royal-blue' : 'bg-gray-300'}`}
-                >
-                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${showPrices ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                </button>
-              </div>
-            </div>
-          </section>
-          )}
-          {rightTab === 'layout' && (
-            <>
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Add products</h2>
             {selected.size === 0 ? (
@@ -355,9 +316,43 @@ export default function CatalogueBuilder() {
               </Form>
             )}
           </section>
-
           <section className={card}>
-            <h2 className="font-serif text-lg font-bold text-tundora">Layout</h2>
+            <div className="flex gap-6 border-b border-gray-200">
+              {[['layout', 'Layout'], ['settings', 'Settings']].map(([key, label]) => (
+                <button key={key} type="button" onClick={() => setRightTab(key)}
+                  className={`-mb-px border-b-2 pb-2 font-serif text-2xl font-bold ${rightTab === key ? 'border-royal-blue text-tundora' : 'border-transparent text-gray-400 hover:text-tundora'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {rightTab === 'settings' ? (
+              <div className="mt-5">
+            <div className="mt-4 flex flex-col gap-5">
+              <label className="flex flex-col gap-1 text-sm text-gray-600">
+                Title
+                <input
+                  ref={titleRef}
+                  defaultValue={catalogue.title}
+                  onBlur={(e) => { if (e.currentTarget.value !== catalogue.title) saveSettings({ title: e.currentTarget.value }) }}
+                  className={input}
+                />
+              </label>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-gray-700">Show prices</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showPrices}
+                  onClick={() => { const next = !showPrices; setShowPrices(next); saveSettings({ showPrices: next }) }}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${showPrices ? 'bg-royal-blue' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${showPrices ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+            </div>
+              </div>
+            ) : (
+              <>
             <p className="mt-1 text-xs text-gray-500">Tap a page to list what is on it below.</p>
             <div className="mt-4">
               <CataloguePreview
@@ -412,9 +407,9 @@ export default function CatalogueBuilder() {
                 )}
               />
             </div>
+              </>
+            )}
           </section>
-            </>
-          )}
         </div>
       </div>
 
