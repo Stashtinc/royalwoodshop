@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
+import { Form } from 'react-router'
 import logoBlue from '../../assets/images/logo-blue.svg'
 import { AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
 
@@ -6,6 +7,7 @@ import { AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
  * The printed catalogue, drawn at true size and scaled to fit the pane.
  * Pages are 8.5 x 11 in at 72 points per inch, so layout here matches the PDF:
  * 0.75 in margins, each product at its real height, and pages filled in order.
+ * Below the pane, the products on each page are listed so they can be reordered or removed.
  */
 export const PAGE_W = 612
 export const PAGE_H = 792
@@ -41,13 +43,12 @@ const dateText = () => new Date().toLocaleDateString('en-CA', { year: 'numeric',
 
 /** Packs products onto pages by their measured heights, in order. Returns arrays of indexes. */
 function paginate(heights) {
-  const avail = CONTENT_H
   const pages = []
   let cur = []
   let used = 0
   heights.forEach((h, i) => {
     const add = cur.length ? GAP + h : h
-    if (cur.length && used + add > avail) {
+    if (cur.length && used + add > CONTENT_H) {
       pages.push(cur)
       cur = []
       used = 0
@@ -57,18 +58,6 @@ function paginate(heights) {
   })
   if (cur.length) pages.push(cur)
   return pages
-}
-
-/** Overview of a product on a page: picture and name only. Details show when the page is opened. */
-function CompactRow({ item }) {
-  return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-      <div style={{ width: 56, height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {item.image && <img src={item.image} alt="" style={{ maxWidth: 56, maxHeight: 56, objectFit: 'contain' }} />}
-      </div>
-      <div style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 13, color: '#111' }}>{item.name}</div>
-    </div>
-  )
 }
 
 function ProductRow({ item, showPrices, rowRef }) {
@@ -120,8 +109,8 @@ function ProductRow({ item, showPrices, rowRef }) {
 /** One printed page at true size, scaled down to `scale`. The dashed frame is the margin. */
 function Page({ scale, children, ...rest }) {
   return (
-    <div {...rest} style={{ position: 'relative', width: PAGE_W * scale, height: PAGE_H * scale, overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}>
-      <div style={{ position: 'absolute', left: 0, top: 0, width: PAGE_W, height: PAGE_H, transform: `scale(${scale})`, transformOrigin: 'top left', background: '#fff', boxSizing: 'border-box', padding: MARGIN, boxShadow: 'none' }}>
+    <div {...rest} style={{ position: 'relative', width: PAGE_W * scale, height: PAGE_H * scale, overflow: 'hidden', flexShrink: 0 }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, width: PAGE_W, height: PAGE_H, transform: `scale(${scale})`, transformOrigin: 'top left', background: '#fff', boxSizing: 'border-box', padding: MARGIN }}>
         <div aria-hidden="true" style={{ position: 'absolute', left: MARGIN, top: MARGIN, right: MARGIN, bottom: MARGIN, border: '1px dashed #d1d5db', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', height: '100%' }}>{children}</div>
       </div>
@@ -134,8 +123,6 @@ export default function CataloguePreview({ title, order, showPrices, itemProps }
   const boxRef = useRef(null)
   const [heights, setHeights] = useState([])
   const [boxW, setBoxW] = useState(0)
-  // The page whose details are open (one at a time), or null.
-  const [openPage, setOpenPage] = useState(null)
 
   // Track the pane's width so the pages scale to fit two across.
   useLayoutEffect(() => {
@@ -157,41 +144,75 @@ export default function CataloguePreview({ title, order, showPrices, itemProps }
   const cellH = PAGE_H * scale
 
   return (
-    <div ref={boxRef} className="relative rounded-lg bg-gray-100 p-2">
-      {/* Hidden copy at true width, used only to measure products */}
-      <div aria-hidden="true" style={{ position: 'absolute', left: -10000, top: 0, width: CONTENT_W, visibility: 'hidden' }}>
-        {order.map((item, i) => (
-          <div key={item.itemId} style={{ paddingBottom: GAP }}>
-            <ProductRow item={item} showPrices={showPrices} rowRef={(el) => { measureRefs.current[i] = el }} />
-          </div>
-        ))}
-      </div>
+    <div>
+      <div ref={boxRef} className="relative rounded-lg bg-gray-100 p-2">
+        {/* Hidden copy at true width, used only to measure products */}
+        <div aria-hidden="true" style={{ position: 'absolute', left: -10000, top: 0, width: CONTENT_W, visibility: 'hidden' }}>
+          {order.map((item, i) => (
+            <div key={item.itemId} style={{ paddingBottom: GAP }}>
+              <ProductRow item={item} showPrices={showPrices} rowRef={(el) => { measureRefs.current[i] = el }} />
+            </div>
+          ))}
+        </div>
 
-      <div className="relative mx-auto grid grid-cols-2 gap-y-4" style={{ width: cellW * 2 }}>
-        <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-px bg-gray-200" />
+        <div className="relative mx-auto grid grid-cols-2 gap-y-4" style={{ width: cellW * 2 }}>
+          <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-px bg-gray-200" />
 
-        {/* Cover, with an empty slot beside it */}
-        <Page scale={scale}>
-          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative' }}>
-            <img src={logoBlue} alt="" style={{ width: 130 }} />
-            <div style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 30, color: '#111', marginTop: 28 }}>{title}</div>
-            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 10, color: '#555' }}>{dateText()}</div>
-          </div>
-        </Page>
-        <div style={{ width: cellW, height: cellH }} />
-
-        {/* Product pages, two across */}
-        {pages.map((page, p) => (
-          <Page key={p} scale={scale} onClick={() => setOpenPage(openPage === p ? null : p)}>
-            <div style={{ fontSize: 8, letterSpacing: 1, textTransform: 'uppercase', color: '#9ca3af', marginBottom: 8 }}>Page {p + 1}</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
-              {page.map((i) => (
-                <div key={order[i].itemId} {...itemProps(order[i])} style={{ cursor: 'grab' }}>
-                  {openPage === p ? <ProductRow item={order[i]} showPrices={showPrices} /> : <CompactRow item={order[i]} />}
-                </div>
-              ))}
+          {/* Cover, with an empty slot beside it */}
+          <Page scale={scale}>
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative' }}>
+              <img src={logoBlue} alt="" style={{ width: 130 }} />
+              <div style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 30, color: '#111', marginTop: 28 }}>{title}</div>
+              <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 10, color: '#555' }}>{dateText()}</div>
             </div>
           </Page>
+          <div style={{ width: cellW, height: cellH }} />
+
+          {/* Product pages, two across */}
+          {pages.map((page, p) => (
+            <Page key={p} scale={scale}>
+              <div style={{ fontSize: 8, letterSpacing: 1, textTransform: 'uppercase', color: '#9ca3af', marginBottom: 8 }}>Page {p + 1}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
+                {page.map((i) => (
+                  <div key={order[i].itemId} {...itemProps(order[i])} style={{ cursor: 'grab' }}>
+                    <ProductRow item={order[i]} showPrices={showPrices} />
+                  </div>
+                ))}
+              </div>
+            </Page>
+          ))}
+        </div>
+      </div>
+
+      {/* What is on each page: reorder and remove here */}
+      <div className="mt-4 space-y-4">
+        {order.length === 0 && <p className="text-xs text-gray-500">No products yet. Add some from the table on the left.</p>}
+        {pages.map((page, p) => (
+          <div key={p}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Page {p + 1}</p>
+            <ol className="mt-1 space-y-1">
+              {page.map((i) => {
+                const item = order[i]
+                return (
+                  <li key={item.itemId} {...itemProps(item)}
+                    className="flex cursor-grab items-center justify-between gap-3 text-sm text-gray-800 data-[dragging=true]:opacity-50">
+                    <span>
+                      {item.name}
+                      {item.productCode && <span className="ml-2 font-mono text-xs text-gray-500">{item.productCode}</span>}
+                      {item.status === 'archived' && (
+                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
+                      )}
+                    </span>
+                    <Form method="post" className="shrink-0">
+                      <input type="hidden" name="intent" value="remove" />
+                      <input type="hidden" name="itemId" value={item.itemId} />
+                      <button type="submit" className="text-xs text-red-600 hover:text-red-800">Remove</button>
+                    </Form>
+                  </li>
+                )
+              })}
+            </ol>
+          </div>
         ))}
       </div>
     </div>

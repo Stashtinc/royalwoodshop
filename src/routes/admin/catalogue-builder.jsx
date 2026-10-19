@@ -303,33 +303,10 @@ export default function CatalogueBuilder() {
 
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Layout</h2>
-            <p className="mt-1 text-xs text-gray-500">The printed pages, to scale. Click a page to see its details. Drag a product to reorder.</p>
+            <p className="mt-1 text-xs text-gray-500">The printed pages, to scale, with what is on each page below. Drag a product to reorder.</p>
             <div className="mt-4">
               <CataloguePreview title={catalogue.title} order={order} showPrices={showPrices} itemProps={itemProps} />
             </div>
-            {catalogue.items.length === 0 ? (
-              <p className="mt-4 text-xs text-gray-500">No products yet. Add some from the table on the left.</p>
-            ) : (
-              <ol className="mt-4 space-y-2">
-                {order.map((item, i) => (
-                  <li key={item.itemId} {...itemProps(item)}
-                    className="flex cursor-grab items-center justify-between gap-3 text-sm text-gray-800 data-[dragging=true]:opacity-50">
-                    <span>
-                      <span className="mr-2 text-gray-400">{i + 1}.</span>
-                      {item.name}
-                      {item.status === 'archived' && (
-                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
-                      )}
-                    </span>
-                    <Form method="post" className="shrink-0">
-                      <input type="hidden" name="intent" value="remove" />
-                      <input type="hidden" name="itemId" value={item.itemId} />
-                      <button type="submit" className="text-xs text-red-600 hover:text-red-800">Remove</button>
-                    </Form>
-                  </li>
-                ))}
-              </ol>
-            )}
           </section>
         </div>
       </div>
