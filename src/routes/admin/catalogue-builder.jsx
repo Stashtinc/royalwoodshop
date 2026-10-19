@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Form, Link, useLoaderData, useSubmit } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
@@ -11,15 +11,15 @@ import {
 import SectionTabs from '../../components/admin/SectionTabs'
 import { useDragReorder } from '../../components/admin/useDragReorder'
 
-const PICKER_LIMIT = 100
+const PICKER_PAGE = 50
 
 export async function loader({ request, params }) {
   await requireUser(request)
   const catalogue = await getPrintCatalogue(params.id)
   if (!catalogue) throw new Response('Not found', { status: 404 })
   const q = new URL(request.url).searchParams.get('q') ?? ''
-  const results = await searchProductsForCatalogue(q, PICKER_LIMIT)
-  return { catalogue, q, results }
+  const results = await searchProductsForCatalogue(q, PICKER_PAGE)
+  return { catalogue, q, results, hasMore: results.length === PICKER_PAGE }
 }
 
 export async function action({ request, params }) {
@@ -60,8 +60,51 @@ const input = 'rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700
 const card = 'rounded-xl border border-gray-200 bg-white p-6'
 
 export default function CatalogueBuilder() {
-  const { catalogue, q, results } = useLoaderData()
+  const { catalogue, q: initialQ, results: firstPage, hasMore: firstHasMore } = useLoaderData()
   const inCatalogue = new Set(catalogue.items.map((i) => i.productId))
+
+  // Picker: batches load as you scroll; typing searches from the first batch again.
+  const [q, setQ] = useState(initialQ)
+  const [results, setResults] = useState(firstPage)
+  const [hasMore, setHasMore] = useState(firstHasMore)
+  const [loading, setLoading] = useState(false)
+  const qRef = useRef(initialQ)
+  const sentinelRef = useRef(null)
+  const skipFirstSearch = useRef(true)
+
+  const loadBatch = async (query, offset, replace) => {
+    setLoading(true)
+    const res = await fetch(`/admin/catalogue-products?q=${encodeURIComponent(query)}&offset=${offset}`)
+    const data = await res.json()
+    // Ignore a batch that arrives after the search has changed.
+    if (qRef.current !== query) return
+    setResults((prev) => {
+      if (replace) return data.results
+      const seen = new Set(prev.map((p) => p.id))
+      return [...prev, ...data.results.filter((p) => !seen.has(p.id))]
+    })
+    setHasMore(data.hasMore)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    if (skipFirstSearch.current) { skipFirstSearch.current = false; return }
+    const timer = setTimeout(() => { qRef.current = q; loadBatch(q, 0, true) }, 250)
+    return () => clearTimeout(timer)
+    // loadBatch is recreated each render; only the query matters here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || !hasMore) return
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !loading) loadBatch(qRef.current, results.length, false)
+    }, { rootMargin: '200px' })
+    io.observe(el)
+    return () => io.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMore, loading, results.length])
 
   // Settings: the switch saves at once, the title when the field loses focus.
   const titleRef = useRef(null)
@@ -99,10 +142,12 @@ export default function CatalogueBuilder() {
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Left two-thirds: product table with bulk selection */}
         <div className="lg:col-span-2">
-          <Form method="get" className="flex gap-2">
-            <input name="q" defaultValue={q} placeholder="Search name, product code, Part ID or slug" className={`${input} flex-1`} />
-            <button type="submit" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400">Search</button>
-          </Form>
+          <input
+            value={q}
+            onChange={(e) => { setQ(e.target.value); qRef.current = e.target.value }}
+            placeholder="Search name, product code, Part ID or slug"
+            className={`${input} w-full`}
+          />
 
           <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
             <table className="w-full text-left text-sm">
@@ -154,10 +199,9 @@ export default function CatalogueBuilder() {
               </tbody>
             </table>
           </div>
-          <p className="mt-2 text-xs text-gray-500">
-            Showing {results.length} product{results.length === 1 ? '' : 's'}
-            {results.length === PICKER_LIMIT ? ` (first ${PICKER_LIMIT}; search to narrow)` : ''}. Archived products are not listed.
-          </p>
+          <div ref={sentinelRef} className="py-3 text-center text-xs text-gray-500">
+            {loading ? 'Loading…' : hasMore ? 'Scroll for more' : `${results.length} product${results.length === 1 ? '' : 's'} · archived products are not listed`}
+          </div>
         </div>
 
         {/* Right third: settings, add, and the print order */}

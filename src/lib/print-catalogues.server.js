@@ -82,7 +82,7 @@ export async function removeItemFromCatalogue(catalogueId, itemId) {
 }
 
 /** Products for the picker: not archived. An empty query lists them all, A to Z. */
-export async function searchProductsForCatalogue(q, limit = 100) {
+export async function searchProductsForCatalogue(q, limit = 50, offset = 0) {
   const term = `%${String(q ?? "").trim()}%`
   const hasQuery = String(q ?? "").trim() !== ""
   const db = await getDb()
@@ -106,8 +106,9 @@ export async function searchProductsForCatalogue(q, limit = 100) {
         sql`exists (select 1 from product_part_ids pp where pp.product_id = products.id and pp.part_id ilike ${term})`,
       ) : undefined,
     ))
-    .orderBy(asc(products.name))
+    .orderBy(asc(products.name), asc(products.id))
     .limit(limit)
+    .offset(offset)
 }
 
 /** Adds several products in one go. Ones already in the catalogue are skipped. */
