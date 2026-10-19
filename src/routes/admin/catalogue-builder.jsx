@@ -303,9 +303,21 @@ export default function CatalogueBuilder() {
 
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Layout</h2>
-            <p className="mt-1 text-xs text-gray-500">The printed pages, to scale, with what is on each page below. Drag a product to reorder.</p>
+            <p className="mt-1 text-xs text-gray-500">The printed pages, to scale. Click a page to see what is on it. Drag a product to reorder.</p>
             <div className="mt-4">
-              <CataloguePreview title={catalogue.title} order={order} showPrices={showPrices} itemProps={itemProps} />
+              <CataloguePreview
+                title={catalogue.title}
+                order={order}
+                showPrices={showPrices}
+                itemProps={itemProps}
+                removeForm={(item) => (
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="remove" />
+                    <input type="hidden" name="itemId" value={item.itemId} />
+                    <button type="submit" className="text-xs text-red-600 hover:text-red-800">Remove</button>
+                  </Form>
+                )}
+              />
             </div>
           </section>
         </div>

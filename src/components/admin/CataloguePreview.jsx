@@ -60,6 +60,15 @@ function paginate(heights) {
   return pages
 }
 
+/** Picture only, the same height as in the printed row, for the layout pane. */
+function PictureRow({ item }) {
+  return (
+    <div style={{ width: IMG, height: IMG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {item.image && <img src={item.image} alt="" style={{ maxWidth: IMG, maxHeight: IMG, objectFit: 'contain' }} />}
+    </div>
+  )
+}
+
 function ProductRow({ item, showPrices, rowRef }) {
   const specs = specRows(item)
   const prices = showPrices ? priceLines(item) : []
@@ -107,9 +116,9 @@ function ProductRow({ item, showPrices, rowRef }) {
 }
 
 /** One printed page at true size, scaled down to `scale`. The dashed frame is the margin. */
-function Page({ scale, children, ...rest }) {
+function Page({ scale, selected = false, children, ...rest }) {
   return (
-    <div {...rest} style={{ position: 'relative', width: PAGE_W * scale, height: PAGE_H * scale, overflow: 'hidden', flexShrink: 0 }}>
+    <div {...rest} style={{ position: 'relative', width: PAGE_W * scale, height: PAGE_H * scale, overflow: 'hidden', flexShrink: 0, cursor: 'pointer', outline: selected ? '2px solid #2563eb' : 'none', outlineOffset: 3 }}>
       <div style={{ position: 'absolute', left: 0, top: 0, width: PAGE_W, height: PAGE_H, transform: `scale(${scale})`, transformOrigin: 'top left', background: '#fff', boxSizing: 'border-box', padding: MARGIN }}>
         <div aria-hidden="true" style={{ position: 'absolute', left: MARGIN, top: MARGIN, right: MARGIN, bottom: MARGIN, border: '1px dashed #d1d5db', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', height: '100%' }}>{children}</div>
@@ -118,11 +127,13 @@ function Page({ scale, children, ...rest }) {
   )
 }
 
-export default function CataloguePreview({ title, order, showPrices, itemProps }) {
+export default function CataloguePreview({ title, order, showPrices, itemProps, removeForm }) {
   const measureRefs = useRef([])
   const boxRef = useRef(null)
   const [heights, setHeights] = useState([])
   const [boxW, setBoxW] = useState(0)
+  // The page chosen in the pane; its details show below. Null until one is clicked.
+  const [selected, setSelected] = useState(null)
 
   // Track the pane's width so the pages scale to fit two across.
   useLayoutEffect(() => {
@@ -142,6 +153,7 @@ export default function CataloguePreview({ title, order, showPrices, itemProps }
   const pages = paginate(order.map((_, i) => heights[i] ?? 0))
   const cellW = PAGE_W * scale
   const cellH = PAGE_H * scale
+  const chosen = selected != null && selected < pages.length ? selected : null
 
   return (
     <div>
@@ -168,52 +180,39 @@ export default function CataloguePreview({ title, order, showPrices, itemProps }
           </Page>
           <div style={{ width: cellW, height: cellH }} />
 
-          {/* Product pages, two across */}
+          {/* Product pages, two across: pictures only; click a page to see its details below */}
           {pages.map((page, p) => (
-            <Page key={p} scale={scale}>
+            <Page key={p} scale={scale} selected={chosen === p} onClick={() => setSelected(p)}>
               <div style={{ fontSize: 8, letterSpacing: 1, textTransform: 'uppercase', color: '#9ca3af', marginBottom: 8 }}>Page {p + 1}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
-                {page.map((i) => (
-                  <div key={order[i].itemId} {...itemProps(order[i])} style={{ cursor: 'grab' }}>
-                    <ProductRow item={order[i]} showPrices={showPrices} />
-                  </div>
-                ))}
+                {page.map((i) => <PictureRow key={order[i].itemId} item={order[i]} />)}
               </div>
             </Page>
           ))}
         </div>
       </div>
 
-      {/* What is on each page: reorder and remove here */}
-      <div className="mt-4 space-y-4">
+      {/* Details for the page that was clicked */}
+      <div className="mt-4">
         {order.length === 0 && <p className="text-xs text-gray-500">No products yet. Add some from the table on the left.</p>}
-        {pages.map((page, p) => (
-          <div key={p}>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Page {p + 1}</p>
-            <ol className="mt-1 space-y-1">
-              {page.map((i) => {
-                const item = order[i]
-                return (
-                  <li key={item.itemId} {...itemProps(item)}
-                    className="flex cursor-grab items-center justify-between gap-3 text-sm text-gray-800 data-[dragging=true]:opacity-50">
-                    <span>
-                      {item.name}
-                      {item.productCode && <span className="ml-2 font-mono text-xs text-gray-500">{item.productCode}</span>}
-                      {item.status === 'archived' && (
-                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
-                      )}
-                    </span>
-                    <Form method="post" className="shrink-0">
-                      <input type="hidden" name="intent" value="remove" />
-                      <input type="hidden" name="itemId" value={item.itemId} />
-                      <button type="submit" className="text-xs text-red-600 hover:text-red-800">Remove</button>
-                    </Form>
-                  </li>
-                )
-              })}
-            </ol>
+        {order.length > 0 && chosen == null && <p className="text-xs text-gray-500">Click a page above to see what is on it.</p>}
+        {chosen != null && (
+          <div className="space-y-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Page {chosen + 1}</p>
+            {pages[chosen].map((i) => {
+              const item = order[i]
+              return (
+                <div key={item.itemId} {...itemProps(item)} className="cursor-grab border-b border-gray-200 pb-5 last:border-0 data-[dragging=true]:opacity-50">
+                  <ProductRow item={item} showPrices={showPrices} />
+                  {item.status === 'archived' && (
+                    <span className="mt-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
+                  )}
+                  {removeForm && <div className="mt-2">{removeForm(item)}</div>}
+                </div>
+              )
+            })}
           </div>
-        ))}
+        )}
       </div>
     </div>
   )
