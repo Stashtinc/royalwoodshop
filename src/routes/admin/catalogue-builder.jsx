@@ -316,7 +316,7 @@ export default function CatalogueBuilder() {
             <div className="flex gap-6 border-b border-gray-200">
               {[['layout', 'Layout'], ['settings', 'Settings']].map(([key, label]) => (
                 <button key={key} type="button" onClick={() => setRightTab(key)}
-                  className={`-mb-px border-b-2 pb-2 font-serif text-2xl font-bold ${rightTab === key ? 'border-royal-blue text-tundora' : 'border-transparent text-gray-400 hover:text-tundora'}`}>
+                  className={`-mb-px border-b-2 pb-2 font-serif text-2xl font-bold ${rightTab === key ? 'border-royal-blue text-royal-blue' : 'border-transparent text-gray-400 hover:text-tundora'}`}>
                   {label}
                 </button>
               ))}
