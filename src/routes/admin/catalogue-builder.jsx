@@ -328,13 +328,15 @@ export default function CatalogueBuilder() {
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Layout</h2>
             <p className="mt-1 text-xs text-gray-500">How the printed catalogue will look. Drag a product to reorder; page breaks in the PDF may differ.</p>
-            <div className="mt-4 flex flex-col items-center gap-5 rounded-lg bg-gray-100 p-4">
+            <div className="mt-4 grid grid-cols-2 gap-4 rounded-lg bg-gray-100 p-4">
               {/* Cover */}
               <div className="flex aspect-[8.5/11] w-full flex-col items-center justify-between bg-white p-6 text-center shadow">
                 <img src={logoBlue} alt="The Royal Wood Shop" className="h-10 w-auto" />
                 <h3 className="font-serif text-xl font-bold text-tundora">{catalogue.title}</h3>
                 <p className="text-xs text-gray-500">{PREVIEW_DATE()}</p>
               </div>
+              {/* Empty slot beside the cover */}
+              <div aria-hidden="true" className="aspect-[8.5/11]" />
 
               {/* Pages, in print order */}
               {pages.map((page, p) => (
@@ -379,7 +381,7 @@ export default function CatalogueBuilder() {
               ))}
 
               {catalogue.items.length === 0 && (
-                <p className="text-xs text-gray-500">No products yet. Add some from the table on the left.</p>
+                <p className="col-span-2 text-xs text-gray-500">No products yet. Add some from the table on the left.</p>
               )}
             </div>
           </section>
