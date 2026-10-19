@@ -232,15 +232,20 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
           {order.length > 0 && chosen == null && <p className="text-xs text-gray-500">Tap a page to highlight it. Drag any product to reorder.</p>}
           <div className="space-y-4">
             {pages.map((page, p) => (
-              <div key={p} className={chosen === p ? "rounded-lg bg-blue-50 p-3" : "p-3"}>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Page {p + 1}: {page.length} product{page.length === 1 ? "" : "s"}</p>
-                <ol className="mt-2 divide-y divide-gray-200">
+              <div key={p}>
+                <p className={`text-xs uppercase tracking-wide ${chosen === p ? "font-bold text-gray-900" : "font-semibold text-gray-500"}`}>Page {p + 1}: {page.length} product{page.length === 1 ? "" : "s"}</p>
+                <ol className="mt-2 space-y-2">
                   {page.map((i) => {
                     const item = order[i]
                     return (
                       <li key={item.itemId} {...itemProps(item)}
-                        className="flex cursor-grab items-center justify-between gap-3 py-2 text-sm text-gray-800 data-[dragging=true]:opacity-50">
-                        <span>
+                        className="flex cursor-grab items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 shadow-sm data-[dragging=true]:opacity-50">
+                        <svg aria-hidden="true" width="12" height="16" viewBox="0 0 12 16" className="shrink-0 text-gray-400" fill="currentColor">
+                          <circle cx="3" cy="3" r="1.5" /><circle cx="9" cy="3" r="1.5" />
+                          <circle cx="3" cy="8" r="1.5" /><circle cx="9" cy="8" r="1.5" />
+                          <circle cx="3" cy="13" r="1.5" /><circle cx="9" cy="13" r="1.5" />
+                        </svg>
+                        <span className="min-w-0 flex-1">
                           {item.name}
                           {item.productCode && <span className="ml-2 font-mono text-xs text-gray-500">{item.productCode}</span>}
                           {item.status === "archived" && (
