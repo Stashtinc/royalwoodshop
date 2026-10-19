@@ -118,11 +118,13 @@ function ProductRow({ item, showPrices, rowRef }) {
 /** One printed page at true size, scaled down to `scale`. The dashed frame is the margin. */
 function Page({ scale, selected = false, children, ...rest }) {
   return (
-    <div {...rest} style={{ position: 'relative', width: PAGE_W * scale, height: PAGE_H * scale, overflow: 'hidden', flexShrink: 0, cursor: 'pointer', outline: selected ? '2px solid #2563eb' : 'none', outlineOffset: 3 }}>
+    <div {...rest} style={{ position: 'relative', width: PAGE_W * scale, height: PAGE_H * scale, overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}>
       <div style={{ position: 'absolute', left: 0, top: 0, width: PAGE_W, height: PAGE_H, transform: `scale(${scale})`, transformOrigin: 'top left', background: '#fff', boxSizing: 'border-box', padding: MARGIN }}>
         <div aria-hidden="true" style={{ position: 'absolute', left: MARGIN, top: MARGIN, right: MARGIN, bottom: MARGIN, border: '1px dashed #d1d5db', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', height: '100%' }}>{children}</div>
       </div>
+      {/* Selection frame, drawn on top of the page */}
+      {selected && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, border: '3px solid #2563eb', boxSizing: 'border-box', zIndex: 20, pointerEvents: 'none' }} />}
     </div>
   )
 }
