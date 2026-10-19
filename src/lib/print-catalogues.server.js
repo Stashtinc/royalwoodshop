@@ -1,6 +1,8 @@
-import { desc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, ne, or, sql } from 'drizzle-orm'
 import { getDb } from './db.server.js'
-import { printCatalogues, printCatalogueItems } from '../db/schema.js'
+import { printCatalogues, printCatalogueItems, products, productPartIds } from '../db/schema.js'
+
+const DEFAULT_TITLE = 'Product Catalogue'
 
 /** Saved catalogues, newest change first, with how many products each holds. */
 export async function listPrintCatalogues() {
@@ -10,7 +12,7 @@ export async function listPrintCatalogues() {
     title: printCatalogues.title,
     showPrices: printCatalogues.showPrices,
     updatedAt: printCatalogues.updatedAt,
-    productCount: sql`(select count(*)::int from ${printCatalogueItems} i where i.catalogue_id = ${printCatalogues.id})`,
+    productCount: sql`(select count(*)::int from print_catalogue_items i where i.catalogue_id = print_catalogues.id)`,
   }).from(printCatalogues).orderBy(desc(printCatalogues.updatedAt))
 }
 
@@ -27,4 +29,82 @@ export async function createPrintCatalogue(createdByEmail) {
 export async function deletePrintCatalogue(id) {
   const db = await getDb()
   await db.delete(printCatalogues).where(eq(printCatalogues.id, Number(id)))
+}
+
+/** One catalogue with its items in print order, or null when it does not exist. */
+export async function getPrintCatalogue(id) {
+  const db = await getDb()
+  const [cat] = await db.select().from(printCatalogues).where(eq(printCatalogues.id, Number(id))).limit(1)
+  if (!cat) return null
+  const items = await db.select({
+    itemId: printCatalogueItems.id,
+    productId: products.id,
+    name: products.name,
+    productCode: products.productCode,
+    status: products.status,
+  }).from(printCatalogueItems)
+    .innerJoin(products, eq(products.id, printCatalogueItems.productId))
+    .where(eq(printCatalogueItems.catalogueId, cat.id))
+    .orderBy(asc(printCatalogueItems.sortOrder), asc(printCatalogueItems.id))
+  return { ...cat, items }
+}
+
+/** Title and show-prices switch. An empty title falls back to the default. */
+export async function updatePrintCatalogue(id, { title, showPrices }) {
+  const db = await getDb()
+  await db.update(printCatalogues)
+    .set({ title: (title ?? '').trim() || DEFAULT_TITLE, showPrices: Boolean(showPrices), updatedAt: new Date() })
+    .where(eq(printCatalogues.id, Number(id)))
+}
+
+/** Adds a product at the end of the catalogue. Adding one already there does nothing. */
+export async function addProductToCatalogue(catalogueId, productId) {
+  const db = await getDb()
+  const cid = Number(catalogueId)
+  const [{ max }] = await db.select({
+    max: sql`coalesce(max(${printCatalogueItems.sortOrder}), 0)`.mapWith(Number),
+  }).from(printCatalogueItems).where(eq(printCatalogueItems.catalogueId, cid))
+  // Gaps of 10 leave room to reorder without renumbering everything.
+  await db.insert(printCatalogueItems)
+    .values({ catalogueId: cid, productId: Number(productId), sortOrder: max + 10 })
+    .onConflictDoNothing()
+  await touchCatalogue(cid)
+}
+
+/** Takes one product out of a catalogue. The product itself is not touched. */
+export async function removeItemFromCatalogue(catalogueId, itemId) {
+  const db = await getDb()
+  await db.delete(printCatalogueItems).where(and(
+    eq(printCatalogueItems.id, Number(itemId)),
+    eq(printCatalogueItems.catalogueId, Number(catalogueId)),
+  ))
+  await touchCatalogue(catalogueId)
+}
+
+/** Products to add: not archived, matched on name, code, slug or Part ID. */
+export async function searchProductsForCatalogue(q, limit = 20) {
+  const term = `%${String(q ?? '').trim()}%`
+  const db = await getDb()
+  return db.select({
+    id: products.id,
+    name: products.name,
+    productCode: products.productCode,
+    status: products.status,
+  }).from(products)
+    .where(and(
+      ne(products.status, 'archived'),
+      or(
+        ilike(products.name, term),
+        ilike(products.productCode, term),
+        ilike(products.slug, term),
+        sql`exists (select 1 from ${productPartIds} pp where pp.product_id = ${products.id} and pp.part_id ilike ${term})`,
+      ),
+    ))
+    .orderBy(asc(products.name))
+    .limit(limit)
+}
+
+async function touchCatalogue(id) {
+  const db = await getDb()
+  await db.update(printCatalogues).set({ updatedAt: new Date() }).where(eq(printCatalogues.id, Number(id)))
 }

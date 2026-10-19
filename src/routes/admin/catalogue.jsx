@@ -1,4 +1,4 @@
-import { Form, useLoaderData } from 'react-router'
+import { Form, Link, useLoaderData } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
 import { listPrintCatalogues, createPrintCatalogue, deletePrintCatalogue } from '../../lib/print-catalogues.server'
@@ -69,7 +69,7 @@ export default function AdminCatalogue() {
             <tbody>
               {catalogues.map((c) => (
                 <tr key={c.id} className="border-b border-gray-100 last:border-0">
-                  <td className="px-4 py-3 font-medium text-gray-800">{c.title}</td>
+                  <td className="px-4 py-3 font-medium text-gray-800"><Link to={`/admin/catalogue/${c.id}`} className="hover:underline">{c.title}</Link></td>
                   <td className="px-4 py-3 text-gray-600">{c.productCount}</td>
                   <td className="px-4 py-3 text-gray-600">{c.showPrices ? 'On' : 'Off'}</td>
                   <td className="px-4 py-3 text-gray-600">{date(c.updatedAt)}</td>
