@@ -68,8 +68,8 @@ export default function AdminCatalogue() {
             </thead>
             <tbody>
               {catalogues.map((c) => (
-                <tr key={c.id} className="border-b border-gray-100 last:border-0">
-                  <td className="px-4 py-3 font-medium text-gray-800"><Link to={`/admin/catalogue/${c.id}`} className="hover:underline">{c.title}</Link></td>
+                <tr key={c.id} className="relative border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-gray-800"><Link to={`/admin/catalogue/${c.id}`} className="after:absolute after:inset-0">{c.title}</Link></td>
                   <td className="px-4 py-3 text-gray-600">{c.productCount}</td>
                   <td className="px-4 py-3 text-gray-600">{c.showPrices ? 'On' : 'Off'}</td>
                   <td className="px-4 py-3 text-gray-600">{date(c.updatedAt)}</td>
@@ -79,7 +79,7 @@ export default function AdminCatalogue() {
                       <input type="hidden" name="intent" value="delete" />
                       <input type="hidden" name="catalogueId" value={c.id} />
                       <input type="hidden" name="title" value={c.title} />
-                      <button type="submit" className="text-sm text-red-600 hover:text-red-800">Delete</button>
+                      <button type="submit" className="relative z-10 text-sm text-red-600 hover:text-red-800">Delete</button>
                     </ConfirmForm>
                   </td>
                 </tr>
