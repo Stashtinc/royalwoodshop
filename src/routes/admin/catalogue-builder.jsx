@@ -328,7 +328,7 @@ export default function CatalogueBuilder() {
           <section className={card}>
             <h2 className="font-serif text-lg font-bold text-tundora">Layout</h2>
             <p className="mt-1 text-xs text-gray-500">How the printed catalogue will look. Drag a product to reorder; page breaks in the PDF may differ.</p>
-            <div className="relative mt-4 grid grid-cols-2 gap-0 overflow-hidden rounded-lg bg-gray-100">
+            <div className="relative mt-4 grid grid-cols-2 gap-x-0 gap-y-6 overflow-hidden rounded-lg bg-gray-100 p-4">
               {/* Centre line where the two halves meet */}
               <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-px bg-gray-400" />
               {/* Cover */}
