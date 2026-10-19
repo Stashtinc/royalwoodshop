@@ -75,6 +75,9 @@ function priceLines(item) {
 
 const PREVIEW_DATE = () => new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })
 
+// Products per printed page. Approximate: the PDF fits rows to each page.
+const PAGE_SIZE = 3
+
 const input = 'rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-royal-blue'
 const card = 'rounded-xl border border-gray-200 bg-white p-6'
 
@@ -143,6 +146,12 @@ export default function CatalogueBuilder() {
   // Products in the catalogue, drag to reorder. The hook needs an id on each row.
   const rows = useMemo(() => catalogue.items.map((i) => ({ ...i, id: i.itemId })), [catalogue.items])
   const { order, itemProps } = useDragReorder(rows)
+  const pages = useMemo(() => {
+    const indexed = order.map((item, index) => ({ item, index }))
+    const out = []
+    for (let i = 0; i < indexed.length; i += PAGE_SIZE) out.push(indexed.slice(i, i + PAGE_SIZE))
+    return out
+  }, [order])
 
   // Bulk selection in the product table.
   // Keeps each ticked product (for its thumbnail and name), keyed by id.
@@ -317,98 +326,66 @@ export default function CatalogueBuilder() {
           </section>
 
           <section className={card}>
-            <h2 className="font-serif text-lg font-bold text-tundora">In this catalogue ({catalogue.items.length})</h2>
-            {catalogue.items.length > 1 && <p className="mt-1 text-xs text-gray-500">Drag a row to change the print order.</p>}
-            {catalogue.items.length === 0 ? (
-              <p className="mt-4 text-sm text-gray-500">No products yet.</p>
-            ) : (
-              <ol className="mt-4 divide-y divide-gray-100">
-                {order.map((item, i) => (
-                  <li key={item.itemId} {...itemProps(item)} className="flex cursor-grab items-center justify-between gap-3 py-2 data-[dragging=true]:opacity-50">
-                    <span className="text-sm text-gray-800">
-                      <span className="mr-2 text-gray-400">{i + 1}.</span>
-                      {item.name}
-                      {item.productCode && <span className="ml-2 font-mono text-xs text-gray-500">{item.productCode}</span>}
-                      {item.status === 'archived' && (
-                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived: not printed</span>
-                      )}
-                    </span>
-                    <Form method="post">
-                      <input type="hidden" name="intent" value="remove" />
-                      <input type="hidden" name="itemId" value={item.itemId} />
-                      <button type="submit" className="text-sm text-red-600 hover:text-red-800">Remove</button>
-                    </Form>
-                  </li>
-                ))}
-              </ol>
-            )}
+            <h2 className="font-serif text-lg font-bold text-tundora">Layout</h2>
+            <p className="mt-1 text-xs text-gray-500">How the printed catalogue will look. Drag a product to reorder; page breaks in the PDF may differ.</p>
+            <div className="mt-4 flex flex-col items-center gap-5 rounded-lg bg-gray-100 p-4">
+              {/* Cover */}
+              <div className="flex aspect-[8.5/11] w-full flex-col items-center justify-between bg-white p-6 text-center shadow">
+                <img src={logoBlue} alt="The Royal Wood Shop" className="h-10 w-auto" />
+                <h3 className="font-serif text-xl font-bold text-tundora">{catalogue.title}</h3>
+                <p className="text-xs text-gray-500">{PREVIEW_DATE()}</p>
+              </div>
+
+              {/* Pages, in print order */}
+              {pages.map((page, p) => (
+                <div key={p} className="w-full space-y-3 bg-white p-5 shadow">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Page {p + 1}</p>
+                  {page.map(({ item, index }) => {
+                    const prices = catalogue.showPrices ? priceLines(item) : []
+                    return (
+                      <div key={item.itemId} {...itemProps(item)}
+                        className="flex cursor-grab gap-3 border-b border-gray-100 pb-3 last:border-0 data-[dragging=true]:opacity-50">
+                        {item.image && (
+                          <img src={thumbSrc(item.image, item.imageWidth)} alt="" className="h-14 w-14 shrink-0 object-contain" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-tundora">{index + 1}. {item.name}</p>
+                          {item.productCode && <p className="font-mono text-[11px] text-gray-500">{item.productCode}</p>}
+                          {item.status === 'archived' && (
+                            <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-800">Archived: not printed</span>
+                          )}
+                          {prices.length > 0 && (
+                            <ul className="mt-1 space-y-0.5 text-xs">
+                              {prices.map((pl, i) => (
+                                <li key={i} className="text-gray-800">
+                                  {pl.label && <span className="mr-2 text-gray-600">{pl.label}</span>}
+                                  {pl.sale ? (
+                                    <><span className="mr-1 text-gray-400 line-through">{pl.price}</span><span className="font-semibold">{pl.sale}</span></>
+                                  ) : <span className="font-semibold">{pl.price}</span>}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <Form method="post" className="shrink-0">
+                          <input type="hidden" name="intent" value="remove" />
+                          <input type="hidden" name="itemId" value={item.itemId} />
+                          <button type="submit" className="text-xs text-red-600 hover:text-red-800">Remove</button>
+                        </Form>
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+
+              {catalogue.items.length === 0 && (
+                <p className="text-xs text-gray-500">No products yet. Add some from the table on the left.</p>
+              )}
+            </div>
           </section>
         </div>
       </div>
 
-      {/* Preview: how the printed catalogue will look, in print order */}
-      <section className="mt-6 rounded-xl border border-gray-200 bg-gray-100 p-6">
-        <h2 className="font-serif text-lg font-bold text-tundora">Preview</h2>
-        <p className="mt-1 text-xs text-gray-500">How the printed catalogue will look. Page breaks in the PDF may differ.</p>
-        <div className="mt-6 flex flex-col items-center gap-8">
-          {/* Cover page */}
-          <div className="flex aspect-[8.5/11] w-full max-w-[560px] flex-col items-center justify-between bg-white p-12 text-center shadow-md">
-            <img src={logoBlue} alt="The Royal Wood Shop" className="h-16 w-auto" />
-            <h3 className="font-serif text-4xl font-bold text-tundora">{catalogue.title}</h3>
-            <p className="text-sm text-gray-500">{PREVIEW_DATE()}</p>
-          </div>
-
-          {/* Product pages, in print order */}
-          {order.length > 0 && (
-            <div className="w-full max-w-[560px] space-y-8 bg-white p-10 shadow-md">
-              {order.map((item) => {
-                const lines = [
-                  ['Size', item.sizeDisplay],
-                  ['Specifications', item.species],
-                  ['Category', item.category],
-                  ['Availability', item.availability ? (AVAILABILITY_LABEL[item.availability] ?? item.availability) : null],
-                  ['Lead time', item.leadTime],
-                ].filter(([, v]) => v)
-                const prices = catalogue.showPrices ? priceLines(item) : []
-                return (
-                  <article key={item.itemId} className="flex gap-5 border-b border-gray-200 pb-8 last:border-0">
-                    {item.image && (
-                      <img src={thumbSrc(item.image, item.imageWidth)} alt="" className="h-28 w-28 shrink-0 object-contain" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <h4 className="font-serif text-lg font-bold text-tundora">{item.name}</h4>
-                      {item.productCode && <p className="font-mono text-xs text-gray-500">{item.productCode}</p>}
-                      {item.description && <p className="mt-2 line-clamp-4 text-sm text-gray-700">{item.description}</p>}
-                      {lines.length > 0 && (
-                        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
-                          {lines.map(([label, value]) => (
-                            <div key={label} className="contents">
-                              <dt className="font-semibold text-gray-600">{label}</dt>
-                              <dd className="text-gray-800">{value}</dd>
-                            </div>
-                          ))}
-                        </dl>
-                      )}
-                      {prices.length > 0 && (
-                        <ul className="mt-3 space-y-0.5 text-sm">
-                          {prices.map((p, i) => (
-                            <li key={i} className="text-gray-800">
-                              {p.label && <span className="mr-2 text-gray-600">{p.label}</span>}
-                              {p.sale ? (
-                                <><span className="mr-2 text-gray-400 line-through">{p.price}</span><span className="font-semibold">{p.sale}</span></>
-                              ) : <span className="font-semibold">{p.price}</span>}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </article>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </section>
     </div>
   )
 }
