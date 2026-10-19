@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, ilike, ne, or, sql } from 'drizzle-orm'
 import { getDb } from './db.server.js'
-import { printCatalogues, printCatalogueItems, products, productPartIds } from '../db/schema.js'
+import { printCatalogues, printCatalogueItems, products, productPartIds, categories } from '../db/schema.js'
 
 const DEFAULT_TITLE = 'Product Catalogue'
 
@@ -82,9 +82,10 @@ export async function removeItemFromCatalogue(catalogueId, itemId) {
 }
 
 /** Products for the picker: not archived. An empty query lists them all, A to Z. */
-export async function searchProductsForCatalogue(q, limit = 50, offset = 0) {
+export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filters = {}) {
   const term = `%${String(q ?? "").trim()}%`
   const hasQuery = String(q ?? "").trim() !== ""
+  const { category = "", species = "", status = "" } = filters
   const db = await getDb()
   return db.select({
     id: products.id,
@@ -99,6 +100,9 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0) {
   }).from(products)
     .where(and(
       ne(products.status, "archived"),
+      status ? eq(products.status, status) : undefined,
+      category ? sql`(products.primary_category_id = ${Number(category)} or exists (select 1 from product_categories pc where pc.product_id = products.id and pc.category_id = ${Number(category)}))` : undefined,
+      species ? sql`exists (select 1 from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species' and av.value = ${species})` : undefined,
       hasQuery ? or(
         ilike(products.name, term),
         ilike(products.productCode, term),
@@ -134,4 +138,10 @@ export async function reorderCatalogueItems(catalogueId, itemIds) {
     }
   })
   await touchCatalogue(cid)
+}
+
+/** Categories for the picker's filter, A to Z. */
+export async function listCategoryOptions() {
+  const db = await getDb()
+  return db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.name))
 }

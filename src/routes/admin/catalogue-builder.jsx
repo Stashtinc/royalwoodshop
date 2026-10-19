@@ -3,12 +3,13 @@ import { Form, Link, useLoaderData, useSubmit } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
 import { thumbSrc } from '../../lib/images'
-import { AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
+import { AVAILABILITY_LABEL, SPECIES } from '../../lib/catalogue-constants'
 import {
   getPrintCatalogue, updatePrintCatalogue, addProductsToCatalogue,
-  removeItemFromCatalogue, searchProductsForCatalogue, reorderCatalogueItems,
+  removeItemFromCatalogue, searchProductsForCatalogue, reorderCatalogueItems, listCategoryOptions,
 } from '../../lib/print-catalogues.server'
 import SectionTabs from '../../components/admin/SectionTabs'
+import FilterPill from '../../components/admin/FilterPill'
 import { useDragReorder } from '../../components/admin/useDragReorder'
 
 const PICKER_PAGE = 50
@@ -19,7 +20,8 @@ export async function loader({ request, params }) {
   if (!catalogue) throw new Response('Not found', { status: 404 })
   const q = new URL(request.url).searchParams.get('q') ?? ''
   const results = await searchProductsForCatalogue(q, PICKER_PAGE)
-  return { catalogue, q, results, hasMore: results.length === PICKER_PAGE }
+  const categories = await listCategoryOptions()
+  return { catalogue, q, results, hasMore: results.length === PICKER_PAGE, categories }
 }
 
 export async function action({ request, params }) {
@@ -60,24 +62,26 @@ const input = 'rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700
 const card = 'rounded-xl border border-gray-200 bg-white p-6'
 
 export default function CatalogueBuilder() {
-  const { catalogue, q: initialQ, results: firstPage, hasMore: firstHasMore } = useLoaderData()
+  const { catalogue, q: initialQ, results: firstPage, hasMore: firstHasMore, categories } = useLoaderData()
   const inCatalogue = new Set(catalogue.items.map((i) => i.productId))
 
-  // Picker: batches load as you scroll; typing searches from the first batch again.
-  const [q, setQ] = useState(initialQ)
+  // Picker: batches load as you scroll. A new search or filter starts again from the first batch.
+  const [search, setSearch] = useState({ q: initialQ, category: '', species: '', status: '' })
   const [results, setResults] = useState(firstPage)
   const [hasMore, setHasMore] = useState(firstHasMore)
   const [loading, setLoading] = useState(false)
-  const qRef = useRef(initialQ)
+  const latestRef = useRef(search)
   const sentinelRef = useRef(null)
   const skipFirstSearch = useRef(true)
+  const sameSearch = (x, y) => x.q === y.q && x.category === y.category && x.species === y.species && x.status === y.status
 
-  const loadBatch = async (query, offset, replace) => {
+  const loadBatch = async (s, offset, replace) => {
     setLoading(true)
-    const res = await fetch(`/admin/catalogue-products?q=${encodeURIComponent(query)}&offset=${offset}`)
+    const sp = new URLSearchParams({ q: s.q, offset: String(offset), category: s.category, species: s.species, status: s.status })
+    const res = await fetch(`/admin/catalogue-products?${sp}`)
     const data = await res.json()
     // Ignore a batch that arrives after the search has changed.
-    if (qRef.current !== query) return
+    if (!sameSearch(latestRef.current, s)) return
     setResults((prev) => {
       if (replace) return data.results
       const seen = new Set(prev.map((p) => p.id))
@@ -87,34 +91,27 @@ export default function CatalogueBuilder() {
     setLoading(false)
   }
 
+  const setFilter = (key, value) => setSearch((prev) => ({ ...prev, [key]: value }))
+
   useEffect(() => {
     if (skipFirstSearch.current) { skipFirstSearch.current = false; return }
-    const timer = setTimeout(() => { qRef.current = q; loadBatch(q, 0, true) }, 250)
+    latestRef.current = search
+    const timer = setTimeout(() => loadBatch(search, 0, true), 250)
     return () => clearTimeout(timer)
-    // loadBatch is recreated each render; only the query matters here.
+    // loadBatch is recreated each render; only the search matters here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q])
+  }, [search])
 
   useEffect(() => {
     const el = sentinelRef.current
     if (!el || !hasMore) return
     const io = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && !loading) loadBatch(qRef.current, results.length, false)
+      if (entries[0].isIntersecting && !loading) loadBatch(latestRef.current, results.length, false)
     }, { rootMargin: '200px' })
     io.observe(el)
     return () => io.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore, loading, results.length])
-
-  // Settings: the switch saves at once, the title when the field loses focus.
-  const titleRef = useRef(null)
-  const submit = useSubmit()
-  const [showPrices, setShowPrices] = useState(catalogue.showPrices)
-  const saveSettings = (change) => submit({
-    intent: 'save',
-    title: change.title ?? titleRef.current?.value ?? catalogue.title,
-    showPrices: (change.showPrices ?? showPrices) ? 'on' : '',
-  }, { method: 'post' })
 
   // Products in the catalogue, drag to reorder. The hook needs an id on each row.
   const rows = useMemo(() => catalogue.items.map((i) => ({ ...i, id: i.itemId })), [catalogue.items])
@@ -143,12 +140,36 @@ export default function CatalogueBuilder() {
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Left two-thirds: product table with bulk selection */}
         <div className="lg:col-span-2">
-          <input
-            value={q}
-            onChange={(e) => { setQ(e.target.value); qRef.current = e.target.value }}
-            placeholder="Search name, product code, Part ID or slug"
-            className={`${input} w-full`}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={search.q}
+              onChange={(e) => setFilter('q', e.target.value)}
+              placeholder="Search name, product code, Part ID or slug"
+              className={`${input} min-w-[12rem] flex-1`}
+            />
+            <FilterPill
+              label="All types"
+              value={search.status}
+              options={[
+                { value: '', label: 'All types' },
+                { value: 'published', label: 'Published' },
+                { value: 'draft', label: 'Drafts' },
+              ]}
+              onChange={(v) => setFilter('status', v)}
+            />
+            <FilterPill
+              label="All categories"
+              value={search.category}
+              options={[{ value: '', label: 'All categories' }, ...categories.map((c) => ({ value: String(c.id), label: c.name }))]}
+              onChange={(v) => setFilter('category', v)}
+            />
+            <FilterPill
+              label="All species"
+              value={search.species}
+              options={[{ value: '', label: 'All species' }, ...SPECIES.map((sp) => ({ value: sp, label: sp }))]}
+              onChange={(v) => setFilter('species', v)}
+            />
+          </div>
 
           <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
             <table className="w-full text-left text-sm">
