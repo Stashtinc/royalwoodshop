@@ -229,11 +229,11 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
       {!coverOpen && (
         <div className="mt-4">
           {order.length === 0 && <p className="text-xs text-gray-500">No products yet. Add some from the table on the left.</p>}
-          {order.length > 0 && chosen == null && <p className="text-xs text-gray-500">Tap a page to highlight it. Drag any product to reorder.</p>}
           <div className="space-y-4">
             {pages.map((page, p) => (
               <div key={p}>
                 <p className={`text-xs uppercase tracking-wide ${chosen === p ? "font-bold text-gray-900" : "font-semibold text-gray-500"}`}>Page {p + 1}: {page.length} product{page.length === 1 ? "" : "s"}</p>
+                {p === 0 && <p className="mt-1 text-xs text-gray-500">Drag to change order</p>}
                 <ol className="mt-2 space-y-2">
                   {page.map((i) => {
                     const item = order[i]
