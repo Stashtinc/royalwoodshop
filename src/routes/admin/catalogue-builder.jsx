@@ -238,17 +238,19 @@ export default function CatalogueBuilder() {
             <p className="mt-2 text-sm text-gray-500">
               {selected.size === 0 ? 'Tick products in the table, then add them here.' : `${selected.size} selected`}
             </p>
-            <Form method="post" onSubmit={() => setSelected(new Set())} className="mt-4 flex gap-2">
-              <input type="hidden" name="intent" value="add-many" />
-              <input type="hidden" name="productIds" value={[...selected].join(',')} />
-              <button type="submit" disabled={selected.size === 0}
-                className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:cursor-not-allowed disabled:opacity-40">
-                Add {selected.size || ''} to catalogue
-              </button>
-              {selected.size > 0 && (
-                <button type="button" onClick={() => setSelected(new Set())} className="px-2 text-sm text-gray-500 hover:text-gray-800">Clear</button>
-              )}
-            </Form>
+            {selected.size > 0 && (
+              <Form method="post" onSubmit={() => setSelected(new Set())} className="mt-4 flex gap-2">
+                <input type="hidden" name="intent" value="add-many" />
+                <input type="hidden" name="productIds" value={[...selected].join(',')} />
+                <button type="submit" disabled={selected.size === 0}
+                  className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:cursor-not-allowed disabled:opacity-40">
+                  Add {selected.size || ''} to catalogue
+                </button>
+                {selected.size > 0 && (
+                  <button type="button" onClick={() => setSelected(new Set())} className="px-2 text-sm text-gray-500 hover:text-gray-800">Clear</button>
+                )}
+              </Form>
+            )}
           </section>
 
           <section className={card}>
