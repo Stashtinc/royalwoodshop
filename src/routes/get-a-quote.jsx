@@ -31,6 +31,9 @@ export async function loader() {
       species: p.species ?? [],
       availability: p.availability,
       uom: p.uom,
+      image: p.image ?? null,
+      imageWidth: p.imageWidth ?? null,
+      imageRole: p.imageRole ?? null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name))
   return { products }

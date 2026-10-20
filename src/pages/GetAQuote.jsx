@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Form, useActionData, useNavigation } from 'react-router'
 import ProductPicker from '../components/quote/ProductPicker'
+import Thumb from '../components/quote/Thumb'
 import { UOM_OPTIONS, AVAILABILITY_LABEL } from '../lib/catalogue-constants'
 
 /**
@@ -49,7 +50,7 @@ export default function GetAQuote({ products }) {
       const have = new Set(prev.map((i) => i.productId))
       const fresh = picked
         .filter((p) => !have.has(p.id))
-        .map((p) => ({ productId: p.id, name: p.name, productCode: p.productCode, uom: p.uom, sizeDisplay: p.sizeDisplay, availability: p.availability, quantity: 1, note: '' }))
+        .map((p) => ({ productId: p.id, name: p.name, productCode: p.productCode, uom: p.uom, sizeDisplay: p.sizeDisplay, availability: p.availability, image: p.image, imageWidth: p.imageWidth, imageRole: p.imageRole, quantity: 1, note: '' }))
       return [...prev, ...fresh]
     })
   }
@@ -140,11 +141,14 @@ export default function GetAQuote({ products }) {
                 {items.map((item) => (
                   <li key={item.productId} className="flex flex-col gap-3 p-4">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 flex-col">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <Thumb product={item} />
+                        <div className="flex min-w-0 flex-col">
                         <span className="font-sans text-sm font-medium text-gray-900">{item.name}</span>
                         <span className="font-sans text-xs text-gray-500">
                           {[item.productCode, item.sizeDisplay, AVAILABILITY_LABEL[item.availability], item.uom && uomLabel(item.uom)].filter(Boolean).join(' · ')}
                         </span>
+                        </div>
                       </div>
                       <button
                         type="button"
