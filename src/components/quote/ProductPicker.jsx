@@ -118,16 +118,16 @@ export default function ProductPicker({ products, addedIds, onAdd }) {
             )}
           </div>
 
-          <ul className="grid min-h-0 flex-1 grid-cols-1 gap-px overflow-y-auto bg-gray-100 sm:grid-cols-2" role="listbox" aria-multiselectable="true" aria-label="Products">
+          <ul className="min-h-0 flex-1 overflow-y-auto" role="listbox" aria-multiselectable="true" aria-label="Products">
             {results.length === 0 && (
-              <li className="bg-white px-4 py-6 text-center font-sans text-sm text-gray-500 sm:col-span-2">No products match. Try another search or filter.</li>
+              <li className="px-4 py-6 text-center font-sans text-sm text-gray-500">No products match. Try another search or filter.</li>
             )}
             {results.map((p) => {
               const added = addedIds.has(p.id)
               const checked = ticked.has(p.id)
               return (
-                <li key={p.id} role="option" aria-selected={checked} aria-disabled={added} className="bg-white">
-                  <label className={`flex h-full cursor-pointer items-start gap-3 px-4 py-3 hover:bg-parchment ${added ? 'opacity-50' : ''}`}>
+                <li key={p.id} role="option" aria-selected={checked} aria-disabled={added}>
+                  <label className={`flex cursor-pointer items-start gap-3 px-4 py-3 hover:bg-parchment ${added ? 'opacity-50' : ''}`}>
                     <input
                       type="checkbox"
                       checked={checked || added}
