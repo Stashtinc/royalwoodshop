@@ -27,7 +27,8 @@ export async function loader() {
       name: p.name,
       productCode: p.productCode,
       sizeDisplay: p.sizeDisplay,
-      categoryName: p.categoryName,
+      // getAllProducts names the category `category` (the catalogue reads it the same way).
+      categoryName: p.category ?? null,
       species: p.species ?? [],
       availability: p.availability,
       uom: p.uom,
