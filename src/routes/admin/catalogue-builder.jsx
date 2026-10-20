@@ -255,20 +255,16 @@ export default function CatalogueBuilder() {
           </div>
 
           {changed && (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-  {changed && (
-    <Form method="post" className="mt-4 flex flex-wrap items-center gap-3">
-      <input type="hidden" name="intent" value="sync-products" />
-      <input type="hidden" name="addIds" value={addIds.join(',')} />
-      <input type="hidden" name="removeIds" value={removeIds.join(',')} />
-      <button type="submit" className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark">
-        Save changes
-      </button>
-      <span className="text-xs text-gray-500">{addIds.length} to add, {removeIds.length} to remove</span>
-      <button type="button" onClick={() => setSelected(fromCatalogue())} className="px-2 text-sm text-gray-500 hover:text-gray-800">Reset</button>
-    </Form>
-  )}
-            </div>
+            <Form method="post" className="mt-4 flex flex-wrap items-center gap-3">
+              <input type="hidden" name="intent" value="sync-products" />
+              <input type="hidden" name="addIds" value={addIds.join(",")} />
+              <input type="hidden" name="removeIds" value={removeIds.join(",")} />
+              <button type="submit" className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark">
+                Save changes
+              </button>
+              <span className="text-xs text-gray-500">{addIds.length} to add, {removeIds.length} to remove</span>
+              <button type="button" onClick={() => setSelected(fromCatalogue())} className="px-2 text-sm text-gray-500 hover:text-gray-800">Reset</button>
+            </Form>
           )}
           <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
             <table className="min-w-[860px] w-full text-left text-xs">
