@@ -196,6 +196,24 @@ export default function CatalogueBuilder() {
   const addIds = [...selected.keys()].filter((id) => !inCatalogue.has(id))
   const removeIds = [...inCatalogue].filter((id) => !selected.has(id))
   const changed = addIds.length + removeIds.length > 0
+  // The preview shows ticks as they are made: saved products minus unticked ones, plus ticked ones.
+  const [pendingItems, setPendingItems] = useState({})
+  const addKey = addIds.join(",")
+  const removeKey = removeIds.join(",")
+  useEffect(() => {
+    const missing = addIds.filter((id) => !pendingItems[id])
+    if (!missing.length) return
+    fetch(`/admin/catalogue-items?ids=${missing.join(",")}`).then((r) => r.json()).then((d) => {
+      setPendingItems((prev) => ({ ...prev, ...Object.fromEntries(d.items.map((it) => [it.productId, it])) }))
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addKey])
+  const previewOrder = useMemo(() => {
+    const kept = order.filter((item) => !removeIds.includes(item.productId))
+    const pending = addIds.filter((id) => pendingItems[id]).map((id) => pendingItems[id])
+    return [...kept, ...pending]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order, addKey, removeKey, pendingItems])
 
   return (
     <div>
@@ -391,7 +409,7 @@ export default function CatalogueBuilder() {
                     </div>
                   </div>
                 }
-                order={order}
+                order={previewOrder}
                 showPrices={showPrices}
                 itemProps={itemProps}
                 removeForm={(item) => (

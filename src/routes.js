@@ -37,6 +37,7 @@ export default [
     route('catalogue', 'routes/admin/catalogue.jsx'),
     route('catalogue/:id', 'routes/admin/catalogue-builder.jsx'),
     route('catalogue-products', 'routes/admin/catalogue-products.js'),
+    route('catalogue-items', 'routes/admin/catalogue-items.js'),
     route('logs', 'routes/admin/logs.jsx'),
     route('posts', 'routes/admin/posts.jsx'),
     route('posts/:id', 'routes/admin/post-edit.jsx'),

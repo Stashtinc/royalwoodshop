@@ -205,3 +205,40 @@ export async function removeProductsFromCatalogue(catalogueId, productIds) {
   }
   await touchCatalogue(catalogueId)
 }
+
+/** Products in the same shape as catalogue items, for showing ticks in the preview before they are saved. */
+export async function productsForPreview(productIds) {
+  const ids = productIds.map(Number).filter(Boolean)
+  if (!ids.length) return []
+  const db = await getDb()
+  const rows = await db.select({
+    productId: products.id,
+    name: products.name,
+    productCode: products.productCode,
+    status: products.status,
+    description: products.description,
+    sizeDisplay: products.sizeDisplay,
+    availability: products.availability,
+    leadTime: products.leadTime,
+    price: products.price,
+    salePrice: products.salePrice,
+    category: sql`(select c.name from categories c where c.id = products.primary_category_id)`.as('category'),
+    species: sql`(select string_agg(av.value, ', ' order by av.sort_order) from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species')`.as('species'),
+    image: sql`(select pi.storage_key from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as('image'),
+    imageWidth: sql`(select pi.width from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as('imageWidth'),
+  }).from(products).where(inArray(products.id, ids))
+  const partRows = await db.select({ productId: productPartIds.productId, species: productPartIds.species, price: productPartIds.price, salePrice: productPartIds.salePrice })
+    .from(productPartIds)
+    .where(and(inArray(productPartIds.productId, ids), sql`${productPartIds.price} is not null`))
+  const pricesByProduct = new Map()
+  for (const p of partRows) {
+    if (!pricesByProduct.has(p.productId)) pricesByProduct.set(p.productId, [])
+    pricesByProduct.get(p.productId).push({ species: p.species, price: p.price, salePrice: p.salePrice })
+  }
+  return rows.map((r) => ({
+    ...r,
+    itemId: `p${r.productId}`,
+    id: `p${r.productId}`,
+    prices: pricesByProduct.get(r.productId) ?? [],
+  }))
+}
