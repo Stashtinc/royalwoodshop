@@ -194,8 +194,14 @@ export default function GetAQuote({ products }) {
             title="Plans and files"
             hint="PDF plans, door schedules and spreadsheets (PDF, XLS, XLSX, CSV), or photos (JPG, PNG, WebP). Up to 10 files, 10 MB each, 15 MB in total."
           >
-            <label className="flex cursor-pointer flex-col items-start gap-3 rounded-lg border border-dashed border-gray-300 bg-white p-5 hover:border-royal-blue">
-              <span className="font-sans text-sm font-medium text-royal-blue">Choose files</span>
+            <div>
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                className="rounded-lg bg-royal-blue px-4 py-2.5 font-sans text-sm font-medium text-white hover:bg-royal-blue-dark"
+              >
+                Choose files
+              </button>
               <input
                 ref={fileInput}
                 type="file"
@@ -203,9 +209,9 @@ export default function GetAQuote({ products }) {
                 multiple
                 accept={ACCEPT}
                 onChange={onPickFiles}
-                className="sr-only"
+                className="hidden"
               />
-            </label>
+            </div>
             {files.length > 0 && (
               <ul className="flex flex-col divide-y divide-gray-100 rounded-lg border border-gray-200">
                 {files.map((f, i) => (
