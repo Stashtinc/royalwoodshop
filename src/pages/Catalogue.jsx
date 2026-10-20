@@ -488,10 +488,16 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   function toggleSub(category, sub) {
     const key = `${category}::${sub}`
     setSelectedSubs((prev) => {
-      // If this sub is already the only thing selected, restore all
-      if (prev.size === 1 && prev.has(key)) return rememberSubs(allSubKeys(catalogueCategoryOrder))
-      // Otherwise exclusively select just this sub across all categories
-      return rememberSubs(new Set([key]))
+      const everything = allSubKeys(catalogueCategoryOrder)
+      // Everything is ticked (the default, no filter): the first pick narrows to just that sub
+      if (prev.size >= everything.length) return rememberSubs(new Set([key]))
+      // Otherwise add or remove this sub, leaving the others as they are
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      // Unticking the last one restores everything, so the list is never empty
+      if (next.size === 0) return rememberSubs(new Set(everything))
+      return rememberSubs(next)
     })
     setPage(1)
     window.scrollTo({ top: 0, behavior: 'smooth' })
