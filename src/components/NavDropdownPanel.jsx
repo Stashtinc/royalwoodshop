@@ -78,7 +78,7 @@ function ServicesPanel() {
         title="Get a free project estimate"
         description="Tell us about your renovation or build and we'll put together a no-obligation quote."
         ctaLabel="Get a Quote"
-        ctaTo="/contact"
+        ctaTo="/get-a-quote"
       />
     </div>
   )

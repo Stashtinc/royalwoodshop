@@ -223,7 +223,7 @@ export default function PageHeader({ image = heroRight, imageAlt = 'Interior sta
               ))}
             </nav>
             <Link
-              to="/contact"
+              to="/get-a-quote"
               className="shrink-0 rounded-lg border border-tundora bg-white px-4 py-2.5 font-sans text-sm whitespace-nowrap text-gray-900 transition-colors hover:border-royal-blue hover:bg-royal-blue hover:text-white"
             >
               Get a Quote
