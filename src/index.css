@@ -158,3 +158,17 @@ body {
 .prose-royal strong { font-weight: 700; color: var(--color-tundora); }
 /* The export carries inline font sizes and colours that fight the page. */
 .prose-royal [style] { font-size: inherit !important; color: inherit !important; }
+
+/* One dropdown look everywhere. The native arrow is replaced with a chevron
+   that sits inside the field, with room on the right so text never runs into it.
+   Unlayered on purpose: Tailwind's padding utilities (px-3, px-4) would
+   otherwise override the right padding and bring the arrow back onto the text. */
+select:not([multiple]):not([size]) {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' stroke='%23343333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 12px 12px;
+}

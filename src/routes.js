@@ -12,6 +12,7 @@ export default [
   route('products/:category/:slug/spec-sheet.pdf', 'routes/spec-sheet.js'),
 
   route('contact', 'routes/contact.jsx'),
+  route('get-a-quote', 'routes/get-a-quote.jsx'),
   route('the-royal-edge', 'routes/royal-edge.jsx'),
   route('core-values', 'routes/core-values.jsx'),
   route('environmental-commitment', 'routes/environmental.jsx'),

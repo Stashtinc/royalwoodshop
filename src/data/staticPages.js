@@ -15,6 +15,7 @@ export const STATIC_PAGES = [
   '/',
   '/products',
   '/contact',
+  '/get-a-quote',
   '/the-royal-edge',
   '/core-values',
   '/environmental-commitment',
