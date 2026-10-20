@@ -63,15 +63,22 @@ export default function ProductPicker({ products, addedIds, onAdd }) {
   const addTicked = () => {
     onAdd(products.filter((p) => ticked.has(p.id)))
     setTicked(new Set())
+    setOpen(false)
   }
 
   const filtersActive = Boolean(category || species || availability)
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative scroll-mt-28">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          const next = !open
+          setOpen(next)
+          // Bring the picker to the top of the screen, so the whole panel,
+          // including "Add to quote" at its foot, fits without scrolling.
+          if (next) requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }))
+        }}
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 text-left font-sans text-sm text-gray-700 hover:border-gray-400"
       >
