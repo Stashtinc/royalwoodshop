@@ -401,17 +401,20 @@ export default function ProductEdit() {
 
   return (
     <div className="flex flex-col gap-5 pb-20">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-baseline gap-3">
-          <Link to="/admin/products" className="text-sm text-royal-blue hover:underline">← Products</Link>
-          <span className="font-mono text-xs text-gray-500">{product.productCode}</span>
+      {/* Sticky header: stays visible while scrolling so the product being edited is always named.
+          top-[57px] clears the mobile admin bar (layout.jsx); lg:top-0 when that bar is hidden. */}
+      <div className="sticky top-[57px] z-20 -mx-5 flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 px-5 py-3 lg:top-0 lg:-mx-8 lg:px-8">
+        <div className="flex min-w-0 items-baseline gap-3">
+          <Link to="/admin/products" className="shrink-0 text-sm text-royal-blue hover:underline">← Products</Link>
+          <span className="shrink-0 font-mono text-xs text-gray-500">{product.productCode}</span>
+          <h1 className="min-w-0 truncate font-serif text-xl font-bold text-tundora">{product.name}</h1>
         </div>
         {product.categorySlug && product.slug && (
           <a
             href={`/products/${product.categorySlug}/${product.slug}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 font-sans text-xs text-gray-600 hover:border-royal-blue hover:text-royal-blue"
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 font-sans text-xs text-gray-600 hover:border-royal-blue hover:text-royal-blue"
           >
             View on site
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
@@ -420,7 +423,6 @@ export default function ProductEdit() {
           </a>
         )}
       </div>
-      <h1 className="font-serif text-2xl font-bold text-tundora">{product.name}</h1>
 
       <Toast message={toast} onDismiss={() => setToast(null)} />
       <Toast message={data?.error} stamp={data} tone="error" top={data?.saved ? 'top-20' : 'top-5'} />
