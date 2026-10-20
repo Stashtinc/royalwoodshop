@@ -489,8 +489,11 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
     const key = `${category}::${sub}`
     setSelectedSubs((prev) => {
       const everything = allSubKeys(catalogueCategoryOrder)
-      // Everything is ticked (the default, no filter): the first pick narrows to just that sub
-      if (prev.size >= everything.length) return rememberSubs(new Set([key]))
+      const categorySubs = [...(catalogueCategoryOrder.find((c) => c.name === category)?.subcategories ?? [])]
+        .map((sub) => `${category}::${sub}`)
+      // Everything, or a whole category, is ticked: the first pick narrows to just that sub
+      const wholeCategory = prev.size === categorySubs.length && categorySubs.every((k) => prev.has(k))
+      if (prev.size >= everything.length || wholeCategory) return rememberSubs(new Set([key]))
       // Otherwise add or remove this sub, leaving the others as they are
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
