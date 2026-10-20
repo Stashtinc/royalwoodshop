@@ -3,6 +3,9 @@ import {
   timestamp, primaryKey, uniqueIndex, index,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
+import { customType } from 'drizzle-orm/pg-core'
+
+const bytea = customType({ dataType: () => 'bytea' })
 
 /* ------------------------------------------------------------------ enums */
 
@@ -430,4 +433,49 @@ export const productAttributesRelations = relations(productAttributes, ({ one })
 
 export const productImagesRelations = relations(productImages, ({ one }) => ({
   product: one(products, { fields: [productImages.productId], references: [products.id] }),
+}))
+
+/* ------------------------------------------------------------ quote requests */
+
+/** Get a Quote: a project enquiry with product lines and attached files. */
+export const quoteRequests = pgTable('quote_requests', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 160 }).notNull(),
+  company: varchar('company', { length: 160 }),
+  email: varchar('email', { length: 254 }).notNull(),
+  phone: varchar('phone', { length: 40 }).notNull(),
+  notes: text('notes'),
+  ip: varchar('ip', { length: 64 }),
+  emailedAt: timestamp('emailed_at', { withTimezone: true }),
+  emailError: text('email_error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  createdIdx: index('quote_requests_created_idx').on(t.createdAt),
+}))
+
+export const quoteItems = pgTable('quote_items', {
+  id: serial('id').primaryKey(),
+  requestId: integer('request_id').notNull().references(() => quoteRequests.id, { onDelete: 'cascade' }),
+  productId: integer('product_id'),
+  productCode: varchar('product_code', { length: 120 }),
+  productName: varchar('product_name', { length: 300 }).notNull(),
+  quantity: integer('quantity').notNull(),
+  uom: varchar('uom', { length: 40 }),
+  note: varchar('note', { length: 500 }),
+  position: integer('position').notNull().default(0),
+}, (t) => ({
+  requestIdx: index('quote_items_request_idx').on(t.requestId),
+}))
+
+/** Attachments are kept in the database, not in public/uploads: plans and
+ *  door schedules are customer documents and must not be publicly reachable. */
+export const quoteFiles = pgTable('quote_files', {
+  id: serial('id').primaryKey(),
+  requestId: integer('request_id').notNull().references(() => quoteRequests.id, { onDelete: 'cascade' }),
+  filename: varchar('filename', { length: 255 }).notNull(),
+  contentType: varchar('content_type', { length: 120 }).notNull(),
+  sizeBytes: integer('size_bytes').notNull(),
+  data: bytea('data').notNull(),
+}, (t) => ({
+  requestIdx: index('quote_files_request_idx').on(t.requestId),
 }))

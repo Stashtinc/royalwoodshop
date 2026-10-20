@@ -201,7 +201,7 @@ export default function Header({ navCategories = navCatsJson }) {
           </div>
 
           <Link
-            to="/contact"
+            to="/get-a-quote"
             className="shrink-0 rounded-lg border border-tundora bg-white px-4 py-2.5 font-sans text-sm text-gray-900 transition-colors hover:border-royal-blue hover:bg-royal-blue hover:text-white"
           >
             Get a Quote
@@ -340,7 +340,7 @@ export default function Header({ navCategories = navCatsJson }) {
             </div>
           ))}
           <Link
-            to="/contact"
+            to="/get-a-quote"
             onClick={() => setMenuOpen(false)}
             className="mt-2 inline-block w-fit rounded-lg border border-tundora bg-white px-5 py-3 font-sans text-sm text-gray-900 transition-colors hover:border-royal-blue hover:bg-royal-blue hover:text-white"
           >
