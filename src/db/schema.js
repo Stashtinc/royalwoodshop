@@ -463,6 +463,8 @@ export const quoteItems = pgTable('quote_items', {
   productName: varchar('product_name', { length: 300 }).notNull(),
   quantity: integer('quantity').notNull(),
   uom: varchar('uom', { length: 40 }),
+  /** The wood the line is quoted in, when the product is sold in more than one. */
+  species: varchar('species', { length: 60 }),
   note: varchar('note', { length: 500 }),
   position: integer('position').notNull().default(0),
 }, (t) => ({

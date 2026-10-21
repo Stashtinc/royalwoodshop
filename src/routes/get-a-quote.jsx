@@ -20,11 +20,11 @@ export async function loader() {
     const { loadAllProducts } = await import('../lib/products.server.js')
     all = await loadAllProducts()
   }
-  // The increment comes from each product's Part IDs (see productIncrements).
-  let increments = new Map()
+  // Each product's woods and their purchase increments (see productWoods).
+  let woods = new Map()
   try {
-    const { productIncrements } = await import('../lib/quote.server.js')
-    increments = await productIncrements(all.map((p) => p.id))
+    const { productWoods } = await import('../lib/quote.server.js')
+    woods = await productWoods(all.map((p) => p.id))
   } catch {}
   const products = all
     .filter((p) => (p.status ?? 'published') === 'published')
@@ -38,7 +38,7 @@ export async function loader() {
       species: p.species ?? [],
       availability: p.availability,
       uom: p.uom,
-      purchaseIncrement: increments.get(p.id) ?? null,
+      woods: woods.get(p.id) ?? [],
       image: p.image ?? null,
       imageWidth: p.imageWidth ?? null,
       imageRole: p.imageRole ?? null,

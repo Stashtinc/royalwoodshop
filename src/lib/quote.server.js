@@ -1,6 +1,6 @@
 import { eq, inArray, and } from 'drizzle-orm'
 import { getDb } from './db.server.js'
-import { products, productPartIds, quoteRequests, quoteItems, quoteFiles } from '../db/schema.js'
+import { products, productPartIds, productAttributes, attributeValues, attributes, quoteRequests, quoteItems, quoteFiles } from '../db/schema.js'
 import { isMultiple, formatIncrement } from './purchase-increment.js'
 
 /**
@@ -55,6 +55,7 @@ export function validateQuote(form) {
     items = raw.map((r) => ({
       productId: Number.parseInt(r?.productId, 10),
       quantity: Number.parseInt(r?.quantity, 10),
+      species: String(r?.species ?? '').trim().slice(0, 60) || null,
       note: String(r?.note ?? '').trim().slice(0, LIMITS.note),
     }))
   } catch {
@@ -90,22 +91,33 @@ export function validateQuote(form) {
 /** Honeypot: a field real visitors never see. Bots fill every input. */
 export const isBot = (form) => String(form.get('website_url') ?? '').trim() !== ''
 
-/** The purchase increment each product is quoted in. A product's Part IDs
- *  can carry different increments per species; only a product whose Part IDs
- *  all agree is enforced. Otherwise it has none (for now). */
-export async function productIncrements(productIds) {
+/** The woods each product is sold in, with the purchase increment its Part IDs
+ *  carry for that wood (null = any quantity): Map(productId → [{ name, increment }]).
+ *  A wood is a species ticked on the product, or one of its Part IDs' species. */
+export async function productWoods(productIds) {
   const out = new Map()
   if (!productIds.length) return out
   const db = await getDb()
-  const rows = await db.select({ productId: productPartIds.productId, increment: productPartIds.purchaseIncrement })
-    .from(productPartIds).where(inArray(productPartIds.productId, productIds))
-  const seen = new Map()
-  for (const r of rows) {
-    if (r.increment == null) continue
-    if (!seen.has(r.productId)) seen.set(r.productId, new Set())
-    seen.get(r.productId).add(Number(r.increment))
+  const ticks = await db.select({ productId: productAttributes.productId, species: attributeValues.value })
+    .from(productAttributes)
+    .innerJoin(attributeValues, eq(attributeValues.id, productAttributes.attributeValueId))
+    .innerJoin(attributes, and(eq(attributes.id, attributeValues.attributeId), eq(attributes.key, 'species')))
+    .where(inArray(productAttributes.productId, productIds))
+  const parts = await db.select({
+    productId: productPartIds.productId, species: productPartIds.species, increment: productPartIds.purchaseIncrement,
+  }).from(productPartIds).where(inArray(productPartIds.productId, productIds))
+
+  const woods = new Map()
+  const add = (productId, name, increment) => {
+    if (!woods.has(productId)) woods.set(productId, new Map())
+    const m = woods.get(productId)
+    if (!m.has(name) || (m.get(name) == null && increment != null)) m.set(name, increment == null ? null : Number(increment))
   }
-  for (const [id, set] of seen) if (set.size === 1) out.set(id, [...set][0])
+  for (const t of ticks) add(t.productId, t.species, null)
+  for (const p of parts) add(p.productId, p.species, p.increment)
+  for (const [id, m] of woods) {
+    out.set(id, [...m].map(([name, increment]) => ({ name, increment })).sort((a, b) => a.name.localeCompare(b.name)))
+  }
   return out
 }
 
@@ -122,31 +134,42 @@ export async function resolveItems(items) {
   if (byId.size !== ids.length) {
     return { lines: null, errors: { items: 'One of the products is no longer available. Please remove it and try again.' } }
   }
-  // A linear-foot product is bought in whole multiples of its purchase increment.
-  const increments = await productIncrements(ids)
-  for (const i of items) {
+  const woods = await productWoods(ids)
+  const resolved = []
+  for (const [position, i] of items.entries()) {
     const row = byId.get(i.productId)
-    const increment = increments.get(i.productId) ?? null
+    const choices = woods.get(i.productId) ?? []
+    // A product sold in one wood uses it; a product sold in several needs the customer to choose.
+    let wood = null
+    if (i.species) {
+      wood = choices.find((w) => w.name === i.species) ?? null
+      if (!wood) return { lines: null, errors: { items: `${row.name} is not sold in ${i.species}. Please choose a wood from the list.` } }
+    } else if (choices.length === 1) {
+      wood = choices[0]
+    } else if (choices.length > 1) {
+      return { lines: null, errors: { items: `Please choose a wood for ${row.name}.` } }
+    }
+    // A linear-foot product is bought in whole multiples of its wood's purchase increment.
+    const increment = wood?.increment ?? null
     if (!isMultiple(i.quantity, increment)) {
       const step = formatIncrement(increment)
       return {
         lines: null,
-        errors: { items: `${row.name} is bought in multiples of ${step}. Please set its quantity to ${step}, ${Number(step) * 2} or another multiple of ${step}.` },
+        errors: { items: `${row.name}${wood ? ` in ${wood.name}` : ''} is bought in multiples of ${step}. Please set its quantity to ${step}, ${Number(step) * 2} or another multiple of ${step}.` },
       }
     }
-  }
-  return {
-    lines: items.map((i, position) => ({
+    resolved.push({
       productId: i.productId,
-      productCode: byId.get(i.productId).productCode,
-      productName: byId.get(i.productId).name,
-      uom: byId.get(i.productId).uom,
+      productCode: row.productCode,
+      productName: row.name,
+      uom: row.uom,
+      species: wood?.name ?? null,
       quantity: i.quantity,
       note: i.note || null,
       position,
-    })),
-    errors: null,
+    })
   }
+  return { lines: resolved, errors: null }
 }
 
 export async function saveAndNotify(values, lines, files, { ip } = {}) {
@@ -202,7 +225,7 @@ async function sendEmail(values, lines, files) {
     })
 
     const itemLines = lines.length
-      ? lines.map((l) => `- ${l.quantity} × ${l.productName}${l.productCode ? ` (${l.productCode})` : ''}${l.uom ? ` [${l.uom}]` : ''}${l.note ? ` — ${l.note}` : ''}`)
+      ? lines.map((l) => `- ${l.quantity} × ${l.productName}${l.productCode ? ` (${l.productCode})` : ''}${l.species ? ` in ${l.species}` : ''}${l.uom ? ` [${l.uom}]` : ''}${l.note ? ` — ${l.note}` : ''}`)
       : ['(none selected)']
 
     await transport.sendMail({

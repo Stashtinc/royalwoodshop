@@ -33,6 +33,12 @@ const Section = ({ title, hint, children }) => (
 
 const uomLabel = (code) => UOM_OPTIONS.find(([c]) => c === code)?.[1] ?? code
 
+/** The wood a line is quoted in (null when the product has none). */
+const woodOf = (item) => item.woods.find((w) => w.name === item.species) ?? null
+/** The purchase increment of the line's wood, in feet (null = any quantity). */
+const incrementOf = (item) => woodOf(item)?.increment ?? null
+const woodLabel = (w) => (w.increment ? `${w.name} (multiples of ${formatIncrement(w.increment)} ft)` : w.name)
+
 export default function GetAQuote({ products }) {
   const data = useActionData()
   const sending = useNavigation().state === 'submitting'
@@ -51,10 +57,24 @@ export default function GetAQuote({ products }) {
       const have = new Set(prev.map((i) => i.productId))
       const fresh = picked
         .filter((p) => !have.has(p.id))
-        .map((p) => ({ productId: p.id, name: p.name, productCode: p.productCode, uom: p.uom, sizeDisplay: p.sizeDisplay, availability: p.availability, image: p.image, imageWidth: p.imageWidth, imageRole: p.imageRole, purchaseIncrement: p.purchaseIncrement, quantity: p.purchaseIncrement || 1, note: '' }))
+        .map((p) => {
+          // A product sold in one wood uses it; a product sold in several waits for a choice.
+          const species = p.woods.length === 1 ? p.woods[0].name : ''
+          const item = { productId: p.id, name: p.name, productCode: p.productCode, uom: p.uom, sizeDisplay: p.sizeDisplay, availability: p.availability, image: p.image, imageWidth: p.imageWidth, imageRole: p.imageRole, woods: p.woods, species, quantity: 1, note: '' }
+          return { ...item, quantity: incrementOf(item) || 1 }
+        })
       return [...prev, ...fresh]
     })
   }
+
+  // Choosing a wood applies its increment: a quantity that is not a multiple moves to the first one.
+  const chooseWood = (productId, species) => setItems((prev) => prev.map((i) => {
+    if (i.productId !== productId) return i
+    const next = { ...i, species }
+    const inc = incrementOf(next)
+    const q = Number(i.quantity)
+    return { ...next, quantity: inc && !isMultiple(q, inc) ? inc : i.quantity }
+  }))
 
   const updateItem = (productId, patch) =>
     setItems((prev) => prev.map((i) => (i.productId === productId ? { ...i, ...patch } : i)))
@@ -105,7 +125,7 @@ export default function GetAQuote({ products }) {
             <label>Website<input type="text" name="website_url" tabIndex={-1} autoComplete="off" /></label>
           </div>
 
-          <input type="hidden" name="items" value={JSON.stringify(items.map((i) => ({ productId: i.productId, quantity: i.quantity, note: i.note })))} />
+          <input type="hidden" name="items" value={JSON.stringify(items.map((i) => ({ productId: i.productId, species: i.species, quantity: i.quantity, note: i.note })))} />
 
           <Section title="Your details" hint="Fields marked * are required.">
             <div className="grid gap-5 sm:grid-cols-2">
@@ -147,7 +167,7 @@ export default function GetAQuote({ products }) {
                         <div className="flex min-w-0 flex-col">
                         <span className="font-sans text-sm font-medium text-gray-900">{item.name}</span>
                         <span className="font-sans text-xs text-gray-500">
-                          {[item.productCode, item.sizeDisplay, AVAILABILITY_LABEL[item.availability], item.uom && uomLabel(item.uom), item.purchaseIncrement && `Bought in multiples of ${formatIncrement(item.purchaseIncrement)} ft`].filter(Boolean).join(' · ')}
+                          {[item.productCode, item.sizeDisplay, AVAILABILITY_LABEL[item.availability], item.uom && uomLabel(item.uom), item.species || null, incrementOf(item) && `Bought in multiples of ${formatIncrement(incrementOf(item))} ft`].filter(Boolean).join(' · ')}
                         </span>
                         </div>
                       </div>
@@ -159,21 +179,34 @@ export default function GetAQuote({ products }) {
                         Remove
                       </button>
                     </div>
+                    {item.woods.length > 1 && (
+                      <label className="flex flex-col gap-1.5">
+                        <span className="font-sans text-xs font-medium text-gray-600">Wood *</span>
+                        <select
+                          value={item.species}
+                          onChange={(e) => chooseWood(item.productId, e.target.value)}
+                          className={field}
+                        >
+                          <option value="">Choose a wood</option>
+                          {item.woods.map((w) => <option key={w.name} value={w.name}>{woodLabel(w)}</option>)}
+                        </select>
+                      </label>
+                    )}
                     <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
                       <label className="flex flex-col gap-1.5">
-                        <span className="font-sans text-xs font-medium text-gray-600">Quantity{item.purchaseIncrement ? ` (ft, multiples of ${formatIncrement(item.purchaseIncrement)})` : ''}</span>
+                        <span className="font-sans text-xs font-medium text-gray-600">Quantity{incrementOf(item) ? ` (ft, multiples of ${formatIncrement(incrementOf(item))})` : ''}</span>
                         <input
                           type="number"
-                          min={item.purchaseIncrement || 1}
+                          min={incrementOf(item) || 1}
                           max={9999}
-                          step={item.purchaseIncrement || 1}
+                          step={incrementOf(item) || 1}
                           value={item.quantity}
                           onChange={(e) => updateItem(item.productId, { quantity: e.target.value })}
                           className={field}
                         />
-                        {item.purchaseIncrement && !isMultiple(Number(item.quantity), Number(item.purchaseIncrement)) && (
+                        {incrementOf(item) && !isMultiple(Number(item.quantity), incrementOf(item)) && (
                           <span className="font-sans text-xs text-red-700">
-                            Must be a multiple of {formatIncrement(item.purchaseIncrement)}.
+                            Must be a multiple of {formatIncrement(incrementOf(item))}.
                           </span>
                         )}
                       </label>
