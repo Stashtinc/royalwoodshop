@@ -32,6 +32,7 @@ export async function loader() {
       species: p.species ?? [],
       availability: p.availability,
       uom: p.uom,
+      purchaseIncrement: p.purchaseIncrement ?? null,
       image: p.image ?? null,
       imageWidth: p.imageWidth ?? null,
       imageRole: p.imageRole ?? null,

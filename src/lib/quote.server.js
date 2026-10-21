@@ -1,6 +1,7 @@
 import { eq, inArray, and } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { products, quoteRequests, quoteItems, quoteFiles } from '../db/schema.js'
+import { isMultiple, formatIncrement } from './purchase-increment.js'
 
 /**
  * The Get a Quote form: a serious project enquiry.
@@ -97,10 +98,23 @@ export async function resolveItems(items) {
   const ids = [...new Set(items.map((i) => i.productId))]
   const rows = await db.select({
     id: products.id, name: products.name, productCode: products.productCode, uom: products.uom,
+    purchaseIncrement: products.purchaseIncrement,
   }).from(products).where(and(inArray(products.id, ids), eq(products.status, 'published')))
   const byId = new Map(rows.map((r) => [r.id, r]))
   if (byId.size !== ids.length) {
     return { lines: null, errors: { items: 'One of the products is no longer available. Please remove it and try again.' } }
+  }
+  // A linear-foot product is bought in whole multiples of its purchase increment.
+  for (const i of items) {
+    const row = byId.get(i.productId)
+    const increment = row.purchaseIncrement == null ? null : Number(row.purchaseIncrement)
+    if (!isMultiple(i.quantity, increment)) {
+      const step = formatIncrement(increment)
+      return {
+        lines: null,
+        errors: { items: `${row.name} is bought in multiples of ${step}. Please set its quantity to ${step}, ${Number(step) * 2} or another multiple of ${step}.` },
+      }
+    }
   }
   return {
     lines: items.map((i, position) => ({

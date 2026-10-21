@@ -5,6 +5,7 @@ import {
 } from '../db/schema.js'
 import { SPECIES } from './catalogue-constants.js'
 import { canon } from './species-import.server.js'
+import { formatIncrement } from './purchase-increment.js'
 
 /**
  * The Master Product List, one row per SKU.
@@ -26,7 +27,7 @@ import { canon } from './species-import.server.js'
 export const SKU_SHEET = 'Master Product List'
 export const SKU_HEADERS = [
   'Part ID', 'Base Code', 'image name', 'Product Name', 'Category', 'type sub-cat',
-  'Size', 'Description', 'Species', 'Availability', 'Price', 'UOM',
+  'Size', 'Description', 'Specifications', 'Availability', 'Price', 'UOM', 'Purchase Increment',
 ]
 
 const FLEX = 'Flex'
@@ -43,7 +44,8 @@ export async function skuRows(db) {
   const rows = await db.select({
     id: products.id, code: products.productCode, name: products.name,
     description: products.description, size: products.sizeDisplay, price: products.price,
-    uom: products.uom, flex: products.flexAvailable, flexAvailability: products.flexAvailability,
+    uom: products.uom, purchaseIncrement: products.purchaseIncrement,
+    flex: products.flexAvailable, flexAvailability: products.flexAvailability,
     category: categories.name,
   })
     .from(products)
@@ -107,6 +109,7 @@ export async function skuRows(db) {
       code: p.code ?? '', image: imagesOf.get(p.id) ?? '', name: p.name ?? '', category: cats,
       sub: pl.map((x) => x.sub).join('|'), size: p.size ?? '', description: p.description ?? '',
       price: p.price ?? '', uom: p.uom ?? '',
+      increment: p.purchaseIncrement == null ? '' : formatIncrement(p.purchaseIncrement),
     }
     const avail = new Map(speciesOf.get(p.id) ?? [])
     if (p.flex) avail.set(FLEX, p.flexAvailability)
@@ -132,6 +135,7 @@ export async function skuRows(db) {
       out.push([
         s.partId, base.code, base.image, base.name, base.category, base.sub, base.size,
         base.description, s.species, s.availability, s.price ?? '', base.uom || s.uom || '',
+        base.increment,
       ])
     }
   }
@@ -144,7 +148,7 @@ export async function skuRows(db) {
 function readSkuGrid(grid) {
   const at = grid.findIndex((row) => {
     const keys = row.map(canon)
-    return keys.includes('part id') && keys.includes('base code') && keys.includes('species')
+    return keys.includes('part id') && keys.includes('base code') && keys.includes('specifications')
   })
   if (at === -1) return null
   const keys = grid[at].map(canon)
@@ -181,6 +185,7 @@ const PRODUCT_FIELDS = [
   ['image name', 'image name'], ['product name', 'product name'], ['category', 'category'],
   ['type sub-cat', 'type sub-cat'], ['size', 'size'], ['description', 'description'],
   ['uom', 'uom (lft, ea, sqft, kit, pc)'],
+  ['purchase increment', 'purchase increment'],
 ]
 
 /**
@@ -214,19 +219,19 @@ export function skuRowsToMaster(skuRows) {
     }
     const other = []
     for (const r of rows) {
-      if (!r.species) continue
-      const species = SPECIES_BY_KEY.get(canon(r.species))
+      if (!r.specifications) continue
+      const species = SPECIES_BY_KEY.get(canon(r.specifications))
       // Blank availability still means "sold in this wood"; the import keeps
       // the species without inventing an availability for it.
       const tick = r.availability || TICK_ONLY
       if (species === FLEX) m[canon(FLEX)] = tick
       else if (species) m[canon(species)] = tick
-      else other.push(r.species)
+      else other.push(r.specifications)
       // Price is per row: the Part ID's price, or the wood's when it has no Part ID.
       if (r['part id']) {
-        partRows.push({ 'part id': r['part id'], 'base code': code, species: r.species, uom: r.uom, name: '', category: r.category, keepName: true, price: r.price ?? '' })
+        partRows.push({ 'part id': r['part id'], 'base code': code, species: r.specifications, uom: r.uom, name: '', category: r.category, keepName: true, price: r.price ?? '' })
       } else if (r.price) {
-        priceRows.push({ code, species: r.species, price: r.price })
+        priceRows.push({ code, species: r.specifications, price: r.price })
       }
     }
     m.other = [...new Set(other)].join('|')

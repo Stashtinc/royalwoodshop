@@ -7,6 +7,7 @@ import {
   categories, productCategories, productImages, activityLog,
 } from '../db/schema.js'
 import { SPECIES, TICK_CODES, TICK_ALIASES, bestAvailability, normaliseUom } from './catalogue-constants.js'
+import { parseIncrement } from './purchase-increment.js'
 
 /** Ticked beside species on the sheet, but stored as a product flag. */
 const FLEX = 'Flex'
@@ -191,6 +192,7 @@ function readRow(r, layout = 'species') {
     description: cell(r, 'description') || null,
     sizeDisplay: cell(r, 'size') || null,
     uom: normaliseUom(uomKey ? cell(r, uomKey) : ''),
+    purchaseIncrement: parseIncrement(cell(r, 'purchase increment')),
   }
   row.images = pipes(r['image name'])
 
@@ -351,7 +353,7 @@ const categoryTitle = (name) => CATEGORY_TITLE[categorySlug(name)] ?? String(nam
 /** Which of the extra columns differ from what the database already holds.
  *  A blank cell is "leave it alone" and never appears here. */
 /** Master fields an empty cell clears. The name is never cleared. */
-const CLEARABLE = new Set(['description', 'sizeDisplay', 'uom'])
+const CLEARABLE = new Set(['description', 'sizeDisplay', 'uom', 'purchaseIncrement'])
 
 function fieldDiff(sheet, current) {
   const out = {}
@@ -361,7 +363,7 @@ function fieldDiff(sheet, current) {
       if (CLEARABLE.has(k) && now != null && String(now).trim() !== '') out[k] = { from: now, to: null }
       continue
     }
-    const same = k === 'price'
+    const same = k === 'price' || k === 'purchaseIncrement'
       ? Number(now ?? NaN) === Number(v)
       : String(now ?? '').trim() === String(v).trim()
     if (!same) out[k] = { from: now ?? null, to: v }
@@ -410,6 +412,7 @@ export async function analyse(rows, { layout = 'species', downloadedAt = null } 
         sizeDisplay: products.sizeDisplay,
         price: products.price,
         uom: products.uom,
+        purchaseIncrement: products.purchaseIncrement,
         primaryCategoryId: products.primaryCategoryId,
         categorySlug: categories.slug,
         availability: products.availability,

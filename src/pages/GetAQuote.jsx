@@ -3,6 +3,7 @@ import { Form, useActionData, useNavigation } from 'react-router'
 import ProductPicker from '../components/quote/ProductPicker'
 import Thumb from '../components/quote/Thumb'
 import { UOM_OPTIONS, AVAILABILITY_LABEL } from '../lib/catalogue-constants'
+import { isMultiple, formatIncrement } from '../lib/purchase-increment'
 
 /**
  * Get a Quote: for renovations, new builds and large orders.
@@ -50,7 +51,7 @@ export default function GetAQuote({ products }) {
       const have = new Set(prev.map((i) => i.productId))
       const fresh = picked
         .filter((p) => !have.has(p.id))
-        .map((p) => ({ productId: p.id, name: p.name, productCode: p.productCode, uom: p.uom, sizeDisplay: p.sizeDisplay, availability: p.availability, image: p.image, imageWidth: p.imageWidth, imageRole: p.imageRole, quantity: 1, note: '' }))
+        .map((p) => ({ productId: p.id, name: p.name, productCode: p.productCode, uom: p.uom, sizeDisplay: p.sizeDisplay, availability: p.availability, image: p.image, imageWidth: p.imageWidth, imageRole: p.imageRole, purchaseIncrement: p.purchaseIncrement, quantity: p.purchaseIncrement || 1, note: '' }))
       return [...prev, ...fresh]
     })
   }
@@ -146,7 +147,7 @@ export default function GetAQuote({ products }) {
                         <div className="flex min-w-0 flex-col">
                         <span className="font-sans text-sm font-medium text-gray-900">{item.name}</span>
                         <span className="font-sans text-xs text-gray-500">
-                          {[item.productCode, item.sizeDisplay, AVAILABILITY_LABEL[item.availability], item.uom && uomLabel(item.uom)].filter(Boolean).join(' · ')}
+                          {[item.productCode, item.sizeDisplay, AVAILABILITY_LABEL[item.availability], item.uom && uomLabel(item.uom), item.purchaseIncrement && `Bought in multiples of ${formatIncrement(item.purchaseIncrement)} ft`].filter(Boolean).join(' · ')}
                         </span>
                         </div>
                       </div>
@@ -160,16 +161,21 @@ export default function GetAQuote({ products }) {
                     </div>
                     <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
                       <label className="flex flex-col gap-1.5">
-                        <span className="font-sans text-xs font-medium text-gray-600">Quantity</span>
+                        <span className="font-sans text-xs font-medium text-gray-600">Quantity{item.purchaseIncrement ? ` (ft, multiples of ${formatIncrement(item.purchaseIncrement)})` : ''}</span>
                         <input
                           type="number"
-                          min={1}
+                          min={item.purchaseIncrement || 1}
                           max={9999}
-                          step={1}
+                          step={item.purchaseIncrement || 1}
                           value={item.quantity}
                           onChange={(e) => updateItem(item.productId, { quantity: e.target.value })}
                           className={field}
                         />
+                        {item.purchaseIncrement && !isMultiple(Number(item.quantity), Number(item.purchaseIncrement)) && (
+                          <span className="font-sans text-xs text-red-700">
+                            Must be a multiple of {formatIncrement(item.purchaseIncrement)}.
+                          </span>
+                        )}
                       </label>
                       <label className="flex flex-col gap-1.5">
                         <span className="font-sans text-xs font-medium text-gray-600">Note (optional)</span>

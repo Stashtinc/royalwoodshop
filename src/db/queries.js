@@ -52,6 +52,7 @@ export async function getAllProducts(db) {
       widthIn: products.widthIn,
       availability: products.availability,
       uom: products.uom,
+      purchaseIncrement: products.purchaseIncrement,
       flexAvailable: products.flexAvailable,
       flexAvailability: products.flexAvailability,
       leadTime: products.leadTime,
@@ -194,6 +195,7 @@ function shape(r) {
     // sheet is complete, fall back so the filter is never empty for a product.
     material: species.length ? species.join(', ') : 'Unspecified',
     uom: r.uom ?? null,
+    purchaseIncrement: r.purchaseIncrement == null ? null : Number(r.purchaseIncrement),
     availability: r.availability ?? null,
     availabilityLabel: r.availability ? AVAILABILITY_LABEL[r.availability] : null,
     speciesAvailability: [

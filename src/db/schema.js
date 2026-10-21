@@ -89,6 +89,10 @@ export const products = pgTable('products', {
    *  Product List; nothing in the legacy data carried it. */
   uom: varchar('uom', { length: 20 }),
 
+  /** Purchase increment (purchase multiple) in feet: quantities must be whole
+   *  multiples of it. Null means any quantity. Comes from the Master Product List. */
+  purchaseIncrement: numeric('purchase_increment', { precision: 8, scale: 2 }),
+
   /** Profile is also available as a flexible moulding.
    *  flexAvailability stores the availability code (in_stock / quick_ship /
    *  made_to_order). flexAvailable is kept as the legacy boolean synonym and
