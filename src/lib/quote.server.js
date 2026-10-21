@@ -1,6 +1,6 @@
 import { eq, inArray, and } from 'drizzle-orm'
 import { getDb } from './db.server.js'
-import { products, quoteRequests, quoteItems, quoteFiles } from '../db/schema.js'
+import { products, productPartIds, quoteRequests, quoteItems, quoteFiles } from '../db/schema.js'
 import { isMultiple, formatIncrement } from './purchase-increment.js'
 
 /**
@@ -90,6 +90,25 @@ export function validateQuote(form) {
 /** Honeypot: a field real visitors never see. Bots fill every input. */
 export const isBot = (form) => String(form.get('website_url') ?? '').trim() !== ''
 
+/** The purchase increment each product is quoted in. A product's Part IDs
+ *  can carry different increments per species; only a product whose Part IDs
+ *  all agree is enforced. Otherwise it has none (for now). */
+export async function productIncrements(productIds) {
+  const out = new Map()
+  if (!productIds.length) return out
+  const db = await getDb()
+  const rows = await db.select({ productId: productPartIds.productId, increment: productPartIds.purchaseIncrement })
+    .from(productPartIds).where(inArray(productPartIds.productId, productIds))
+  const seen = new Map()
+  for (const r of rows) {
+    if (r.increment == null) continue
+    if (!seen.has(r.productId)) seen.set(r.productId, new Set())
+    seen.get(r.productId).add(Number(r.increment))
+  }
+  for (const [id, set] of seen) if (set.size === 1) out.set(id, [...set][0])
+  return out
+}
+
 /** Looks each requested product up, so the saved line carries the code and
  *  name as they were at the time, and only published products can be quoted. */
 export async function resolveItems(items) {
@@ -98,16 +117,16 @@ export async function resolveItems(items) {
   const ids = [...new Set(items.map((i) => i.productId))]
   const rows = await db.select({
     id: products.id, name: products.name, productCode: products.productCode, uom: products.uom,
-    purchaseIncrement: products.purchaseIncrement,
   }).from(products).where(and(inArray(products.id, ids), eq(products.status, 'published')))
   const byId = new Map(rows.map((r) => [r.id, r]))
   if (byId.size !== ids.length) {
     return { lines: null, errors: { items: 'One of the products is no longer available. Please remove it and try again.' } }
   }
   // A linear-foot product is bought in whole multiples of its purchase increment.
+  const increments = await productIncrements(ids)
   for (const i of items) {
     const row = byId.get(i.productId)
-    const increment = row.purchaseIncrement == null ? null : Number(row.purchaseIncrement)
+    const increment = increments.get(i.productId) ?? null
     if (!isMultiple(i.quantity, increment)) {
       const step = formatIncrement(increment)
       return {

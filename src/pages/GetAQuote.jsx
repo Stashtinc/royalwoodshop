@@ -200,8 +200,8 @@ export default function GetAQuote({ products }) {
             title="Plans and files"
             hint="PDF plans, door schedules and spreadsheets (PDF, XLS, XLSX, CSV), or photos (JPG, PNG, WebP). Up to 10 files, 10 MB each, 15 MB in total."
           >
-            <label className="flex cursor-pointer flex-col items-start gap-3 rounded-lg border border-dashed border-gray-300 bg-white p-5 hover:border-royal-blue">
-              <span className="font-sans text-sm font-medium text-royal-blue">Choose files</span>
+            <label className="inline-flex w-fit cursor-pointer rounded-lg border border-royal-blue px-6 py-3 font-sans text-base font-medium text-royal-blue transition-colors hover:bg-royal-blue hover:text-white">
+              Choose files
               <input
                 ref={fileInput}
                 type="file"

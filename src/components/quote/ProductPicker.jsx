@@ -63,15 +63,24 @@ export default function ProductPicker({ products, addedIds, onAdd }) {
   const addTicked = () => {
     onAdd(products.filter((p) => ticked.has(p.id)))
     setTicked(new Set())
+    setOpen(false)
+    // Put the products back at the top of the screen, with the new line visible.
+    requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }))
   }
 
   const filtersActive = Boolean(category || species || availability)
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative scroll-mt-28">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          const next = !open
+          setOpen(next)
+          // Bring the picker to the top of the screen, so the panel, including
+          // "Add to quote" at its foot, fits without scrolling.
+          if (next) requestAnimationFrame(() => rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }))
+        }}
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 text-left font-sans text-sm text-gray-700 hover:border-gray-400"
       >
@@ -82,7 +91,7 @@ export default function ProductPicker({ products, addedIds, onAdd }) {
       </button>
 
       {open && (
-        <div className="absolute top-full right-0 left-0 z-30 mt-2 flex max-h-[70vh] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
+        <div className="absolute top-full right-0 left-0 z-30 mt-2 flex max-h-[calc(100svh-12rem)] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
           <div className="flex flex-col gap-3 border-b border-gray-100 p-4">
             <input
               type="search"
