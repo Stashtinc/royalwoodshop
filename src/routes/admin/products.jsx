@@ -562,7 +562,6 @@ export default function Products() {
                         <button type="submit" className="text-sm text-green-700 hover:underline">{statusFilter === 'draft' ? 'Publish' : 'Activate'}</button>
                       </Form>
                     )}
-<button type="button" onClick={() => setCatalogueFor([r.id])} className="text-sm text-purple-700 hover:underline">Catalogue</button>
 <Link to={`/admin/products/${r.id}`} className="text-sm text-royal-blue hover:underline">Edit</Link>
                   </div>
                 </td>
