@@ -32,7 +32,7 @@ export default function SectionTabs({ active }) {
             key={key}
             to={to}
             aria-current={on ? 'page' : undefined}
-            className={`flex items-center gap-2 border-b-2 pb-1 font-serif text-2xl font-bold ${on ? 'border-royal-blue text-tundora' : 'border-transparent text-gray-400 hover:text-tundora'}`}
+            className={`flex items-center gap-2 border-b-2 pb-1 font-serif text-2xl font-bold ${on ? 'border-royal-blue text-royal-blue' : 'border-transparent text-gray-400 hover:text-tundora'}`}
           >
             <Icon />
             {label}
