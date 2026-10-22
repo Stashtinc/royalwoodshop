@@ -104,7 +104,7 @@ Schema: `src/db/schema.js`. The Postgres database is Neon or Railway in producti
 - **Migration files:** plain SQL in `drizzle/`, numbered (`0001_…` to `0020_image_role_default.sql`), each with `--> statement-breakpoint` lines between statements. The `drizzle/meta/` folder holds snapshots from `drizzle-kit`.
 - **Creating one:** write the next numbered `.sql` file by hand, and update `schema.js` to match. `npm run db:generate` (drizzle-kit) can produce the SQL and snapshot.
 - **Applying in development:** the server applies any unrun migration on start, in embedded mode only, and records each in `_applied_migrations`.
-- **Applying in production:** `npm run db:migrate -- 0021_print_catalogues.sql`. This runs only the named file, and skips statements that already exist. Run it after deploying a change that needs it. Never run `npm run db:setup` on production: it re-imports the catalogue, redirects and blog from CSV, overwriting admin edits. Never replay all migrations on production: 0010 and 0011 reset category names and order.
+- **Applying in production:** `npm run db:migrate -- 0025_print_catalogues.sql`. This runs only the named file, and skips statements that already exist. Run it after deploying a change that needs it. Never run `npm run db:setup` on production: it re-imports the catalogue, redirects and blog from CSV, overwriting admin edits. Never replay all migrations on production: 0010 and 0011 reset category names and order.
 
 ---
 
@@ -125,7 +125,7 @@ Schema: `src/db/schema.js`. The Postgres database is Neon or Railway in producti
 
 ### New tables (one migration)
 
-`drizzle/0021_print_catalogues.sql`, plus matching definitions in `src/db/schema.js`:
+`drizzle/0025_print_catalogues.sql`, plus matching definitions in `src/db/schema.js`:
 
 ```
 print_catalogues
