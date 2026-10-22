@@ -181,21 +181,23 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
                   : <AvailSelect name={`species:${s}`} defaultValue={current} />}
               </label>
               <div className="flex flex-col gap-1">
-                <input
-                  type="text"
-                  name={`partId:${s}`}
-                  defaultValue={pick(initialPartIds[s] ?? '')}
-                  placeholder="Part ID"
-                  className="rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
-                />
-                <input
-                  type="text"
-                  name={`partIncrement:${s}`}
-                  defaultValue={pick(initialPartIncrements[s] ?? '')}
-                  placeholder="Purchase increment (ft)"
-                  inputMode="decimal"
-                  className="rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name={`partId:${s}`}
+                    defaultValue={pick(initialPartIds[s] ?? '')}
+                    placeholder="Part ID"
+                    className="flex-1 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
+                  />
+                  <input
+                    type="text"
+                    name={`partIncrement:${s}`}
+                    defaultValue={pick(initialPartIncrements[s] ?? '')}
+                    placeholder="Purchase increment (ft)"
+                    inputMode="decimal"
+                    className="flex-1 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
+                  />
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
