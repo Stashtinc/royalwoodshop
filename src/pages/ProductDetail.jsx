@@ -437,7 +437,7 @@ export default function ProductDetail({ product: productProp = null, related: re
               {/* CTAs */}
               <div className="flex flex-wrap gap-3">
                 <Link
-                  to="/contact"
+                  to="/get-a-quote"
                   className="rounded-lg border border-royal-blue bg-royal-blue px-6 py-3 font-sans text-sm font-medium text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark"
                 >
                   Get a Quote

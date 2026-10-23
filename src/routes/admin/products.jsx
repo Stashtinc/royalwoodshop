@@ -8,8 +8,11 @@ import { log } from '../../lib/activity.server'
 import { AVAILABILITY_LABEL, SPECIES } from '../../lib/catalogue-constants'
 import { thumbSrc } from '../../lib/images'
 import Pagination from '../../components/admin/Pagination'
+import FilterPill from '../../components/admin/FilterPill'
 import { ConfirmForm } from '../../components/admin/ConfirmDialog'
 import SectionTabs from '../../components/admin/SectionTabs'
+import AddToCatalogueDialog from '../../components/admin/AddToCatalogueDialog'
+import { listPrintCatalogues, createPrintCatalogue, addProductsToCatalogue, getPrintCatalogue } from '../../lib/print-catalogues.server'
 
 
 /** Status views besides the default (everything not archived). */
@@ -21,7 +24,7 @@ export async function loader({ request }) {
   const allowed = [25, 50, 100]
   const requested = Number(url.searchParams.get('perPage') ?? 25)
   const idParam = (k) => (Number(url.searchParams.get(k)) > 0 ? Number(url.searchParams.get(k)) : null)
-  const [data, categoryOptions] = await Promise.all([
+  const [data, categoryOptions, catalogues] = await Promise.all([
     listProducts({
       q: url.searchParams.get('q') ?? '',
       page: Math.max(1, Number(url.searchParams.get('page') ?? 1)),
@@ -39,8 +42,9 @@ export async function loader({ request }) {
       photosFirst: !url.searchParams.get('saved'),
     }),
     listCategoriesWithSubs(),
+    listPrintCatalogues(),
   ])
-  return { ...data, categoryOptions, savedId }
+  return { ...data, categoryOptions, savedId, catalogues }
 }
 
 export async function action({ request }) {
@@ -48,6 +52,16 @@ export async function action({ request }) {
   const url = new URL(request.url)
   const f = await request.formData()
   const intent = f.get('intent')
+
+  if (intent === 'add-to-catalogue') {
+    const ids = String(f.get('productIds') ?? '').split(',').map(Number).filter(Boolean)
+    const chosen = String(f.get('catalogueId') ?? '')
+    const catalogueId = chosen && chosen !== 'new' ? Number(chosen) : await createPrintCatalogue(user.email)
+    if (ids.length) await addProductsToCatalogue(catalogueId, ids)
+    const catalogue = await getPrintCatalogue(catalogueId)
+    await log(user, 'print_catalogue.add_products', { entityType: 'print_catalogue', entityId: catalogueId, details: { productIds: ids } })
+    return { catalogueAdded: { id: catalogueId, title: catalogue?.title ?? 'Product Catalogue', count: ids.length } }
+  }
   if (intent === 'archive-selected') {
     const ids = f.getAll('productId').map(Number).filter(Boolean)
     if (!ids.length) return null
@@ -125,60 +139,6 @@ const MISSING_LABEL = {
   description: 'missing description',
 }
 
-function FilterPill({ label, value, options, onChange, activeClass }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-  const isActive = !!value
-
-  const close = useCallback(() => setOpen(false), [])
-
-  useEffect(() => {
-    if (!open) return
-    function onDown(e) { if (ref.current && !ref.current.contains(e.target)) close() }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open, close])
-
-  const activeStyle = activeClass ?? 'border-royal-blue bg-royal-blue text-white'
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors focus:outline-none ${
-          isActive ? activeStyle : 'border-gray-300 text-gray-600 hover:border-royal-blue'
-        }`}
-      >
-        {value ? options.find((o) => o.value === value)?.label ?? label : label}
-        <svg
-          width="10" height="10" viewBox="0 0 10 6" fill="none"
-          className={`transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
-        >
-          <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-      {open && (
-        <div className="absolute top-full left-0 z-20 mt-1.5 max-h-80 min-w-[11rem] overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => { onChange(opt.value); close() }}
-              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50 ${
-                value === opt.value ? 'font-semibold text-royal-blue' : 'text-gray-700'
-              }`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${value === opt.value ? 'bg-royal-blue' : 'bg-transparent'}`} />
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export default function Products() {
   const { rows, total, page, pages, perPage, categoryOptions, sortBy, sortDir, savedId } = useLoaderData()
   const actionData = useActionData()
@@ -223,6 +183,9 @@ export default function Products() {
   }
 
   const [bulkEdit, setBulkEdit] = useState(false)
+  // Product ids to add to a catalogue (set by the bulk button or a row), or null when the dialog is closed.
+  const [catalogueFor, setCatalogueFor] = useState(null)
+  const catalogueList = useLoaderData().catalogues
   const [selectedIds, setSelectedIds] = useState(new Set())
 
   function toggleSelect(id) {
@@ -274,6 +237,15 @@ export default function Products() {
 
   return (
     <div className="flex flex-col gap-5">
+      {actionData?.catalogueAdded && (
+        <p className="rounded-lg bg-purple-50 px-4 py-2.5 text-sm text-purple-800">
+          Added {actionData.catalogueAdded.count} product{actionData.catalogueAdded.count === 1 ? '' : 's'} to{' '}
+          <Link to={`/admin/catalogue/${actionData.catalogueAdded.id}`} className="font-medium underline">{actionData.catalogueAdded.title}</Link>.
+        </p>
+      )}
+      {catalogueFor && (
+        <AddToCatalogueDialog productIds={catalogueFor} catalogues={catalogueList} onClose={() => setCatalogueFor(null)} />
+      )}
       {actionData?.activated != null && (
         <p className="rounded-lg bg-green-50 px-4 py-2.5 text-sm text-green-800">
           {actionData.activated} product{actionData.activated === 1 ? "" : "s"} published.
@@ -334,6 +306,12 @@ export default function Products() {
                     Archive {selectedIds.size} selected
                   </button>
                 </Form>
+              )}
+              {selectedIds.size > 0 && (
+                <button type="button" onClick={() => setCatalogueFor([...selectedIds])}
+                  className="rounded-lg border border-purple-600 bg-white px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50">
+                  Add {selectedIds.size} to catalogue
+                </button>
               )}
               {selectedIds.size > 0 && (
                 <ConfirmForm method="post" onConfirmed={exitBulkEdit}

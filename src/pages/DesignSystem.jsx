@@ -160,9 +160,9 @@ export default function DesignSystem() {
                 Secondary
               </button>
               {/* Ghost / tundora */}
-              <button type="button" className="rounded-lg border border-tundora bg-white px-4 py-2.5 font-sans text-sm text-gray-900 transition-colors hover:border-royal-blue hover:bg-royal-blue hover:text-white">
+              <Link to="/get-a-quote" className="rounded-lg border border-tundora bg-white px-4 py-2.5 font-sans text-sm text-gray-900 transition-colors hover:border-royal-blue hover:bg-royal-blue hover:text-white">
                 Get a Quote
-              </button>
+              </Link>
               {/* Learn more / arrow */}
               <button type="button" className="group inline-flex items-center gap-2 rounded-lg border border-white bg-royal-blue px-4 py-4 font-sans text-base text-white transition-colors hover:bg-white hover:text-royal-blue">
                 Learn more

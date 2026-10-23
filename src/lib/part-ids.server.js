@@ -6,6 +6,7 @@ import {
 } from '../db/schema.js'
 import { SPECIES } from './catalogue-constants.js'
 import { canon } from './species-import.server.js'
+import { parseIncrement } from './purchase-increment.js'
 
 /**
  * Per-species Part IDs: the supplier/ERP code for each wood a product is sold
@@ -120,6 +121,8 @@ function matchProduct(partId, baseCode, { byCode, codes }) {
 }
 
 /** Rows parsed and matched against the database, ready to preview or apply. */
+const num = (v) => (v == null || v === '' ? null : Number(v))
+
 export async function analysePartIds(sheetRows) {
   const db = await getDb()
   const productRows = await db.select({
@@ -133,6 +136,7 @@ export async function analysePartIds(sheetRows) {
   const current = await db.select({
     partId: productPartIds.partId, productId: productPartIds.productId,
     species: productPartIds.species, name: productPartIds.name, uom: productPartIds.uom,
+    purchaseIncrement: productPartIds.purchaseIncrement,
   }).from(productPartIds).where(isNotNull(productPartIds.partId))
   return matchPartIds(sheetRows, { productRows, tickRows, current })
 }
@@ -172,6 +176,8 @@ export function matchPartIds(sheetRows, { productRows, tickRows, current }) {
       name: r.name || null, uom: r.uom || null, keepName: Boolean(r.keepName),
       // Only a sheet with a Price column sets prices; an ERP list keeps the stored ones.
       ...('price' in r ? { price: money(r.price) } : {}),
+      // Only a sheet with a Purchase Increment column sets it; the ERP list keeps the stored one.
+      ...('increment' in r ? { increment: parseIncrement(r.increment) } : {}),
     }
     matched.push(row)
     if (!known) warnings.unknownSpecies.set(species, (warnings.unknownSpecies.get(species) ?? 0) + 1)
@@ -190,7 +196,8 @@ export function matchPartIds(sheetRows, { productRows, tickRows, current }) {
   for (const m of matched) {
     const b = before.get(m.partId)
     if (!b) added++
-    else if (b.productId !== m.productId || b.species !== m.species || b.name !== m.name || b.uom !== m.uom) changed++
+    else if (b.productId !== m.productId || b.species !== m.species || b.name !== m.name || b.uom !== m.uom
+      || ('increment' in m && num(b.purchaseIncrement) !== num(m.increment))) changed++
   }
   const removed = current.filter((c) => !seen.has(c.partId)).map((c) => c.partId)
 
@@ -241,9 +248,9 @@ export async function applyPartIds(matched, { priceOnly = null } = {}) {
   await db.transaction(async (tx) => {
     const priced = await tx.select({
       productId: productPartIds.productId, species: productPartIds.species, partId: productPartIds.partId,
-      price: productPartIds.price, salePrice: productPartIds.salePrice,
+      price: productPartIds.price, salePrice: productPartIds.salePrice, purchaseIncrement: productPartIds.purchaseIncrement,
     }).from(productPartIds)
-      .where(or(isNotNull(productPartIds.price), isNotNull(productPartIds.salePrice)))
+      .where(or(isNotNull(productPartIds.price), isNotNull(productPartIds.salePrice), isNotNull(productPartIds.purchaseIncrement)))
       .orderBy(asc(productPartIds.id))
     // By Part ID first; by product + species for a row that has no Part ID.
     const priceOf = new Map()
@@ -263,6 +270,7 @@ export async function applyPartIds(matched, { priceOnly = null } = {}) {
       return {
         productId: m.productId, species: m.species, partId: m.partId, name: m.name, uom: m.uom,
         price: 'price' in m ? m.price : (p?.price ?? null), salePrice: p?.salePrice ?? null,
+        purchaseIncrement: 'increment' in m ? m.increment : (p?.purchaseIncrement ?? null),
       }
     })
     if (priceOnly) {
