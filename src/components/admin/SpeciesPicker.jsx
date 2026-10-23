@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { SPECIES, AVAILABILITY } from '../../lib/catalogue-constants'
+import { parseIncrement } from '../../lib/purchase-increment'
 import { useConfirm } from './ConfirmDialog'
 
 // `large` matches the page's standard fields (Lead time etc.), for the Other row.
@@ -115,7 +116,7 @@ function SpeciesDialog({ taken, onAdd, onCancel }) {
  * initialOther: [{ name, avail }, ...] for non-standard species
  * initialFlex:  availability key or null
  */
-export default function SpeciesPicker({ initialAvail = {}, initialOther = [], initialFlex = null, initialPartIds = {}, initialPartPrices = {}, initialPartSalePrices = {} }) {
+export default function SpeciesPicker({ initialAvail = {}, initialOther = [], initialFlex = null, initialPartIds = {}, initialPartPrices = {}, initialPartSalePrices = {}, initialPartIncrements = {} }) {
   const seed = [0]
   const [rows, setRows] = useState(seed)
   const nextId = useRef(seed.length)
@@ -180,13 +181,23 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
                   : <AvailSelect name={`species:${s}`} defaultValue={current} />}
               </label>
               <div className="flex flex-col gap-1">
-                <input
-                  type="text"
-                  name={`partId:${s}`}
-                  defaultValue={pick(initialPartIds[s] ?? '')}
-                  placeholder="Part ID"
-                  className="rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name={`partId:${s}`}
+                    defaultValue={pick(initialPartIds[s] ?? '')}
+                    placeholder="Part ID"
+                    className="flex-1 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
+                  />
+                  <input
+                    type="text"
+                    name={`partIncrement:${s}`}
+                    defaultValue={pick(initialPartIncrements[s] ?? '')}
+                    placeholder="Purchase increment (ft)"
+                    inputMode="decimal"
+                    className="flex-1 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 outline-none focus:border-royal-blue"
+                  />
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -319,13 +330,14 @@ export function readPartEntries(f) {
     const wood = key.slice('partId:'.length)
     entries[wood] = {
       partId: text(key)?.toUpperCase() ?? null,
+      purchaseIncrement: parseIncrement(text(`partIncrement:${wood}`)),
       price: money(`partPrice:${wood}`),
       salePrice: money(`partSalePrice:${wood}`),
     }
   }
   // Removed custom species: an empty entry clears their Part ID row, unless the form sent one again.
   for (const n of f.getAll("removed_species").map((x) => String(x).trim())) {
-    if (n && !(n in entries)) entries[n] = { partId: null, price: null, salePrice: null }
+    if (n && !(n in entries)) entries[n] = { partId: null, purchaseIncrement: null, price: null, salePrice: null }
   }
   const bad = Object.entries(entries).find(([, e]) =>
     [e.price, e.salePrice].some((v) => v != null && !/^\d+(\.\d{1,2})?$/.test(v)))

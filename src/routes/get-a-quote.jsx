@@ -20,6 +20,12 @@ export async function loader() {
     const { loadAllProducts } = await import('../lib/products.server.js')
     all = await loadAllProducts()
   }
+  // Each product's woods and their purchase increments (see productWoods).
+  let woods = new Map()
+  try {
+    const { productWoods } = await import('../lib/quote.server.js')
+    woods = await productWoods(all.map((p) => p.id))
+  } catch {}
   const products = all
     .filter((p) => (p.status ?? 'published') === 'published')
     .map((p) => ({
@@ -32,6 +38,7 @@ export async function loader() {
       species: p.species ?? [],
       availability: p.availability,
       uom: p.uom,
+      woods: woods.get(p.id) ?? [],
       image: p.image ?? null,
       imageWidth: p.imageWidth ?? null,
       imageRole: p.imageRole ?? null,

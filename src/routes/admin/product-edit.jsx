@@ -38,7 +38,7 @@ export async function loader({ request, params }) {
     listCategoriesWithSubs(),
     listProductCategories(params.id),
   ])
-  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds: partData.partIds || {}, partPrices: partData.prices || {}, partSalePrices: partData.salePrices || {} }
+  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds: partData.partIds || {}, partPrices: partData.prices || {}, partSalePrices: partData.salePrices || {}, partIncrements: partData.increments || {} }
 }
 
 export async function action({ request, params }) {
@@ -367,7 +367,7 @@ function CategoriesSection() {
 
 
 export default function ProductEdit() {
-  const { product, partIds, partPrices, partSalePrices } = useLoaderData()
+  const { product, partIds, partPrices, partSalePrices, partIncrements } = useLoaderData()
   const data = useActionData()
   const nav = useNavigation()
   const saving = nav.state === 'submitting'
@@ -473,7 +473,7 @@ export default function ProductEdit() {
           <p className="-mt-2 text-xs text-gray-500">
             Set how each wood ships. The product's overall availability is derived automatically from these.
           </p>
-          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} initialFlex={product.flexAvailability} initialPartIds={partIds} initialPartPrices={partPrices} initialPartSalePrices={partSalePrices} />
+          <SpeciesPicker initialAvail={product.speciesAvail} initialOther={product.otherSpecies} initialFlex={product.flexAvailability} initialPartIds={partIds} initialPartPrices={partPrices} initialPartSalePrices={partSalePrices} initialPartIncrements={partIncrements} />
           <label className="flex flex-col gap-1.5"><Label>Lead time</Label>
             <input name="leadTime" defaultValue={product.leadTime ?? ''} placeholder="e.g. approximately 1 week" className={field} /></label>
         </section>
