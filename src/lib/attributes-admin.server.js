@@ -16,9 +16,14 @@ export async function categoryOptions() {
 }
 
 /** Every attribute with its scope, how many values it has, and how many products use it. */
+/** Attributes that are managed elsewhere and never listed here: species are edited on
+ *  each product (their values are the species ticks), so they must not be changed here. */
+const NOT_MANAGED_HERE = new Set(['species'])
+
 export async function listAttributes() {
   const db = await getDb()
-  const rows = await db.select().from(attributes).orderBy(asc(attributes.sortOrder), asc(attributes.name))
+  const rows = (await db.select().from(attributes).orderBy(asc(attributes.sortOrder), asc(attributes.name)))
+    .filter((a) => !NOT_MANAGED_HERE.has(a.key))
   const valueCount = new Map()
   for (const r of await db.select({ attributeId: attributeValues.attributeId, n: sql`count(*)::int` })
     .from(attributeValues).groupBy(attributeValues.attributeId)) valueCount.set(r.attributeId, r.n)
@@ -45,7 +50,7 @@ export async function listAttributes() {
 export async function getAttribute(id) {
   const db = await getDb()
   const [a] = await db.select().from(attributes).where(eq(attributes.id, Number(id))).limit(1)
-  if (!a) return null
+  if (!a || NOT_MANAGED_HERE.has(a.key)) return null
   const values = await db.select().from(attributeValues)
     .where(eq(attributeValues.attributeId, a.id)).orderBy(asc(attributeValues.sortOrder), asc(attributeValues.value))
   const uses = new Map()
