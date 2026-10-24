@@ -1,6 +1,6 @@
 import { Link, useParams, useNavigate } from 'react-router'
 import { useState } from 'react'
-import { catalogueProducts, productPath, relatedTo, speciesSummary, availabilityKeys, subsOf } from '../data/catalogue'
+import { catalogueProducts, productPath, relatedTo, speciesSummary, availabilityKeys, subsOf, isHeightSub } from '../data/catalogue'
 import { srcSet, thumbSrc, imageFit } from '../lib/images'
 
 function ChevronRight() {
@@ -282,9 +282,11 @@ export default function ProductDetail({ product: productProp = null, related: re
 
   const specs = [
     { label: 'Category', value: product.category },
-    { label: 'Sub-Category', value: subsOf(product).join(', ') },
+    { label: 'Sub-Category', value: subsOf(product).filter((s) => !isHeightSub(s)).join(', ') },
     { label: 'Product Code', value: product.productCode },
     { label: 'Size', value: product.size },
+    // Door height is a product attribute (inches), shown as its own card when set.
+    ...(product.heightIn != null ? [{ label: 'Height', value: `${Number(product.heightIn)}"` }] : []),
     { label: 'Unit of Measure', value: product.uom ?? null },
     {
       label: 'Available in',
