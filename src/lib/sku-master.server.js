@@ -27,7 +27,7 @@ import { formatIncrement } from './purchase-increment.js'
 export const SKU_SHEET = 'Master Product List'
 export const SKU_HEADERS = [
   'Part ID', 'Base Code', 'image name', 'Product Name', 'Category', 'type sub-cat',
-  'Size', 'Description', 'Specifications', 'Availability', 'Price', 'UOM', 'Purchase Increment',
+  'Size', 'Description', 'Specifications', 'Availability', 'Price', 'UOM', 'Purchase Increment', 'Height',
 ]
 
 const FLEX = 'Flex'
@@ -44,7 +44,7 @@ export async function skuRows(db) {
   const rows = await db.select({
     id: products.id, code: products.productCode, name: products.name,
     description: products.description, size: products.sizeDisplay, price: products.price,
-    uom: products.uom,
+    uom: products.uom, heightIn: products.heightIn,
     flex: products.flexAvailable, flexAvailability: products.flexAvailability,
     category: categories.name,
   })
@@ -110,6 +110,7 @@ export async function skuRows(db) {
       code: p.code ?? '', image: imagesOf.get(p.id) ?? '', name: p.name ?? '', category: cats,
       sub: pl.map((x) => x.sub).join('|'), size: p.size ?? '', description: p.description ?? '',
       price: p.price ?? '', uom: p.uom ?? '',
+      height: p.heightIn == null ? '' : formatIncrement(p.heightIn),
     }
     const avail = new Map(speciesOf.get(p.id) ?? [])
     if (p.flex) avail.set(FLEX, p.flexAvailability)
@@ -135,7 +136,7 @@ export async function skuRows(db) {
       out.push([
         s.partId, base.code, base.image, base.name, base.category, base.sub, base.size,
         base.description, s.species, s.availability, s.price ?? '', base.uom || s.uom || '',
-        s.increment ?? '',
+        s.increment ?? '', base.height,
       ])
     }
   }
@@ -185,6 +186,7 @@ const PRODUCT_FIELDS = [
   ['image name', 'image name'], ['product name', 'product name'], ['category', 'category'],
   ['type sub-cat', 'type sub-cat'], ['size', 'size'], ['description', 'description'],
   ['uom', 'uom (lft, ea, sqft, kit, pc)'],
+  ['height', 'height'],
 ]
 
 /**
@@ -193,6 +195,10 @@ const PRODUCT_FIELDS = [
  * product field are reported; the first filled-in value is used.
  */
 export function skuRowsToMaster(skuRows) {
+  // A sheet with no Height column leaves heights alone: only a sheet that has the column sets them.
+  const hasHeight = skuRows.some((r) => 'height' in r)
+  // Likewise a sheet with no Purchase Increment column leaves the Part ID increments alone.
+  const hasIncrement = skuRows.some((r) => 'purchase increment' in r)
   // Grouped ignoring case, but the code keeps its own spelling: 113 products
   // have lowercase codes (c400-hanger) and the import matches them as typed.
   // A row with no code at all stands alone: two code-less products can share
@@ -228,11 +234,12 @@ export function skuRowsToMaster(skuRows) {
       else other.push(r.specifications)
       // Price is per row: the Part ID's price, or the wood's when it has no Part ID.
       if (r['part id']) {
-        partRows.push({ 'part id': r['part id'], 'base code': code, species: r.specifications, uom: r.uom, name: '', category: r.category, keepName: true, price: r.price ?? '', increment: r['purchase increment'] ?? '' })
+        partRows.push({ 'part id': r['part id'], 'base code': code, species: r.specifications, uom: r.uom, name: '', category: r.category, keepName: true, price: r.price ?? '', ...(hasIncrement ? { increment: r['purchase increment'] ?? '' } : {}) })
       } else if (r.price) {
         priceRows.push({ code, species: r.specifications, price: r.price })
       }
     }
+    if (!hasHeight) delete m.height
     m.other = [...new Set(other)].join('|')
     masterRows.push(m)
   }
