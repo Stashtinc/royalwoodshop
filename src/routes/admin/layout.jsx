@@ -93,6 +93,7 @@ const NAV = [
   { to: '/admin', end: true, label: 'Dashboard', Icon: DashboardIcon },
   { to: '/admin/products', label: 'Products', Icon: ProductsIcon },
   { to: '/admin/categories', label: 'Categories', Icon: CategoriesIcon },
+  { to: '/admin/attributes', label: 'Attributes', Icon: CategoriesIcon },
   { to: '/admin/posts', label: 'Blog', Icon: BlogIcon },
   { to: '/admin/media', label: 'Media', Icon: MediaIcon },
   { to: '/admin/import', label: 'Import', Icon: ImportIcon },

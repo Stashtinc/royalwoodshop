@@ -152,6 +152,14 @@ export const attributeValues = pgTable('attribute_values', {
   uniq: uniqueIndex('attribute_values_attr_slug_idx').on(t.attributeId, t.slug),
 }))
 
+/** Which categories an attribute applies to (e.g. Height under Interior Doors). */
+export const attributeCategories = pgTable('attribute_categories', {
+  attributeId: integer('attribute_id').notNull().references(() => attributes.id, { onDelete: 'cascade' }),
+  categoryId: integer('category_id').notNull().references(() => categories.id, { onDelete: 'cascade' }),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.attributeId, t.categoryId] }),
+}))
+
 export const productAttributes = pgTable('product_attributes', {
   productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
   attributeValueId: integer('attribute_value_id').notNull().references(() => attributeValues.id, { onDelete: 'cascade' }),
