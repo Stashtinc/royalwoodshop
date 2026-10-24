@@ -2,6 +2,7 @@ import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-r
 import { requireUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
 import { listAttributes, categoryOptions, createAttribute } from '../../lib/attributes-admin.server.js'
+import CatalogueTabs from '../../components/admin/CatalogueTabs'
 
 export async function loader({ request }) {
   await requireUser(request)
@@ -32,6 +33,7 @@ export default function AttributesAdmin() {
 
   return (
     <div className="flex flex-col gap-6">
+      <CatalogueTabs active="attributes" />
       <div>
         <h1 className="font-serif text-2xl font-bold text-tundora">Attributes</h1>
         <p className="mt-1 font-sans text-sm text-gray-500">
@@ -87,7 +89,9 @@ export default function AttributesAdmin() {
                 <td className="px-4 py-3 text-gray-600">{a.values}</td>
                 <td className="px-4 py-3 text-gray-600">{a.products}</td>
                 <td className="px-4 py-3 text-right">
-                  <Link to={`/admin/attributes/${a.id}`} className="text-royal-blue hover:underline">Edit</Link>
+                  {a.builtin
+                    ? <span className="text-xs text-gray-400">From product data</span>
+                    : <Link to={`/admin/attributes/${a.id}`} className="text-royal-blue hover:underline">Edit</Link>}
                 </td>
               </tr>
             ))}

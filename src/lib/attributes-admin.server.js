@@ -1,7 +1,7 @@
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import {
-  attributes, attributeValues, attributeCategories, productAttributes, categories,
+  attributes, attributeValues, attributeCategories, productAttributes, categories, products,
 } from '../db/schema.js'
 
 /** "Dark Stain" → "dark-stain". Keys and value slugs are built from names. */
@@ -32,12 +32,27 @@ export async function listAttributes() {
     if (!scope.has(r.attributeId)) scope.set(r.attributeId, [])
     scope.get(r.attributeId).push(r.name)
   }
-  return rows.map((a) => ({
-    id: a.id, key: a.key, name: a.name,
+  const custom = rows.map((a) => ({
+    id: a.id, key: a.key, name: a.name, builtin: false,
     categories: (scope.get(a.id) ?? []).sort(),
     values: valueCount.get(a.id) ?? 0,
     products: productCount.get(a.id) ?? 0,
   }))
+  return [await heightAttribute(), ...custom]
+}
+
+/** Height is kept on each product (products.height_in), so it is listed here
+ *  read-only: its values are the heights the products actually have. */
+async function heightAttribute() {
+  const db = await getDb()
+  const rows = await db.select({ height: products.heightIn, n: sql`count(*)::int` })
+    .from(products).where(isNotNull(products.heightIn)).groupBy(products.heightIn)
+  return {
+    id: 'height', key: 'height', name: 'Height', builtin: true,
+    categories: ['Interior Doors'],
+    values: rows.length,
+    products: rows.reduce((sum, r) => sum + r.n, 0),
+  }
 }
 
 /** One attribute, with its values (and how many products use each) and its scope. */

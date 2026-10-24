@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Form, Link, useActionData, useLoaderData, useNavigation, useFetcher } from 'react-router'
 import { ConfirmForm } from '../../components/admin/ConfirmDialog'
+import CatalogueTabs from '../../components/admin/CatalogueTabs'
 import { useDragReorder } from '../../components/admin/useDragReorder'
 import Toast from '../../components/admin/Toast'
 import { requireUser } from '../../lib/auth.server'
@@ -362,6 +363,7 @@ export default function CategoriesAdmin() {
 
   return (
     <div className="flex flex-col gap-5">
+      <CatalogueTabs active="categories" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-serif text-2xl font-bold text-tundora">Categories</h1>
