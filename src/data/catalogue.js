@@ -42,9 +42,15 @@ export const productPath = (p) => `/products/${p.categorySlug}/${p.slug}`
  * under the wrong heading and its filter key matches nothing.
  */
 export const placementsOf = (p) =>
-  p.placements?.length
+  (p.placements?.length
     ? p.placements.filter((x) => x && x.sub)
-    : subsOf(p).map((sub) => ({ category: p.category, sub }))
+    : subsOf(p).map((sub) => ({ category: p.category, sub })))
+    .filter((x) => !isHeightSub(x.sub))
+
+/** Door heights ("78\" Height" ...) used to be sub-categories. They are now the
+ *  height filter (products.height_in), so they stay out of the sidebar and the
+ *  category filter. The categories stay in the database. */
+export const isHeightSub = (name) => /^\d+" Height$/.test(String(name ?? ''))
 
 /** Every sub-category a product carries, always as an array. */
 export const subsOf = (p) =>
@@ -86,7 +92,7 @@ export function categoryTree(rows = products, dbTree = []) {
   const map = new Map(names.filter(isValidCategory).map((name) => [name, new Set()]))
   // Pre-seed sub-categories from DB so newly-created subs appear even with no products yet
   for (const cat of dbTree) {
-    for (const sub of cat.subcategories) map.get(cat.name)?.add(sub)
+    for (const sub of cat.subcategories) if (!isHeightSub(sub)) map.get(cat.name)?.add(sub)
   }
   for (const p of rows) {
     for (const { category, sub } of placementsOf(p)) {
