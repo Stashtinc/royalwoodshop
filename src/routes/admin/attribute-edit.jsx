@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Form, Link, redirect, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { ConfirmForm } from '../../components/admin/ConfirmDialog'
 import { requireUser } from '../../lib/auth.server'
@@ -59,6 +60,62 @@ export async function action({ request, params }) {
 
 const field = 'rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue'
 
+/** One value, styled like a sub-category chip: name, product count, rename and remove. */
+function ValueChip({ value }) {
+  const [editing, setEditing] = useState(false)
+  if (editing) {
+    return (
+      <Form method="post" onSubmit={() => setEditing(false)} className="flex items-center gap-1 rounded-lg border border-royal-blue bg-white px-2 py-1">
+        <input type="hidden" name="intent" value="rename-value" />
+        <input type="hidden" name="valueId" value={value.id} />
+        <input name="value" defaultValue={value.value} autoFocus className="w-28 bg-transparent font-sans text-xs text-tundora outline-none" />
+        <button type="submit" className="font-sans text-xs font-medium text-royal-blue">Save</button>
+        <button type="button" onClick={() => setEditing(false)} className="font-sans text-xs text-gray-400">Cancel</button>
+      </Form>
+    )
+  }
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1 font-sans text-xs text-tundora">
+      <span className="font-medium">{value.value}</span>
+      <span className="text-gray-400">({value.uses})</span>
+      <button type="button" onClick={() => setEditing(true)} title="Rename" className="text-gray-400 hover:text-gray-600">
+        <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M13.5 3.5 16.5 6.5l-10 10H3.5v-3l10-10Z" />
+        </svg>
+      </button>
+      <ConfirmForm method="post" confirm={{ title: `Remove "${value.value}"?`, message: `${value.uses} product${value.uses === 1 ? '' : 's'} will lose this value. The products themselves stay.`, action: 'Remove' }}>
+        <input type="hidden" name="intent" value="delete-value" />
+        <input type="hidden" name="valueId" value={value.id} />
+        <button type="submit" title="Remove" className="text-gray-300 hover:text-red-700">×</button>
+      </ConfirmForm>
+    </div>
+  )
+}
+
+/** "+ Add value": a dashed chip that opens a small input. */
+function AddValue() {
+  const [open, setOpen] = useState(false)
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)}
+        className="flex items-center gap-1 rounded-lg border border-dashed border-gray-300 px-2.5 py-1 font-sans text-xs text-gray-400 hover:border-gray-400 hover:text-gray-600">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        Add value
+      </button>
+    )
+  }
+  return (
+    <Form method="post" onSubmit={() => setOpen(false)} className="flex items-center gap-1 rounded-lg border border-royal-blue bg-white px-2 py-1">
+      <input type="hidden" name="intent" value="add-values" />
+      <input name="values" placeholder='e.g. 86"' autoFocus className="w-24 bg-transparent font-sans text-xs text-tundora outline-none" />
+      <button type="submit" className="font-sans text-xs font-medium text-royal-blue">Add</button>
+      <button type="button" onClick={() => setOpen(false)} className="font-sans text-xs text-gray-400">Cancel</button>
+    </Form>
+  )
+}
+
 export default function AttributeEdit() {
   const { attribute, categories } = useLoaderData()
   const data = useActionData()
@@ -95,36 +152,15 @@ export default function AttributeEdit() {
         <div><button type="submit" disabled={busy} className="rounded-lg bg-royal-blue px-5 py-2 font-sans text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">Save categories</button></div>
       </Form>
 
-      <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5">
         <h2 className="font-serif font-bold text-tundora">Values</h2>
-        <Form method="post" className="flex flex-col gap-2">
-          <input type="hidden" name="intent" value="add-values" />
-          <label className="flex flex-col gap-1.5">
-            <span className="font-sans text-xs font-medium text-gray-600">Add values — one per line</span>
-            <textarea name="values" rows={4} placeholder={'78"\n80"\n84"'} className={field} />
-          </label>
-          <div><button type="submit" disabled={busy} className="rounded-lg bg-royal-blue px-5 py-2 font-sans text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">Add values</button></div>
-        </Form>
-
-        <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200">
-          {attribute.values.length === 0 && <li className="px-4 py-6 text-center font-sans text-sm text-gray-500">No values yet.</li>}
+        <div className="flex flex-wrap items-center gap-2">
           {attribute.values.map((v) => (
-            <li key={v.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <Form method="post" className="flex flex-1 items-center gap-2">
-                <input type="hidden" name="intent" value="rename-value" />
-                <input type="hidden" name="valueId" value={v.id} />
-                <input name="value" defaultValue={v.value} className={`${field} flex-1`} />
-                <button type="submit" className="font-sans text-sm text-royal-blue hover:underline">Save</button>
-              </Form>
-              <span className="font-sans text-xs text-gray-500">{v.uses} product{v.uses === 1 ? '' : 's'}</span>
-              <ConfirmForm method="post" confirm={{ title: `Remove "${v.value}"?`, message: `${v.uses} product${v.uses === 1 ? '' : 's'} will lose this value. The products themselves stay.`, action: 'Remove' }}>
-                <input type="hidden" name="intent" value="delete-value" />
-                <input type="hidden" name="valueId" value={v.id} />
-                <button type="submit" className="font-sans text-sm text-red-700 hover:underline">Remove</button>
-              </ConfirmForm>
-            </li>
+            <ValueChip key={v.id} value={v} />
           ))}
-        </ul>
+          <AddValue />
+        </div>
+        {attribute.values.length === 0 && <p className="font-sans text-sm text-gray-500">No values yet. Use Add value to start.</p>}
       </div>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-white p-5">
