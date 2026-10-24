@@ -129,19 +129,17 @@ export default function AttributeEdit() {
 
       <div className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-white p-5">
         <h2 className="font-serif font-bold text-tundora">Delete attribute</h2>
-        {attribute.productCount > 0 ? (
-          <p className="font-sans text-sm text-gray-500">
-            {attribute.name} is used by {attribute.productCount} product{attribute.productCount === 1 ? '' : 's'}, so it can't be deleted until they are removed.
-          </p>
-        ) : (
-          <ConfirmForm method="post" confirm={{ title: `Delete "${attribute.name}"?`, message: 'The attribute and its values are removed. No products use it.', action: 'Delete' }}>
-            <input type="hidden" name="intent" value="delete-attribute" />
-            <button type="submit" className="rounded-lg border border-red-300 px-4 py-2 font-sans text-sm text-red-700 hover:bg-red-50">Delete attribute</button>
-          </ConfirmForm>
-        )}
+        <ConfirmForm method="post" confirm={{ title: `Delete "${attribute.name}"?`, message: 'The attribute and its values are removed. Products that use it are listed on the attribute page; if any exist, the delete is refused.', action: 'Delete' }}>
+          <input type="hidden" name="intent" value="delete-attribute" />
+          <button type="submit" className="rounded-lg border border-red-300 px-4 py-2 font-sans text-sm text-red-700 hover:bg-red-50">Delete attribute</button>
+        </ConfirmForm>
       </div>
 
-      {data?.error && <p className="font-sans text-sm text-red-700">{data.error}</p>}
+      {data?.error && (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 font-sans text-sm text-red-800">
+          {data.error}
+        </div>
+      )}
       {data?.saved && <p className="font-sans text-sm text-green-700">{data.saved}</p>}
     </div>
   )
