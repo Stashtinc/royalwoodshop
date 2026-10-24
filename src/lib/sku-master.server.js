@@ -6,6 +6,7 @@ import {
 import { SPECIES } from './catalogue-constants.js'
 import { canon } from './species-import.server.js'
 import { formatIncrement } from './purchase-increment.js'
+import { masterAttributeColumns, productAttributeCells } from './attributes-admin.server.js'
 
 /**
  * The Master Product List, one row per SKU.
@@ -25,10 +26,21 @@ import { formatIncrement } from './purchase-increment.js'
  */
 
 export const SKU_SHEET = 'Master Product List'
+
 export const SKU_HEADERS = [
   'Part ID', 'Base Code', 'image name', 'Product Name', 'Category', 'type sub-cat',
-  'Size', 'Description', 'Specifications', 'Availability', 'Price', 'UOM', 'Purchase Increment', 'Height',
+  'Size', 'Description', 'Specifications', 'Availability', 'Price', 'UOM', 'Purchase Increment',
 ]
+
+/** Base columns of a master row, as the import reads them (canon). */
+const BASE_KEYS = new Set(SKU_HEADERS.map((h) => canon(h)))
+const slugOf = (s) => String(s ?? '').trim().toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+/** The attribute columns present in a sheet (anything that is not a base column). */
+function attributeKeysOf(rows) {
+  const keys = new Set()
+  for (const r of rows) for (const k of Object.keys(r)) if (!BASE_KEYS.has(k)) keys.add(k)
+  return [...keys]
+}
 
 const FLEX = 'Flex'
 /** Ticked, availability not known yet. Keeps the species on re-import. */
@@ -44,7 +56,7 @@ export async function skuRows(db) {
   const rows = await db.select({
     id: products.id, code: products.productCode, name: products.name,
     description: products.description, size: products.sizeDisplay, price: products.price,
-    uom: products.uom, heightIn: products.heightIn,
+    uom: products.uom,
     flex: products.flexAvailable, flexAvailability: products.flexAvailability,
     category: categories.name,
   })
@@ -99,6 +111,9 @@ export async function skuRows(db) {
     imagesOf.set(i.productId, imagesOf.has(i.productId) ? `${imagesOf.get(i.productId)}|${f}` : f)
   }
 
+  // Attribute columns (e.g. Height) come after Purchase Increment, one per managed attribute.
+  const attrCols = await masterAttributeColumns()
+  const attrCells = await productAttributeCells(rows.map((r) => r.id))
   const out = []
   for (const p of rows) {
     // Primary category first, as the column-per-species sheet had it.
@@ -110,7 +125,6 @@ export async function skuRows(db) {
       code: p.code ?? '', image: imagesOf.get(p.id) ?? '', name: p.name ?? '', category: cats,
       sub: pl.map((x) => x.sub).join('|'), size: p.size ?? '', description: p.description ?? '',
       price: p.price ?? '', uom: p.uom ?? '',
-      height: p.heightIn == null ? '' : formatIncrement(p.heightIn),
     }
     const avail = new Map(speciesOf.get(p.id) ?? [])
     if (p.flex) avail.set(FLEX, p.flexAvailability)
@@ -136,7 +150,7 @@ export async function skuRows(db) {
       out.push([
         s.partId, base.code, base.image, base.name, base.category, base.sub, base.size,
         base.description, s.species, s.availability, s.price ?? '', base.uom || s.uom || '',
-        s.increment ?? '', base.height,
+        s.increment ?? '', ...(attrCells.get(p.id) ?? attrCols.map(() => '')),
       ])
     }
   }
@@ -186,7 +200,6 @@ const PRODUCT_FIELDS = [
   ['image name', 'image name'], ['product name', 'product name'], ['category', 'category'],
   ['type sub-cat', 'type sub-cat'], ['size', 'size'], ['description', 'description'],
   ['uom', 'uom (lft, ea, sqft, kit, pc)'],
-  ['height', 'height'],
 ]
 
 /**
@@ -195,8 +208,6 @@ const PRODUCT_FIELDS = [
  * product field are reported; the first filled-in value is used.
  */
 export function skuRowsToMaster(skuRows) {
-  // A sheet with no Height column leaves heights alone: only a sheet that has the column sets them.
-  const hasHeight = skuRows.some((r) => 'height' in r)
   // Likewise a sheet with no Purchase Increment column leaves the Part ID increments alone.
   const hasIncrement = skuRows.some((r) => 'purchase increment' in r)
   // Grouped ignoring case, but the code keeps its own spelling: 113 products
@@ -239,7 +250,13 @@ export function skuRowsToMaster(skuRows) {
         priceRows.push({ code, species: r.specifications, price: r.price })
       }
     }
-    if (!hasHeight) delete m.height
+    // Attribute columns (any column that is not a base column) carry the ticked values per attribute.
+    m.attributes = {}
+    for (const key of attributeKeysOf(rows)) {
+      const set = new Set()
+      for (const r of rows) for (const part of String(r[key] ?? '').split('|')) { const slug = slugOf(part); if (slug) set.add(slug) }
+      m.attributes[slugOf(key)] = [...set]
+    }
     m.other = [...new Set(other)].join('|')
     masterRows.push(m)
   }

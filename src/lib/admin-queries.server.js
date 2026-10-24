@@ -375,7 +375,7 @@ export async function saveProduct(id, data) {
     sizeDisplay: data.sizeDisplay || null,
     thicknessIn: data.thicknessIn || null,
     widthIn: data.widthIn || null,
-    heightIn: data.heightIn ?? null,
+    ...('heightIn' in data ? { heightIn: data.heightIn ?? null } : {}),
     availability: data.availability || null,
     uom: data.uom || null,
     leadTime: data.leadTime || null,

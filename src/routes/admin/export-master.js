@@ -1,6 +1,7 @@
 import { requireUser } from '../../lib/auth.server'
 import { getDb } from '../../lib/db.server.js'
 import { SKU_SHEET, SKU_HEADERS, skuRows } from '../../lib/sku-master.server.js'
+import { masterAttributeColumns } from '../../lib/attributes-admin.server.js'
 import { log } from '../../lib/activity.server.js'
 
 /**
@@ -31,7 +32,8 @@ export async function loader({ request }) {
   ws.views = [{ state: 'frozen', xSplit: 2, ySplit: 1, topLeftCell: 'C2', activeCell: 'A1' }]
   COL_WIDTHS.forEach((width, i) => { ws.getColumn(i + 1).width = width })
 
-  const hdr = ws.addRow(SKU_HEADERS)
+  const headers = [...SKU_HEADERS, ...(await masterAttributeColumns()).map((c) => c.name)]
+  const hdr = ws.addRow(headers)
   hdr.height = 30
   hdr.eachCell((cell) => {
     cell.fill = HDR_FILL
@@ -50,7 +52,7 @@ export async function loader({ request }) {
     }
   }
 
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: rows.length + 1, column: SKU_HEADERS.length } }
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: rows.length + 1, column: headers.length } }
 
   // Read back on import to spot a copy that predates edits made on the website.
   const now = new Date()
