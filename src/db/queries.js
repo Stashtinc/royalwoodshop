@@ -50,6 +50,7 @@ export async function getAllProducts(db) {
       sizeDisplay: products.sizeDisplay,
       thicknessIn: products.thicknessIn,
       widthIn: products.widthIn,
+      heightIn: products.heightIn,
       availability: products.availability,
       uom: products.uom,
       flexAvailable: products.flexAvailable,
@@ -189,6 +190,7 @@ function shape(r) {
     sizeCategory: SIZE_BAND(width),
     thicknessIn: r.thicknessIn == null ? null : Number(r.thicknessIn),
     widthIn: width,
+    heightIn: r.heightIn == null ? null : Number(r.heightIn),
     species,
     // The old free-text Material column is superseded by species. Until the
     // sheet is complete, fall back so the filter is never empty for a product.

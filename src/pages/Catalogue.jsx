@@ -403,6 +403,8 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   const [search, setSearch] = useState('')
   const [productCode, setProductCode] = useState(() => searchParams.get('code') || '')
   const [sizeCategory, setSizeCategory] = useState('All')
+  // Door height in inches (80), or 'All'. Shown as pills when a door style is in view.
+  const [heightFilter, setHeightFilter] = useState('All')
   const [species, setSpecies] = useState('All')
   const [availability, setAvailability] = useState('All')
   // Seeded from initialCategory only — never from the query string. /products
@@ -537,6 +539,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
     setSearch('')
     setProductCode('')
     setSizeCategory('All')
+    setHeightFilter('All')
     setSpecies('All')
     setAvailability('All')
     setSelectedSubs(rememberSubs(allSubKeys(catalogueCategoryOrder)))
@@ -552,6 +555,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
     Boolean(search.trim()) ||
     Boolean(productCode.trim()) ||
     sizeCategory !== 'All' ||
+    heightFilter !== 'All' ||
     species !== 'All' ||
     availability !== 'All' ||
     selectedSubs.size < totalSubCount
@@ -570,6 +574,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
       }
       if (codeTerm && !product.productCode.toLowerCase().includes(codeTerm)) return false
       if (sizeCategory !== 'All' && product.sizeCategory !== sizeCategory) return false
+      if (heightFilter !== 'All' && Number(product.heightIn) !== heightFilter) return false
       if (species !== 'All' && !(product.species ?? []).includes(species) && !(species === 'Flex' && product.flexAvailability)) return false
       // Availability is per species, so a profile in stock in poplar and made
       // to order in walnut answers to both filters.
@@ -584,7 +589,15 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
       }
       return true
     })
-  }, [allProducts, search, productCode, sizeCategory, species, availability, selectedSubs])
+  }, [allProducts, search, productCode, sizeCategory, heightFilter, species, availability, selectedSubs])
+
+  // Heights that exist in the catalogue, smallest first.
+  const heightOptions = useMemo(
+    () => [...new Set(allProducts.map((p) => p.heightIn).filter((h) => h != null))].sort((a, b) => a - b),
+    [allProducts],
+  )
+  // Height pills belong to the door styles: shown while any Interior Doors sub-category is in view.
+  const showHeights = heightOptions.length > 0 && [...selectedSubs].some((k) => k.startsWith('Interior Doors::'))
 
   const sorted = useMemo(() => {
     const catIndex = Object.fromEntries(catalogueCategoryOrder.map((c, i) => [c.name, i]))
@@ -834,8 +847,8 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
           </aside>
 
           <div ref={resultsRef} className="flex min-w-0 flex-1 scroll-mt-28 flex-col gap-8">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 pb-5">
-              <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 pb-5 lg:flex-nowrap">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
                 {/* Mobile categories trigger */}
                 <button
                   type="button"
@@ -875,7 +888,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 <div className="w-44">
                   <CustomSelect
                     value={sortOrder}
@@ -922,6 +935,26 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                 </div>
               </div>
             </div>
+
+            {showHeights && (
+              <div className="-mt-4 flex flex-wrap items-center gap-1.5 border-b border-gray-200 pb-4">
+                <span className="mr-1 inline-flex h-7 items-center font-sans text-xs font-medium text-gray-500">Height</span>
+                {['All', ...heightOptions].map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => withPageReset(setHeightFilter)(key)}
+                    className={`inline-flex h-7 items-center rounded-full px-3 font-sans text-xs leading-none transition-colors ${
+                      heightFilter === key
+                        ? 'bg-royal-blue text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {key === 'All' ? 'Any height' : `${key}"`}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {grouped.length === 0 ? (
               <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-gray-300 py-20 text-center">
