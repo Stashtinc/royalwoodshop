@@ -35,11 +35,13 @@ export async function loader({ request, params }) {
     console.error('Failed to load part IDs:', e.message)
   }
 
-  const [images, categoryTree, linkedCategoryIds] = await Promise.all([
+  const [images, rawTree, linkedCategoryIds] = await Promise.all([
     listImages(params.id),
     listCategoriesWithSubs(),
     listProductCategories(params.id),
   ])
+  // Door heights are the Height attribute now, not sub-categories: keep them out of the category picker.
+  const categoryTree = rawTree.map((c) => ({ ...c, subcategories: c.subcategories.filter((sub) => !/^\d+" Height$/.test(sub.name)) }))
   const attributes = await managedAttributes()
   const ticks = await productAttributeValues(params.id)
   return { attributes, ticked: Object.fromEntries([...ticks].map(([k, v]) => [k, v])), product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds: partData.partIds || {}, partPrices: partData.prices || {}, partSalePrices: partData.salePrices || {}, partIncrements: partData.increments || {} }
