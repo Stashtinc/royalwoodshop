@@ -75,6 +75,8 @@ export const products = pgTable('products', {
   /** Parsed from the free-text size. Enables range filtering and correct sorting. */
   thicknessIn: numeric('thickness_in', { precision: 8, scale: 4 }),
   widthIn: numeric('width_in', { precision: 8, scale: 4 }),
+  /** Height in inches (80 = 80"). Drives the height filter on the catalogue. */
+  heightIn: numeric('height_in', { precision: 6, scale: 2 }),
   /** The original string, preserved for display: '3/4 X 2-3/4', '5/8 x 5" face'. */
   sizeDisplay: varchar('size_display', { length: 200 }),
 

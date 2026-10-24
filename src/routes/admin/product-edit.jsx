@@ -18,6 +18,7 @@ import SpeciesPicker, { readSpeciesAvail, readPartEntries } from '../../componen
 import UomSelect from '../../components/admin/UomSelect'
 import ProductCodeInput from '../../components/admin/ProductCodeInput'
 import { normaliseUom } from '../../lib/catalogue-constants'
+import { parseIncrement } from '../../lib/purchase-increment'
 import { thumbSrc } from '../../lib/images'
 import SeoFields from '../../components/admin/SeoFields'
 
@@ -189,6 +190,7 @@ export async function action({ request, params }) {
     sizeDisplay: String(f.get('sizeDisplay') ?? '').trim(),
     thicknessIn: num(f.get('thicknessIn')),
     widthIn: num(f.get('widthIn')),
+    heightIn: parseIncrement(f.get('heightIn')),
     uom: normaliseUom(f.get('uom')),
     availability: before.availability,  // preserved; overwritten by saveProduct if species set
     leadTime: String(f.get('leadTime') ?? '').trim(),
@@ -462,6 +464,8 @@ export default function ProductEdit() {
               <input name="thicknessIn" defaultValue={product.thicknessIn ?? ''} className={field} inputMode="decimal" /></label>
             <label className="flex flex-col gap-1.5"><Label>Width</Label>
               <input name="widthIn" defaultValue={product.widthIn ?? ''} className={field} inputMode="decimal" /></label>
+            <label className="flex flex-col gap-1.5"><Label>Height (inches)</Label>
+              <input name="heightIn" defaultValue={product.heightIn ?? ''} placeholder='e.g. 80' className={field} inputMode="decimal" /></label>
           </div>
           <p className="text-xs text-gray-500">
             Decimal inches. These drive the width filter and sorting, so 5-1/4 is entered as 5.25.
