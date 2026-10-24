@@ -39,7 +39,6 @@ export default function AdminCatalogue() {
 
   return (
     <div>
-      <h1 className="mb-4 font-serif text-2xl font-bold text-tundora">Catalogue</h1>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SectionTabs active="catalogue" />
         <div className="flex items-center gap-4">
@@ -53,6 +52,7 @@ export default function AdminCatalogue() {
         </div>
       </div>
 
+      <h1 className="mt-6 font-serif text-2xl font-bold text-tundora">Catalogue</h1>
       <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white">
         {catalogues.length === 0 ? (
           <p className="px-6 py-12 text-center text-sm text-gray-500">No catalogues yet. Click New catalogue to start one.</p>
