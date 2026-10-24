@@ -19,6 +19,7 @@ import UomSelect from '../../components/admin/UomSelect'
 import ProductCodeInput from '../../components/admin/ProductCodeInput'
 import { normaliseUom } from '../../lib/catalogue-constants'
 import { parseIncrement } from '../../lib/purchase-increment'
+import { setProductHeight } from '../../lib/attributes-admin.server.js'
 import { thumbSrc } from '../../lib/images'
 import SeoFields from '../../components/admin/SeoFields'
 
@@ -206,6 +207,7 @@ export async function action({ request, params }) {
 
   const changed = diffProduct(before, payload)
   await saveProduct(params.id, payload)
+  await setProductHeight(params.id, payload.heightIn)
 
   if (changed.length) {
     const statusChange = changed.find((c) => c.field === 'status')

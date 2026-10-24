@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import {
   attributes, attributeValues, attributeCategories, productAttributes, categories, products,
@@ -38,21 +38,7 @@ export async function listAttributes() {
     values: valueCount.get(a.id) ?? 0,
     products: productCount.get(a.id) ?? 0,
   }))
-  return [await heightAttribute(), ...custom]
-}
-
-/** Height is kept on each product (products.height_in), so it is listed here
- *  read-only: its values are the heights the products actually have. */
-async function heightAttribute() {
-  const db = await getDb()
-  const rows = await db.select({ height: products.heightIn, n: sql`count(*)::int` })
-    .from(products).where(isNotNull(products.heightIn)).groupBy(products.heightIn)
-  return {
-    id: 'height', key: 'height', name: 'Height', builtin: true,
-    categories: ['Interior Doors'],
-    values: rows.length,
-    products: rows.reduce((sum, r) => sum + r.n, 0),
-  }
+  return custom
 }
 
 /** One attribute, with its values (and how many products use each) and its scope. */
@@ -150,8 +136,44 @@ export async function renameValue(valueId, value) {
   await db.update(attributeValues).set({ value: clean }).where(eq(attributeValues.id, Number(valueId)))
 }
 
-/** Removes a value. Products that had it lose that tick; the products themselves stay. */
+/** Removes a value. Products that had it lose that tick; the products themselves stay.
+ *  For Height, the product's number is cleared too, so the two never disagree. */
 export async function deleteValue(valueId) {
   const db = await getDb()
+  const [v] = await db.select({ slug: attributeValues.slug, key: attributes.key }).from(attributeValues)
+    .innerJoin(attributes, eq(attributes.id, attributeValues.attributeId))
+    .where(eq(attributeValues.id, Number(valueId))).limit(1)
   await db.delete(attributeValues).where(eq(attributeValues.id, Number(valueId)))
+  if (v?.key === 'height') await db.update(products).set({ heightIn: null }).where(eq(products.heightIn, v.slug))
+}
+
+/** Sets a product's height: its Height tick becomes this value (created if new), and the
+ *  products.height_in number is kept equal. A blank height removes the tick. */
+export async function setProductHeight(productId, heightIn) {
+  const db = await getDb()
+  const [attr] = await db.select({ id: attributes.id }).from(attributes).where(eq(attributes.key, 'height')).limit(1)
+  if (!attr) return
+  const heightValueIds = (await db.select({ id: attributeValues.id }).from(attributeValues)
+    .where(eq(attributeValues.attributeId, attr.id))).map((r) => r.id)
+  if (heightValueIds.length) {
+    await db.delete(productAttributes).where(and(
+      eq(productAttributes.productId, Number(productId)),
+      inArray(productAttributes.attributeValueId, heightValueIds),
+    ))
+  }
+  const n = heightIn == null || heightIn === '' ? NaN : Math.round(Number(heightIn))
+  if (!Number.isFinite(n) || n <= 0) {
+    await db.update(products).set({ heightIn: null }).where(eq(products.id, Number(productId)))
+    return
+  }
+  await db.update(products).set({ heightIn: n }).where(eq(products.id, Number(productId)))
+  const slug = String(n)
+  let [value] = await db.select({ id: attributeValues.id }).from(attributeValues)
+    .where(and(eq(attributeValues.attributeId, attr.id), eq(attributeValues.slug, slug))).limit(1)
+  if (!value) {
+    const [{ max }] = await db.select({ max: sql`coalesce(max(${attributeValues.sortOrder}), 0)::int` })
+      .from(attributeValues).where(eq(attributeValues.attributeId, attr.id))
+    ;[value] = await db.insert(attributeValues).values({ attributeId: attr.id, slug, value: `${n}"`, sortOrder: n }).returning({ id: attributeValues.id })
+  }
+  await db.insert(productAttributes).values({ productId: Number(productId), attributeValueId: value.id }).onConflictDoNothing()
 }

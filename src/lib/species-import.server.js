@@ -8,6 +8,7 @@ import {
 } from '../db/schema.js'
 import { SPECIES, TICK_CODES, TICK_ALIASES, bestAvailability, normaliseUom } from './catalogue-constants.js'
 import { parseIncrement } from './purchase-increment.js'
+import { setProductHeight } from './attributes-admin.server.js'
 
 /** Ticked beside species on the sheet, but stored as a product flag. */
 const FLEX = 'Flex'
@@ -1017,6 +1018,8 @@ export async function apply(rows, overrides = {}, options = {}) {
     }
 
     await db.update(products).set(patch).where(eq(products.id, product.id))
+    // The Height attribute follows the sheet's height (a blank cell removes it).
+    if ('heightIn' in patch) await setProductHeight(product.id, patch.heightIn)
 
     written++
   }
