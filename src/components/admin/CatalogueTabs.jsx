@@ -1,11 +1,13 @@
 import { Link } from 'react-router'
 
-/** The Categories | Attributes tabs at the top of both pages. */
-export default function CatalogueTabs({ active }) {
-  const tabs = [
-    { to: '/admin/categories', key: 'categories', label: 'Categories' },
-    { to: '/admin/attributes', key: 'attributes', label: 'Attributes' },
-  ]
+/** The tab bar used across the admin: Categories | Attributes, Products | Catalogue.
+ *  `tabs` is [{ key, label, to }]; `active` is the key of the page being shown. */
+export const CATEGORY_TABS = [
+  { to: '/admin/categories', key: 'categories', label: 'Categories' },
+  { to: '/admin/attributes', key: 'attributes', label: 'Attributes' },
+]
+
+export default function CatalogueTabs({ active, tabs = CATEGORY_TABS }) {
   return (
     <div role="tablist" className="flex gap-1 border-b border-gray-200">
       {tabs.map((t) => (
