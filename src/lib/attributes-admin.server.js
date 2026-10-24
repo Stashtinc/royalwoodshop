@@ -152,26 +152,71 @@ export async function deleteValue(valueId) {
   if (v?.key === 'height') await db.update(products).set({ heightIn: null }).where(eq(products.heightIn, v.slug))
 }
 
-/** Sets a product's height: its Height tick becomes this value (created if new), and the
- *  products.height_in number is kept equal. A blank height removes the tick. */
+/** The attributes a product is described by on its edit page, with every value.
+ *  Species are not here: they are set by the species editor. */
+export async function managedAttributes() {
+  const db = await getDb()
+  const rows = (await db.select().from(attributes).orderBy(asc(attributes.sortOrder), asc(attributes.name)))
+    .filter((a) => !NOT_MANAGED_HERE.has(a.key))
+  if (!rows.length) return []
+  const values = await db.select().from(attributeValues)
+    .where(inArray(attributeValues.attributeId, rows.map((a) => a.id)))
+    .orderBy(asc(attributeValues.sortOrder), asc(attributeValues.value))
+  return rows.map((a) => ({
+    id: a.id, key: a.key, name: a.name,
+    values: values.filter((v) => v.attributeId === a.id).map((v) => ({ id: v.id, value: v.value, slug: v.slug })),
+  }))
+}
+
+/** The value ids a product is ticked with, grouped by attribute id. */
+export async function productAttributeValues(productId) {
+  const db = await getDb()
+  const rows = await db.select({ attributeId: attributeValues.attributeId, valueId: productAttributes.attributeValueId })
+    .from(productAttributes)
+    .innerJoin(attributeValues, eq(attributeValues.id, productAttributes.attributeValueId))
+    .where(eq(productAttributes.productId, Number(productId)))
+  const out = new Map()
+  for (const r of rows) {
+    if (!out.has(r.attributeId)) out.set(r.attributeId, [])
+    out.get(r.attributeId).push(r.valueId)
+  }
+  return out
+}
+
+/** Replaces a product's ticks for one attribute with these value ids. For Height the
+ *  product's number follows: the first chosen value in inches, or blank. */
+export async function setProductAttribute(productId, attributeId, valueIds) {
+  const db = await getDb()
+  const pid = Number(productId)
+  const attrValues = await db.select({ id: attributeValues.id, slug: attributeValues.slug }).from(attributeValues)
+    .where(eq(attributeValues.attributeId, Number(attributeId)))
+  const own = new Set(attrValues.map((v) => v.id))
+  const chosen = [...new Set((valueIds ?? []).map(Number))].filter((id) => own.has(id))
+  if (attrValues.length) {
+    await db.delete(productAttributes).where(and(
+      eq(productAttributes.productId, pid),
+      inArray(productAttributes.attributeValueId, attrValues.map((v) => v.id)),
+    ))
+  }
+  if (chosen.length) {
+    await db.insert(productAttributes).values(chosen.map((attributeValueId) => ({ productId: pid, attributeValueId })))
+      .onConflictDoNothing()
+  }
+  const [attr] = await db.select({ key: attributes.key }).from(attributes).where(eq(attributes.id, Number(attributeId))).limit(1)
+  if (attr?.key === 'height') {
+    const first = attrValues.find((v) => v.id === chosen[0])
+    const n = first ? Number(first.slug) : NaN
+    await db.update(products).set({ heightIn: Number.isFinite(n) && n > 0 ? n : null }).where(eq(products.id, pid))
+  }
+}
+
+/** Height from a number of inches (master import, older field): finds or creates its value. */
 export async function setProductHeight(productId, heightIn) {
   const db = await getDb()
   const [attr] = await db.select({ id: attributes.id }).from(attributes).where(eq(attributes.key, 'height')).limit(1)
   if (!attr) return
-  const heightValueIds = (await db.select({ id: attributeValues.id }).from(attributeValues)
-    .where(eq(attributeValues.attributeId, attr.id))).map((r) => r.id)
-  if (heightValueIds.length) {
-    await db.delete(productAttributes).where(and(
-      eq(productAttributes.productId, Number(productId)),
-      inArray(productAttributes.attributeValueId, heightValueIds),
-    ))
-  }
   const n = heightIn == null || heightIn === '' ? NaN : Math.round(Number(heightIn))
-  if (!Number.isFinite(n) || n <= 0) {
-    await db.update(products).set({ heightIn: null }).where(eq(products.id, Number(productId)))
-    return
-  }
-  await db.update(products).set({ heightIn: n }).where(eq(products.id, Number(productId)))
+  if (!Number.isFinite(n) || n <= 0) return setProductAttribute(productId, attr.id, [])
   const slug = String(n)
   let [value] = await db.select({ id: attributeValues.id }).from(attributeValues)
     .where(and(eq(attributeValues.attributeId, attr.id), eq(attributeValues.slug, slug))).limit(1)
@@ -180,5 +225,50 @@ export async function setProductHeight(productId, heightIn) {
       .from(attributeValues).where(eq(attributeValues.attributeId, attr.id))
     ;[value] = await db.insert(attributeValues).values({ attributeId: attr.id, slug, value: `${n}"`, sortOrder: n }).returning({ id: attributeValues.id })
   }
-  await db.insert(productAttributes).values({ productId: Number(productId), attributeValueId: value.id }).onConflictDoNothing()
+  return setProductAttribute(productId, attr.id, [value.id])
+}
+
+/** The master sheet's attribute columns, after Purchase Increment, in attribute order. */
+export async function masterAttributeColumns() {
+  return (await managedAttributes()).map((a) => ({ key: a.key, name: a.name }))
+}
+
+/** Each product's attribute cells for the master sheet, aligned with masterAttributeColumns():
+ *  the value labels ticked, joined with "|". */
+export async function productAttributeCells(productIds) {
+  const cols = await masterAttributeColumns()
+  const out = new Map()
+  if (!cols.length || !productIds.length) return out
+  const db = await getDb()
+  const attrs = await managedAttributes()
+  const labelOf = new Map(attrs.flatMap((a) => a.values.map((v) => [v.id, { attr: a.id, value: v.value }])))
+  const rows = await db.select({ productId: productAttributes.productId, valueId: productAttributes.attributeValueId })
+    .from(productAttributes).where(inArray(productAttributes.productId, productIds))
+  const byProduct = new Map()
+  for (const r of rows) {
+    const l = labelOf.get(r.valueId)
+    if (!l) continue
+    if (!byProduct.has(r.productId)) byProduct.set(r.productId, new Map())
+    const m = byProduct.get(r.productId)
+    if (!m.has(l.attr)) m.set(l.attr, [])
+    m.get(l.attr).push(l.value)
+  }
+  for (const [pid, m] of byProduct) {
+    out.set(pid, attrs.map((a) => (m.get(a.id) ?? []).join('|')))
+  }
+  return out
+}
+
+/** Applies one product's attribute cells from the master sheet: sheet = { attributeKey: [valueSlugs] }.
+ *  An attribute the sheet lists is set to exactly those values; blank clears it. */
+export async function setProductAttributesFromSheet(productId, sheet) {
+  const db = await getDb()
+  const attrs = await db.select().from(attributes)
+  for (const [key, slugs] of Object.entries(sheet ?? {})) {
+    const attr = attrs.find((a) => a.key === key && !NOT_MANAGED_HERE.has(a.key))
+    if (!attr) continue
+    const vals = await db.select({ id: attributeValues.id, slug: attributeValues.slug }).from(attributeValues)
+      .where(eq(attributeValues.attributeId, attr.id))
+    await setProductAttribute(productId, attr.id, vals.filter((v) => slugs.includes(v.slug)).map((v) => v.id))
+  }
 }
