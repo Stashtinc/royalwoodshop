@@ -8,6 +8,7 @@ import {
 } from '../db/schema.js'
 import { SPECIES, TICK_CODES, TICK_ALIASES, bestAvailability, normaliseUom } from './catalogue-constants.js'
 import { parseIncrement } from './purchase-increment.js'
+import { setProductAttributesFromSheet } from './attributes-admin.server.js'
 
 /** Ticked beside species on the sheet, but stored as a product flag. */
 const FLEX = 'Flex'
@@ -192,10 +193,10 @@ function readRow(r, layout = 'species') {
     description: cell(r, 'description') || null,
     sizeDisplay: cell(r, 'size') || null,
     uom: normaliseUom(uomKey ? cell(r, uomKey) : ''),
-    // Only a sheet with a Height column sets height; an older sheet leaves it alone.
-    ...('height' in r ? { heightIn: parseIncrement(cell(r, 'height')) } : {}),
   }
   row.images = pipes(r['image name'])
+  // Attribute columns (e.g. Height): only a sheet that has them sets them.
+  row.attributes = r.attributes ?? null
 
   // Category and sub-category pair up by position, so one product can be
   // Decorative under Trim & Mouldings and Sheet Panels under Sheet Goods:
@@ -1017,6 +1018,8 @@ export async function apply(rows, overrides = {}, options = {}) {
     }
 
     await db.update(products).set(patch).where(eq(products.id, product.id))
+    // Attribute columns: each one's ticks become the values in its cell (blank clears it).
+    if (p.attributes) await setProductAttributesFromSheet(product.id, p.attributes)
 
     written++
   }

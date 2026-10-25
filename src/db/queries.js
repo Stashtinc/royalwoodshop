@@ -142,8 +142,19 @@ export async function getAllProducts(db) {
     const now = from.get(p.productId)
     if (!now || Number(p.price) < Number(now.price)) from.set(p.productId, p)
   }
+  // Height is the Height attribute's tick (its value is the number of inches).
+  // The products.height_in column is only a fallback for a product without a tick.
+  const heightTicks = new Map()
+  const ticks = await db.select({ productId: productAttributes.productId, slug: attributeValues.slug })
+    .from(productAttributes)
+    .innerJoin(attributeValues, eq(attributeValues.id, productAttributes.attributeValueId))
+    .innerJoin(attributes, and(eq(attributes.id, attributeValues.attributeId), eq(attributes.key, 'height')))
+  for (const t of ticks) {
+    const h = Number(t.slug)
+    if (!heightTicks.has(t.productId) || h < heightTicks.get(t.productId)) heightTicks.set(t.productId, h)
+  }
   return rows.map((r) => {
-    const out = shape(r)
+    const out = shape(heightTicks.has(r.id) ? { ...r, heightIn: heightTicks.get(r.id) } : r)
     const f = from.get(r.id)
     out.priceFrom = f ? Number(f.price) : null
     out.salePriceFrom = f?.salePrice && Number.isFinite(Number(f.salePrice)) ? Number(f.salePrice) : null

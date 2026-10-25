@@ -19,6 +19,7 @@ import UomSelect from '../../components/admin/UomSelect'
 import ProductCodeInput from '../../components/admin/ProductCodeInput'
 import { normaliseUom } from '../../lib/catalogue-constants'
 import { parseIncrement } from '../../lib/purchase-increment'
+import { managedAttributes, productAttributeValues, setProductAttribute } from '../../lib/attributes-admin.server.js'
 import { thumbSrc } from '../../lib/images'
 import SeoFields from '../../components/admin/SeoFields'
 
@@ -34,12 +35,16 @@ export async function loader({ request, params }) {
     console.error('Failed to load part IDs:', e.message)
   }
 
-  const [images, categoryTree, linkedCategoryIds] = await Promise.all([
+  const [images, rawTree, linkedCategoryIds] = await Promise.all([
     listImages(params.id),
     listCategoriesWithSubs(),
     listProductCategories(params.id),
   ])
-  return { product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds: partData.partIds || {}, partPrices: partData.prices || {}, partSalePrices: partData.salePrices || {}, partIncrements: partData.increments || {} }
+  // Door heights are the Height attribute now, not sub-categories: keep them out of the category picker.
+  const categoryTree = rawTree.map((c) => ({ ...c, subcategories: c.subcategories.filter((sub) => !/^\d+" Height$/.test(sub.name)) }))
+  const attributes = await managedAttributes()
+  const ticks = await productAttributeValues(params.id)
+  return { attributes, ticked: Object.fromEntries([...ticks].map(([k, v]) => [k, v])), product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds: partData.partIds || {}, partPrices: partData.prices || {}, partSalePrices: partData.salePrices || {}, partIncrements: partData.increments || {} }
 }
 
 export async function action({ request, params }) {
@@ -190,7 +195,6 @@ export async function action({ request, params }) {
     sizeDisplay: String(f.get('sizeDisplay') ?? '').trim(),
     thicknessIn: num(f.get('thicknessIn')),
     widthIn: num(f.get('widthIn')),
-    heightIn: parseIncrement(f.get('heightIn')),
     uom: normaliseUom(f.get('uom')),
     availability: before.availability,  // preserved; overwritten by saveProduct if species set
     leadTime: String(f.get('leadTime') ?? '').trim(),
@@ -206,6 +210,10 @@ export async function action({ request, params }) {
 
   const changed = diffProduct(before, payload)
   await saveProduct(params.id, payload)
+  // Attributes (e.g. Height): each one's ticks are replaced by what is checked here.
+  for (const attr of await managedAttributes()) {
+    await setProductAttribute(params.id, attr.id, f.getAll(`attr:${attr.id}`).map(Number))
+  }
 
   if (changed.length) {
     const statusChange = changed.find((c) => c.field === 'status')
@@ -369,7 +377,7 @@ function CategoriesSection() {
 
 
 export default function ProductEdit() {
-  const { product, partIds, partPrices, partSalePrices, partIncrements } = useLoaderData()
+  const { product, partIds, partPrices, partSalePrices, partIncrements, attributes, ticked } = useLoaderData()
   const data = useActionData()
   const nav = useNavigation()
   const saving = nav.state === 'submitting'
@@ -464,13 +472,30 @@ export default function ProductEdit() {
               <input name="thicknessIn" defaultValue={product.thicknessIn ?? ''} className={field} inputMode="decimal" /></label>
             <label className="flex flex-col gap-1.5"><Label>Width</Label>
               <input name="widthIn" defaultValue={product.widthIn ?? ''} className={field} inputMode="decimal" /></label>
-            <label className="flex flex-col gap-1.5"><Label>Height (inches)</Label>
-              <input name="heightIn" defaultValue={product.heightIn ?? ''} placeholder='e.g. 80' className={field} inputMode="decimal" /></label>
           </div>
           <p className="text-xs text-gray-500">
             Decimal inches. These drive the width filter and sorting, so 5-1/4 is entered as 5.25.
           </p>
         </section>
+
+        {attributes.length > 0 && (
+          <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
+            <h2 className="font-serif font-bold text-tundora">Attributes</h2>
+            {attributes.map((attr) => (
+              <div key={attr.id} className="flex flex-col gap-2">
+                <Label>{attr.name}</Label>
+                <div className="flex flex-wrap gap-2">
+                  {attr.values.map((v) => (
+                    <label key={v.id} className="flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 font-sans text-sm text-tundora">
+                      <input type="checkbox" name={`attr:${attr.id}`} value={v.id} defaultChecked={(ticked[attr.id] ?? []).includes(v.id)} className="accent-royal-blue" />
+                      {v.value}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Details &amp; Availability</h2>
