@@ -199,7 +199,9 @@ export function matchPartIds(sheetRows, { productRows, tickRows, current }) {
     else if (b.productId !== m.productId || b.species !== m.species || b.name !== m.name || b.uom !== m.uom
       || ('increment' in m && num(b.purchaseIncrement) !== num(m.increment))) changed++
   }
-  const removed = current.filter((c) => !seen.has(c.partId)).map((c) => c.partId)
+  // A Part ID of an archived product is never removed: the master leaves archived products out.
+  const archivedIds = new Set(productRows.filter((p) => p.status === 'archived').map((p) => p.id))
+  const removed = current.filter((c) => !seen.has(c.partId) && !archivedIds.has(c.productId)).map((c) => c.partId)
 
   return {
     matched,
@@ -261,6 +263,15 @@ export async function applyPartIds(matched, { priceOnly = null } = {}) {
       if (!p.partId && !priceOf.has(key)) priceOf.set(key, p)
     }
 
+    // Rows of archived products are kept as they are (the master does not list them).
+    const archivedRows = await tx.select({
+      productId: productPartIds.productId, species: productPartIds.species, partId: productPartIds.partId,
+      name: productPartIds.name, uom: productPartIds.uom, price: productPartIds.price,
+      salePrice: productPartIds.salePrice, purchaseIncrement: productPartIds.purchaseIncrement,
+    }).from(productPartIds).innerJoin(products, eq(products.id, productPartIds.productId))
+      .where(eq(products.status, 'archived'))
+    const matchedIds = new Set(matched.map((m) => m.partId?.toUpperCase()))
+    const kept = archivedRows.filter((r) => !r.partId || !matchedIds.has(r.partId.toUpperCase()))
     await tx.delete(productPartIds)
     const covered = new Set()
     const rows = matched.map((m) => {
@@ -283,6 +294,7 @@ export async function applyPartIds(matched, { priceOnly = null } = {}) {
         if (!covered.has(key)) rows.push({ productId: p.productId, species: p.species, partId: null, price: p.price, salePrice: p.salePrice })
       }
     }
+    rows.push(...kept)
     for (let i = 0; i < rows.length; i += 200) {
       await tx.insert(productPartIds).values(rows.slice(i, i + 200))
     }
