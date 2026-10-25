@@ -14,6 +14,8 @@ const AVAIL_COL = SKU_HEADERS.indexOf('Availability') + 1
 const UOM_COL = SKU_HEADERS.indexOf('UOM') + 1
 
 const HDR_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F3864' } }
+const ATTR_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF4B183' } }
+const ATTR_FONT = { bold: true, size: 9, color: { argb: 'FF3B2A00' }, name: 'Arial' }
 const HDR_FONT = { bold: true, size: 9, color: { argb: 'FFFFFFFF' }, name: 'Arial' }
 const HDR_ALIGNMENT = { horizontal: 'center', vertical: 'bottom', wrapText: true }
 const THIN = { style: 'thin', color: { argb: 'FF000000' } }
@@ -32,12 +34,16 @@ export async function loader({ request }) {
   ws.views = [{ state: 'frozen', xSplit: 2, ySplit: 1, topLeftCell: 'C2', activeCell: 'A1' }]
   COL_WIDTHS.forEach((width, i) => { ws.getColumn(i + 1).width = width })
 
-  const headers = [...SKU_HEADERS, ...(await masterAttributeColumns()).map((c) => c.name)]
+  // Attribute columns (Height and any added later) are marked: a line break and "(attribute)" in the
+  // header, and a different header colour. The import strips the marker to find the attribute.
+  const attrHeaders = (await masterAttributeColumns()).map((c) => `${c.name}\n(attribute)`)
+  const headers = [...SKU_HEADERS, ...attrHeaders]
   const hdr = ws.addRow(headers)
   hdr.height = 30
-  hdr.eachCell((cell) => {
-    cell.fill = HDR_FILL
-    cell.font = HDR_FONT
+  hdr.eachCell((cell, col) => {
+    const isAttr = col > SKU_HEADERS.length
+    cell.fill = isAttr ? ATTR_FILL : HDR_FILL
+    cell.font = isAttr ? ATTR_FONT : HDR_FONT
     cell.alignment = HDR_ALIGNMENT
     cell.border = { top: THIN, bottom: THIN, left: THIN, right: THIN }
   })
