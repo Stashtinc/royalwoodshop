@@ -1,6 +1,7 @@
 import { requireUser } from '../../lib/auth.server'
 import { getDb } from '../../lib/db.server.js'
-import { SKU_SHEET, PRODUCT_SHEET_HEADERS, productSheetRows } from '../../lib/sku-master.server.js'
+import { SKU_SHEET, SKU_HEADERS, skuRows } from '../../lib/sku-master.server.js'
+import { masterAttributeColumns } from '../../lib/attributes-admin.server.js'
 import { log } from '../../lib/activity.server.js'
 
 /**
@@ -9,8 +10,8 @@ import { log } from '../../lib/activity.server.js'
  */
 
 const COL_WIDTHS = [24, 18, 22, 34, 19, 18, 16, 58, 18, 11, 9, 8]
-const AVAIL_COL = PRODUCT_SHEET_HEADERS.indexOf('Availability') + 1
-const UOM_COL = PRODUCT_SHEET_HEADERS.indexOf('uom\n (Lft, Ea, SqFt, Kit, Pc)') + 1
+const AVAIL_COL = SKU_HEADERS.indexOf('Availability') + 1
+const UOM_COL = SKU_HEADERS.indexOf('UOM') + 1
 
 const HDR_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F3864' } }
 const HDR_FONT = { bold: true, size: 9, color: { argb: 'FFFFFFFF' }, name: 'Arial' }
@@ -20,7 +21,7 @@ const THIN = { style: 'thin', color: { argb: 'FF000000' } }
 export async function loader({ request }) {
   const user = await requireUser(request)
 
-  const rows = await productSheetRows(await getDb())
+  const rows = await skuRows(await getDb())
   if (!rows.length) return new Response('No products found.', { status: 404 })
 
   const ExcelJS = (await import('exceljs')).default
@@ -31,7 +32,7 @@ export async function loader({ request }) {
   ws.views = [{ state: 'frozen', xSplit: 2, ySplit: 1, topLeftCell: 'C2', activeCell: 'A1' }]
   COL_WIDTHS.forEach((width, i) => { ws.getColumn(i + 1).width = width })
 
-  const headers = PRODUCT_SHEET_HEADERS
+  const headers = [...SKU_HEADERS, ...(await masterAttributeColumns()).map((c) => c.name)]
   const hdr = ws.addRow(headers)
   hdr.height = 30
   hdr.eachCell((cell) => {
