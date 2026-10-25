@@ -91,6 +91,9 @@ export const products = pgTable('products', {
    *  Product List; nothing in the legacy data carried it. */
   uom: varchar('uom', { length: 20 }),
 
+  /** Product-level purchase increment in feet: the master's Purchase Increment column. */
+  purchaseIncrement: numeric('purchase_increment', { precision: 8, scale: 2 }),
+
   /** Profile is also available as a flexible moulding.
    *  flexAvailability stores the availability code (in_stock / quick_ship /
    *  made_to_order). flexAvailable is kept as the legacy boolean synonym and

@@ -262,3 +262,85 @@ export function skuRowsToMaster(skuRows) {
   }
   return { masterRows, partRows, priceRows, conflicts, products: groups.size }
 }
+
+/* ------------------------------------------------------------ product layout
+ * The master as it was before the Part ID rows: one row per product, one column
+ * per species holding its availability code, then Purchase Increment and Height.
+ * The header text is kept exactly as in the original master (RoyalWoodShop_Master_Product_List_v1). */
+export const PRODUCT_SHEET_HEADERS = [
+  'image name', 'Code', 'Product\n Name', '\n Category', 'type\nsub-cat', 'Size', 'Description',
+  'Availability', 'Price', 'uom\n (Lft, Ea, SqFt, Kit, Pc)',
+  'Poplar', 'FJ Primed Poplar', 'FJ Primed Pine', 'Clear Pine', 'Knotty Pine', 'Primed MDF',
+  'White Oak', 'Red Oak', 'Hard Maple', 'Black Walnut', 'Mahogany', 'Douglas Fir',
+  'Western Red Cedar', 'PVC', 'Flex', 'Steel', 'Plastic', 'Other',
+  'Purchase Increment', 'Height',
+]
+const PRODUCT_WOOD_COLUMNS = PRODUCT_SHEET_HEADERS.slice(10, 28)
+
+/** Every product as one row of the product layout. */
+export async function productSheetRows(db) {
+  const rows = await db.select({
+    id: products.id, code: products.productCode, name: products.name,
+    description: products.description, size: products.sizeDisplay, price: products.price,
+    uom: products.uom, availability: products.availability, heightIn: products.heightIn,
+    purchaseIncrement: products.purchaseIncrement, flex: products.flexAvailable,
+    flexAvailability: products.flexAvailability, category: categories.name,
+  })
+    .from(products)
+    .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
+    .where(ne(products.status, 'archived'))
+    .orderBy(asc(categories.name), asc(products.productCode), asc(products.name))
+  const ids = rows.map((r) => r.id)
+  if (!ids.length) return []
+
+  const subRows = await db.select({ productId: productCategories.productId, sub: categories.name })
+    .from(productCategories)
+    .innerJoin(categories, eq(categories.id, productCategories.categoryId))
+    .where(and(isNotNull(categories.parentId), inArray(productCategories.productId, ids)))
+  const subsOf = new Map()
+  for (const s of subRows) {
+    if (!subsOf.has(s.productId)) subsOf.set(s.productId, [])
+    subsOf.get(s.productId).push(s.sub)
+  }
+
+  const ticks = await db.select({
+    productId: productAttributes.productId, species: attributeValues.value, availability: productAttributes.availability,
+  })
+    .from(productAttributes)
+    .innerJoin(attributeValues, eq(attributeValues.id, productAttributes.attributeValueId))
+    .innerJoin(attributes, and(eq(attributes.id, attributeValues.attributeId), eq(attributes.key, 'species')))
+    .where(inArray(productAttributes.productId, ids))
+  const ticksOf = new Map()
+  for (const t of ticks) {
+    if (!ticksOf.has(t.productId)) ticksOf.set(t.productId, [])
+    ticksOf.get(t.productId).push(t)
+  }
+
+  const images = await db.select({ productId: productImages.productId, key: productImages.storageKey })
+    .from(productImages).where(inArray(productImages.productId, ids)).orderBy(asc(productImages.sortOrder))
+  const imagesOf = new Map()
+  for (const i of images) {
+    const f = i.key.split('/').pop()
+    imagesOf.set(i.productId, imagesOf.has(i.productId) ? `${imagesOf.get(i.productId)}|${f}` : f)
+  }
+
+  const code = (av) => (av ? (AVAIL_TICK[av] ?? TICK_ONLY) : TICK_ONLY)
+  return rows.map((p) => {
+    const cells = Object.fromEntries(PRODUCT_WOOD_COLUMNS.map((w) => [w, '']))
+    const other = []
+    for (const t of ticksOf.get(p.id) ?? []) {
+      if (PRODUCT_WOOD_COLUMNS.includes(t.species) && t.species !== 'Flex' && t.species !== 'Other') cells[t.species] = code(t.availability)
+      else other.push(t.species)
+    }
+    if (p.flex) cells.Flex = code(p.flexAvailability)
+    cells.Other = [...new Set(other)].join('|')
+    return [
+      imagesOf.get(p.id) ?? '', p.code ?? '', p.name ?? '', p.category ?? '',
+      [...new Set(subsOf.get(p.id) ?? [])].join('|'), p.size ?? '', p.description ?? '',
+      AVAIL_TICK[p.availability] ?? '', p.price ?? '', p.uom ?? '',
+      ...PRODUCT_WOOD_COLUMNS.map((w) => cells[w]),
+      p.purchaseIncrement == null ? '' : formatIncrement(p.purchaseIncrement),
+      p.heightIn == null ? '' : formatIncrement(p.heightIn),
+    ]
+  })
+}
