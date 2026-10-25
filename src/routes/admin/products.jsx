@@ -356,6 +356,7 @@ export default function Products() {
           )}
         </div>
       </div>
+      <h1 className="mt-4 font-serif text-2xl font-bold text-tundora">Products</h1>
 
       <Form id="products-filter" method="get" role="search" className="flex flex-wrap gap-2">
         <div className="relative min-w-64 flex-1">
