@@ -255,7 +255,8 @@ export function skuRowsToMaster(skuRows) {
     for (const key of attributeKeysOf(rows)) {
       const set = new Set()
       for (const r of rows) for (const part of String(r[key] ?? '').split('|')) { const slug = slugOf(part); if (slug) set.add(slug) }
-      m.attributes[slugOf(key)] = [...set]
+      // The attribute's header carries a marker ("Height (attribute)"): strip it to get the attribute.
+      m.attributes[slugOf(key.replace(/\s*\(attribute\)\s*$/, ''))] = [...set]
     }
     m.other = [...new Set(other)].join('|')
     masterRows.push(m)
