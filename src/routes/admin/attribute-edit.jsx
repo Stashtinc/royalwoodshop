@@ -191,7 +191,7 @@ export default function AttributeEdit() {
       )}
       {data?.saved && <p className="font-sans text-sm text-green-700">{data.saved}</p>}
 
-      <div className="fixed bottom-0 left-0 right-0 z-20 flex items-center gap-3 border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:left-60">
+      <div className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-end gap-3 border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:left-60">
         <button type="submit" form="attribute-details" disabled={busy}
           className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
           {busy ? 'Saving…' : 'Save changes'}
