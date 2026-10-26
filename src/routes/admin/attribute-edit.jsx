@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Form, Link, redirect, useActionData, useLoaderData, useNavigation } from 'react-router'
+import { useRef, useState } from 'react'
+import { Form, Link, redirect, useActionData, useFetcher, useLoaderData, useNavigation } from 'react-router'
 import { ConfirmForm } from '../../components/admin/ConfirmDialog'
 import { requireUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
@@ -63,6 +63,21 @@ const field = 'rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none 
 /** One value, styled like a sub-category chip: name, product count, rename and remove. */
 function ValueChip({ value }) {
   const [editing, setEditing] = useState(false)
+  const [showPopover, setShowPopover] = useState(false)
+  const fetcher = useFetcher()
+  const showTimer = useRef(null)
+  const hideTimer = useRef(null)
+  function scheduleShow() {
+    clearTimeout(hideTimer.current)
+    showTimer.current = setTimeout(() => {
+      setShowPopover(true)
+      if (value.uses > 0 && !fetcher.data) fetcher.load(`/admin/attribute-value-products?id=${value.id}`)
+    }, 300)
+  }
+  function scheduleHide() {
+    clearTimeout(showTimer.current)
+    hideTimer.current = setTimeout(() => setShowPopover(false), 150)
+  }
   if (editing) {
     return (
       <Form method="post" onSubmit={() => setEditing(false)} className="flex items-center gap-1 rounded-lg border border-royal-blue bg-white px-2 py-1">
@@ -75,7 +90,31 @@ function ValueChip({ value }) {
     )
   }
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1 font-sans text-xs text-tundora">
+    <div className="relative flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1 font-sans text-xs text-tundora"
+      onMouseEnter={scheduleShow}
+      onMouseLeave={scheduleHide}>
+      {showPopover && value.uses > 0 && (
+        <div className="absolute top-full left-0 z-30 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-3 shadow-xl"
+          onMouseEnter={() => clearTimeout(hideTimer.current)} onMouseLeave={scheduleHide}>
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">{value.value}</p>
+          {fetcher.data ? (
+            <ul className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
+              {fetcher.data.map((p) => (
+                <li key={p.id}>
+                  <Link to={`/admin/products/${p.id}`}
+                    className="flex items-baseline gap-1 truncate rounded px-1 py-0.5 text-xs text-gray-700 hover:bg-royal-blue/5 hover:text-royal-blue">
+                    <span className="truncate">{p.name}</span>
+                    {p.productCode && <span className="shrink-0 text-[10px] text-gray-400">{p.productCode}</span>}
+                  </Link>
+                </li>
+              ))}
+              {fetcher.data.length === 50 && <li className="text-[10px] text-gray-400 pt-1">+ more…</li>}
+            </ul>
+          ) : (
+            <p className="text-xs text-gray-400">Loading…</p>
+          )}
+        </div>
+      )}
       <span className="font-medium">{value.value}</span>
       <span className="text-gray-400">({value.uses})</span>
       <button type="button" onClick={() => setEditing(true)} title="Rename" className="text-gray-400 hover:text-gray-600">
