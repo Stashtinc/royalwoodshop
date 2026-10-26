@@ -167,6 +167,16 @@ export default function AttributeEdit() {
   const data = useActionData()
   const busy = useNavigation().state === 'submitting'
   const [editingName, setEditingName] = useState(false)
+  // Save is solid only when the name or the categories differ from what is saved.
+  const formRef = useRef(null)
+  const [dirty, setDirty] = useState(false)
+  function checkDirty() {
+    const fd = new FormData(formRef.current)
+    const name = String(fd.get('name') ?? '').trim()
+    const cats = fd.getAll('categoryIds').map(Number).sort((a, b) => a - b).join()
+    const saved = [...attribute.scopeIds].sort((a, b) => a - b).join()
+    setDirty(name !== attribute.name || cats !== saved)
+  }
 
   return (
     <div className="flex flex-col gap-6 pb-24">
@@ -176,7 +186,7 @@ export default function AttributeEdit() {
         <span className="text-tundora">{attribute.name}</span>
       </div>
 
-      <Form id="attribute-details" method="post" onSubmit={() => setEditingName(false)} className="flex flex-col gap-6">
+      <Form id="attribute-details" ref={formRef} method="post" onChange={checkDirty} onSubmit={() => setEditingName(false)} className="flex flex-col gap-6">
         <input type="hidden" name="intent" value="save-details" />
         <section className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Name</h2>
@@ -231,10 +241,14 @@ export default function AttributeEdit() {
         </ConfirmForm>
         <div className="flex items-center gap-3">
           <button type="submit" form="attribute-details" disabled={busy}
-            className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
+            className={`rounded-lg border px-6 py-2.5 text-sm font-medium transition-colors disabled:opacity-60 ${
+              dirty
+                ? 'border-royal-blue bg-royal-blue text-white hover:bg-royal-blue-dark'
+                : 'border-royal-blue bg-white text-royal-blue hover:bg-royal-blue/5'
+            }`}>
             {busy ? 'Saving…' : 'Save changes'}
           </button>
-          <Link to="/admin/attributes" className="text-sm text-gray-600 hover:underline">Cancel</Link>
+          <Link to="/admin/attributes" className="rounded-lg border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50">Cancel</Link>
         </div>
       </div>
     </div>
