@@ -169,14 +169,14 @@ export default function AttributeEdit() {
   const [editingName, setEditingName] = useState(false)
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-24">
       <div className="flex items-center gap-2 font-sans text-sm text-gray-500">
         <Link to="/admin/attributes" className="hover:text-royal-blue hover:underline">Attributes</Link>
         <span>/</span>
         <span className="text-tundora">{attribute.name}</span>
       </div>
 
-      <Form id="attribute-details" method="post" onSubmit={() => setEditingName(false)} className="flex flex-col gap-6 pb-24">
+      <Form id="attribute-details" method="post" onSubmit={() => setEditingName(false)} className="flex flex-col gap-6">
         <input type="hidden" name="intent" value="save-details" />
         <section className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5">
           <h2 className="font-serif font-bold text-tundora">Name</h2>
@@ -215,14 +215,6 @@ export default function AttributeEdit() {
         {attribute.values.length === 0 && <p className="font-sans text-sm text-gray-500">No values yet. Use Add value to start.</p>}
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-white p-5">
-        <h2 className="font-serif font-bold text-tundora">Delete attribute</h2>
-        <ConfirmForm method="post" confirm={{ title: `Delete "${attribute.name}"?`, message: 'The attribute and its values are removed. Products that use it are listed on the attribute page; if any exist, the delete is refused.', action: 'Delete' }}>
-          <input type="hidden" name="intent" value="delete-attribute" />
-          <button type="submit" className="rounded-lg border border-red-300 px-4 py-2 font-sans text-sm text-red-700 hover:bg-red-50">Delete attribute</button>
-        </ConfirmForm>
-      </div>
-
       {data?.error && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 font-sans text-sm text-red-800">
           {data.error}
@@ -230,12 +222,20 @@ export default function AttributeEdit() {
       )}
       {data?.saved && <p className="font-sans text-sm text-green-700">{data.saved}</p>}
 
-      <div className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-end gap-3 border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:left-60">
-        <button type="submit" form="attribute-details" disabled={busy}
-          className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
-          {busy ? 'Saving…' : 'Save changes'}
-        </button>
-        <Link to="/admin/attributes" className="text-sm text-gray-600 hover:underline">Cancel</Link>
+      <div className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:left-60">
+        <ConfirmForm method="post" confirm={{ title: `Delete "${attribute.name}"?`, message: 'The attribute and its values are removed. If any product uses it, the delete is refused.', action: 'Delete' }}>
+          <input type="hidden" name="intent" value="delete-attribute" />
+          <button type="submit" className="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 hover:border-red-300 hover:bg-red-50">
+            Delete attribute
+          </button>
+        </ConfirmForm>
+        <div className="flex items-center gap-3">
+          <button type="submit" form="attribute-details" disabled={busy}
+            className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
+            {busy ? 'Saving…' : 'Save changes'}
+          </button>
+          <Link to="/admin/attributes" className="text-sm text-gray-600 hover:underline">Cancel</Link>
+        </div>
       </div>
     </div>
   )
