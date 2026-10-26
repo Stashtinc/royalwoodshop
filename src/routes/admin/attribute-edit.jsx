@@ -22,6 +22,13 @@ export async function action({ request, params }) {
   const id = Number(params.id)
   const label = (await getAttribute(id))?.name ?? 'Attribute'
   try {
+    if (intent === 'save-details') {
+      const name = String(f.get('name') ?? '').trim()
+      if (name) await renameAttribute(id, name)
+      await setScope(id, f.getAll('categoryIds').map(Number))
+      await log(user, 'attribute.updated', { entityType: 'attribute', entityId: id, entityLabel: name || label })
+      return { saved: 'Saved.' }
+    }
     if (intent === 'rename') {
       await renameAttribute(id, f.get('name'))
       await log(user, 'attribute.updated', { entityType: 'attribute', entityId: id, entityLabel: label })
@@ -159,36 +166,52 @@ export default function AttributeEdit() {
   const { attribute, categories } = useLoaderData()
   const data = useActionData()
   const busy = useNavigation().state === 'submitting'
+  const [editingName, setEditingName] = useState(false)
+  // Save is solid only when the name or the categories differ from what is saved.
+  const formRef = useRef(null)
+  const [dirty, setDirty] = useState(false)
+  function checkDirty() {
+    const fd = new FormData(formRef.current)
+    const name = String(fd.get('name') ?? '').trim()
+    const cats = fd.getAll('categoryIds').map(Number).sort((a, b) => a - b).join()
+    const saved = [...attribute.scopeIds].sort((a, b) => a - b).join()
+    setDirty(name !== attribute.name || cats !== saved)
+  }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-24">
       <div className="flex items-center gap-2 font-sans text-sm text-gray-500">
         <Link to="/admin/attributes" className="hover:text-royal-blue hover:underline">Attributes</Link>
         <span>/</span>
         <span className="text-tundora">{attribute.name}</span>
       </div>
 
-      <Form method="post" className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-5">
-        <input type="hidden" name="intent" value="rename" />
-        <label className="flex flex-col gap-1.5">
-          <span className="font-sans text-xs font-medium text-gray-600">Name</span>
-          <input name="name" defaultValue={attribute.name} className={field} required />
-        </label>
-        <button type="submit" disabled={busy} className="rounded-lg border border-royal-blue px-4 py-2 font-sans text-sm font-medium text-royal-blue hover:bg-royal-blue hover:text-white disabled:opacity-50">Save name</button>
-      </Form>
+      <Form id="attribute-details" ref={formRef} method="post" onChange={checkDirty} onSubmit={() => setEditingName(false)} className="flex flex-col gap-6">
+        <input type="hidden" name="intent" value="save-details" />
+        <section className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5">
+          <h2 className="font-serif font-bold text-tundora">Name</h2>
+          {editingName ? (
+            <input name="name" defaultValue={attribute.name} className={`${field} max-w-md`} required autoFocus />
+          ) : (
+            <div className="flex items-center gap-3">
+              <input type="hidden" name="name" value={attribute.name} />
+              <p className="font-sans text-base text-tundora">{attribute.name}</p>
+              <button type="button" onClick={() => setEditingName(true)} className="font-sans text-sm text-royal-blue hover:underline">Edit</button>
+            </div>
+          )}
+        </section>
 
-      <Form method="post" className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
-        <input type="hidden" name="intent" value="scope" />
-        <h2 className="font-serif font-bold text-tundora">Applies to categories</h2>
-        <div className="flex flex-wrap gap-3">
-          {categories.map((c) => (
-            <label key={c.id} className="flex items-center gap-2 font-sans text-sm text-tundora">
-              <input type="checkbox" name="categoryIds" value={c.id} defaultChecked={attribute.scopeIds.includes(c.id)} className="accent-royal-blue" />
-              {c.name}
-            </label>
-          ))}
-        </div>
-        <div><button type="submit" disabled={busy} className="rounded-lg bg-royal-blue px-5 py-2 font-sans text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">Save categories</button></div>
+        <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
+          <h2 className="font-serif font-bold text-tundora">Applies to categories</h2>
+          <div className="flex flex-wrap gap-3">
+            {categories.map((c) => (
+              <label key={c.id} className="flex items-center gap-2 font-sans text-sm text-tundora">
+                <input type="checkbox" name="categoryIds" value={c.id} defaultChecked={attribute.scopeIds.includes(c.id)} className="accent-royal-blue" />
+                {c.name}
+              </label>
+            ))}
+          </div>
+        </section>
       </Form>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5">
@@ -202,20 +225,32 @@ export default function AttributeEdit() {
         {attribute.values.length === 0 && <p className="font-sans text-sm text-gray-500">No values yet. Use Add value to start.</p>}
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-white p-5">
-        <h2 className="font-serif font-bold text-tundora">Delete attribute</h2>
-        <ConfirmForm method="post" confirm={{ title: `Delete "${attribute.name}"?`, message: 'The attribute and its values are removed. Products that use it are listed on the attribute page; if any exist, the delete is refused.', action: 'Delete' }}>
-          <input type="hidden" name="intent" value="delete-attribute" />
-          <button type="submit" className="rounded-lg border border-red-300 px-4 py-2 font-sans text-sm text-red-700 hover:bg-red-50">Delete attribute</button>
-        </ConfirmForm>
-      </div>
-
       {data?.error && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 font-sans text-sm text-red-800">
           {data.error}
         </div>
       )}
       {data?.saved && <p className="font-sans text-sm text-green-700">{data.saved}</p>}
+
+      <div className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:left-60">
+        <ConfirmForm method="post" confirm={{ title: `Delete "${attribute.name}"?`, message: 'The attribute and its values are removed. If any product uses it, the delete is refused.', action: 'Delete' }}>
+          <input type="hidden" name="intent" value="delete-attribute" />
+          <button type="submit" className="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 hover:border-red-300 hover:bg-red-50">
+            Delete attribute
+          </button>
+        </ConfirmForm>
+        <div className="flex items-center gap-3">
+          <button type="submit" form="attribute-details" disabled={busy}
+            className={`rounded-lg border px-6 py-2.5 text-sm font-medium transition-colors disabled:opacity-60 ${
+              dirty
+                ? 'border-royal-blue bg-royal-blue text-white hover:bg-royal-blue-dark'
+                : 'border-royal-blue bg-white text-royal-blue hover:bg-royal-blue/5'
+            }`}>
+            {busy ? 'Saving…' : 'Save changes'}
+          </button>
+          <Link to="/admin/attributes" className="rounded-lg border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50">Cancel</Link>
+        </div>
+      </div>
     </div>
   )
 }
