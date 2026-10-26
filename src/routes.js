@@ -42,6 +42,7 @@ export default [
     route('attributes', 'routes/admin/attributes.jsx'),
     route('attributes/:id', 'routes/admin/attribute-edit.jsx'),
     route('category-products', 'routes/admin/category-products.js'),
+    route('attribute-value-products', 'routes/admin/attribute-value-products.js'),
     route('product-code', 'routes/admin/product-code.js'),
     route('import', 'routes/admin/import.jsx'),
     route('media', 'routes/admin/media.jsx'),
