@@ -23,4 +23,25 @@ export const downloads = [
     format: 'PDF',
     href: '/downloads/2026-trimlite-interior-brochure.pdf',
   },
+  {
+    slug: 'curved-moulding-order-form',
+    title: 'Curved Moulding Order Form',
+    description: 'The order form for curved mouldings. Fill it in and send it with your order.',
+    format: 'DOC',
+    href: '/downloads/curved-moulding-order-form.doc',
+  },
+  {
+    slug: 'door-handing-sheet',
+    title: 'Door Handing Sheet',
+    description: 'Shows how to work out the handing of a door, so you order the right swing.',
+    format: 'JPG',
+    href: '/downloads/door-handing-sheet.jpg',
+  },
+  {
+    slug: 'door-machining-sheet-example',
+    title: 'Door Machining Sheet Example',
+    description: 'An example door machining sheet with four hinge positions, to show how a finished sheet is filled in.',
+    format: 'PDF',
+    href: '/downloads/door-machining-sheet-example.pdf',
+  },
 ]
