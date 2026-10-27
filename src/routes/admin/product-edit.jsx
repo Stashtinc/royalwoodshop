@@ -19,7 +19,7 @@ import UomSelect from '../../components/admin/UomSelect'
 import ProductCodeInput from '../../components/admin/ProductCodeInput'
 import { normaliseUom } from '../../lib/catalogue-constants'
 import { parseIncrement } from '../../lib/purchase-increment'
-import { managedAttributes, productAttributeValues, setProductAttribute } from '../../lib/attributes-admin.server.js'
+import { managedAttributes, productAttributeValues, setProductAttribute, attributesFor } from '../../lib/attributes-admin.server.js'
 import { thumbSrc } from '../../lib/images'
 import SeoFields from '../../components/admin/SeoFields'
 
@@ -42,7 +42,7 @@ export async function loader({ request, params }) {
   ])
   // Door heights are the Height attribute now, not sub-categories: keep them out of the category picker.
   const categoryTree = rawTree.map((c) => ({ ...c, subcategories: c.subcategories.filter((sub) => !/^\d+" Height$/.test(sub.name)) }))
-  const attributes = await managedAttributes()
+  const attributes = attributesFor(await managedAttributes(), linkedCategoryIds, rawTree)
   const ticks = await productAttributeValues(params.id)
   return { attributes, ticked: Object.fromEntries([...ticks].map(([k, v]) => [k, v])), product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds: partData.partIds || {}, partPrices: partData.prices || {}, partSalePrices: partData.salePrices || {}, partIncrements: partData.increments || {} }
 }
@@ -211,7 +211,8 @@ export async function action({ request, params }) {
   const changed = diffProduct(before, payload)
   await saveProduct(params.id, payload)
   // Attributes (e.g. Height): each one's ticks are replaced by what is checked here.
-  for (const attr of await managedAttributes()) {
+  const [treeNow, linkedNow] = await Promise.all([listCategoriesWithSubs(), listProductCategories(params.id)])
+  for (const attr of attributesFor(await managedAttributes(), linkedNow, treeNow)) {
     await setProductAttribute(params.id, attr.id, f.getAll(`attr:${attr.id}`).map(Number))
   }
 
@@ -411,17 +412,20 @@ export default function ProductEdit() {
 
   return (
     <div className="flex flex-col gap-5 pb-20">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-baseline gap-3">
-          <Link to="/admin/products" className="text-sm text-royal-blue hover:underline">← Products</Link>
-          <span className="font-mono text-xs text-gray-500">{product.productCode}</span>
+      {/* Sticky header: stays visible while scrolling so the product being edited is always named.
+          top-[57px] clears the mobile admin bar (layout.jsx); lg:top-0 when that bar is hidden. */}
+      <div className="sticky top-[57px] z-20 -mx-5 flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 px-5 py-3 lg:top-0 lg:-mx-8 lg:px-8">
+        <div className="flex min-w-0 items-baseline gap-3">
+          <Link to="/admin/products" className="shrink-0 text-sm text-royal-blue hover:underline">← Products</Link>
+          <span className="shrink-0 font-mono text-xs text-gray-500">{product.productCode}</span>
+          <h1 className="min-w-0 truncate font-serif text-xl font-bold text-tundora">{product.name}</h1>
         </div>
         {product.categorySlug && product.slug && (
           <a
             href={`/products/${product.categorySlug}/${product.slug}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 font-sans text-xs text-gray-600 hover:border-royal-blue hover:text-royal-blue"
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 font-sans text-xs text-gray-600 hover:border-royal-blue hover:text-royal-blue"
           >
             View on site
             <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
@@ -430,7 +434,6 @@ export default function ProductEdit() {
           </a>
         )}
       </div>
-      <h1 className="font-serif text-2xl font-bold text-tundora">{product.name}</h1>
 
       <Toast message={toast} onDismiss={() => setToast(null)} />
       <Toast message={data?.error} stamp={data} tone="error" top={data?.saved ? 'top-20' : 'top-5'} />
@@ -520,17 +523,6 @@ export default function ProductEdit() {
       {/* Sticky save bar */}
       <div className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:left-60">
         <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            form="details-form"
-            disabled={saving}
-            className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60"
-          >
-            {saving ? 'Saving…' : 'Save changes'}
-          </button>
-          <Link to="/admin/products" className="text-sm text-gray-600 hover:underline">Cancel</Link>
-        </div>
-        <div className="flex items-center gap-3">
           <ConfirmForm method="post" confirm={{ title: 'Archive this product?', message: `"${product.name}" will be hidden from the site. You can publish it again from Products → Archived.`, action: 'Archive' }}>
             <input type="hidden" name="intent" value="archive" />
             <button type="submit"
@@ -545,6 +537,17 @@ export default function ProductEdit() {
               Delete product
             </button>
           </ConfirmForm>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            form="details-form"
+            disabled={saving}
+            className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60"
+          >
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+          <Link to="/admin/products" className="text-sm text-gray-600 hover:underline">Cancel</Link>
         </div>
       </div>
 

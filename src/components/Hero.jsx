@@ -34,9 +34,7 @@ function HeroPanelContent({ showLogo = true }) {
       )}
       <div className="flex w-full flex-col items-start gap-9">
         <h1 className="font-serif text-3xl leading-[1.5] font-bold text-white xl:text-[36px] xl:whitespace-nowrap">
-          Built for Professionals.
-          <br />
-          Trusted by Homeowners.
+          Your complete interior finishing supply partner since 1982
         </h1>
         <a
           href="#about"

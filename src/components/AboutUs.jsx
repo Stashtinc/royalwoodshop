@@ -50,7 +50,9 @@ export default function AboutUs() {
 
           <div className="flex flex-col gap-6">
             <p className="font-sans text-xl font-medium text-royal-blue">
-              Serving York Region &amp; the Greater Toronto Area since 1982
+              Built for Professionals.
+              <br />
+              Trusted by Homeowners
             </p>
             <p className="font-sans text-lg leading-relaxed text-gray-600">
               The Royal Wood Shop Ltd is a leading specialized supplier of interior trim,

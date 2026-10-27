@@ -17,7 +17,7 @@ export default [
   route('core-values', 'routes/core-values.jsx'),
   route('environmental-commitment', 'routes/environmental.jsx'),
   route('panelling-surfaces', 'routes/panelling-surfaces.jsx'),
-  route('services', 'routes/services.jsx'),
+  route('custom-millwork', 'routes/custom-millwork.jsx'),
   // Service pages keep the addresses WordPress used, so the pages that already
   // rank keep ranking. These must be declared before the ':slug' article
   // catch-all at the bottom, or an article route would swallow them.
