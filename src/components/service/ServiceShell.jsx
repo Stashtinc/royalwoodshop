@@ -42,14 +42,14 @@ export function ServiceCta({
           )}
         </p>
         <Link
-          to="/contact"
+          to="/get-a-quote"
           className={`rounded-lg px-6 py-3.5 font-sans text-base font-medium transition-colors ${
             dark
               ? 'bg-white text-royal-blue hover:bg-parchment'
               : 'bg-royal-blue text-white hover:bg-royal-blue-dark'
           }`}
         >
-          Contact us
+          Get a Quote
         </Link>
       </div>
     </section>
