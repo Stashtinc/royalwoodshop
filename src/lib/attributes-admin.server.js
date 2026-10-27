@@ -162,10 +162,23 @@ export async function managedAttributes() {
   const values = await db.select().from(attributeValues)
     .where(inArray(attributeValues.attributeId, rows.map((a) => a.id)))
     .orderBy(asc(attributeValues.sortOrder), asc(attributeValues.value))
+  const scopes = await db.select().from(attributeCategories)
+    .where(inArray(attributeCategories.attributeId, rows.map((a) => a.id)))
   return rows.map((a) => ({
     id: a.id, key: a.key, name: a.name,
+    // Top-level categories the attribute applies to (none = every product).
+    scopeIds: scopes.filter((s) => s.attributeId === a.id).map((s) => s.categoryId),
     values: values.filter((v) => v.attributeId === a.id).map((v) => ({ id: v.id, value: v.value, slug: v.slug })),
   }))
+}
+
+/** The attributes that apply to a product, given the category ids it is linked to
+ *  (top-level and sub-level) and the category tree. An attribute applies when one of
+ *  its categories is the product's top-level category, or when it has no categories. */
+export function attributesFor(attrs, linkedIds, tree) {
+  const linked = new Set(linkedIds)
+  const topIds = new Set(tree.filter((c) => linked.has(c.id) || c.subcategories.some((s) => linked.has(s.id))).map((c) => c.id))
+  return attrs.filter((a) => a.scopeIds.length === 0 || a.scopeIds.some((id) => topIds.has(id)))
 }
 
 /** The value ids a product is ticked with, grouped by attribute id. */

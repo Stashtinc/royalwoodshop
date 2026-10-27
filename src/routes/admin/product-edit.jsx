@@ -19,7 +19,7 @@ import UomSelect from '../../components/admin/UomSelect'
 import ProductCodeInput from '../../components/admin/ProductCodeInput'
 import { normaliseUom } from '../../lib/catalogue-constants'
 import { parseIncrement } from '../../lib/purchase-increment'
-import { managedAttributes, productAttributeValues, setProductAttribute } from '../../lib/attributes-admin.server.js'
+import { managedAttributes, productAttributeValues, setProductAttribute, attributesFor } from '../../lib/attributes-admin.server.js'
 import { thumbSrc } from '../../lib/images'
 import SeoFields from '../../components/admin/SeoFields'
 
@@ -42,7 +42,7 @@ export async function loader({ request, params }) {
   ])
   // Door heights are the Height attribute now, not sub-categories: keep them out of the category picker.
   const categoryTree = rawTree.map((c) => ({ ...c, subcategories: c.subcategories.filter((sub) => !/^\d+" Height$/.test(sub.name)) }))
-  const attributes = await managedAttributes()
+  const attributes = attributesFor(await managedAttributes(), linkedCategoryIds, rawTree)
   const ticks = await productAttributeValues(params.id)
   return { attributes, ticked: Object.fromEntries([...ticks].map(([k, v]) => [k, v])), product, images, limits: describeLimits(), categoryTree, linkedCategoryIds, partIds: partData.partIds || {}, partPrices: partData.prices || {}, partSalePrices: partData.salePrices || {}, partIncrements: partData.increments || {} }
 }
@@ -211,7 +211,8 @@ export async function action({ request, params }) {
   const changed = diffProduct(before, payload)
   await saveProduct(params.id, payload)
   // Attributes (e.g. Height): each one's ticks are replaced by what is checked here.
-  for (const attr of await managedAttributes()) {
+  const [treeNow, linkedNow] = await Promise.all([listCategoriesWithSubs(), listProductCategories(params.id)])
+  for (const attr of attributesFor(await managedAttributes(), linkedNow, treeNow)) {
     await setProductAttribute(params.id, attr.id, f.getAll(`attr:${attr.id}`).map(Number))
   }
 
