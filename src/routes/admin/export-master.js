@@ -12,6 +12,8 @@ import { log } from '../../lib/activity.server.js'
 const COL_WIDTHS = [24, 18, 22, 34, 19, 18, 16, 58, 18, 11, 9, 8]
 const AVAIL_COL = SKU_HEADERS.indexOf('Availability') + 1
 const UOM_COL = SKU_HEADERS.indexOf('UOM') + 1
+// Long descriptions wrap inside their cell, so the Specifications column beside them stays readable.
+const DESCRIPTION_COL = SKU_HEADERS.indexOf('Description') + 1
 
 const HDR_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F3864' } }
 const ATTR_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF4B183' } }
@@ -50,6 +52,7 @@ export async function loader({ request }) {
 
   for (const values of rows) {
     const row = ws.addRow(values)
+    row.getCell(DESCRIPTION_COL).alignment = { wrapText: true, vertical: 'top' }
     row.getCell(AVAIL_COL).dataValidation = {
       type: 'list', allowBlank: true, formulae: ['"S,QS,MO"'], showDropDown: false,
     }
