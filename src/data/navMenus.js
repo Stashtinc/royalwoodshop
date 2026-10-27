@@ -38,7 +38,6 @@ export const servicesMenu = [
   { label: 'Estimate & Quotation', path: '/material-estimate-and-quotation' },
   { label: 'Delivery Service', path: '/services/delivery' },
   { label: 'Saw Blade Sharpening', path: '/saw-blade-sharpening' },
-  'Pre-Hanging Service',
 ]
 
 export const aboutMenu = [
