@@ -4,7 +4,7 @@ import { productCategories } from '../data/productCategories'
 
 const quickLinks = [
   { label: 'Products', to: '/#products' },
-  { label: 'Services', to: '/services' },
+  { label: 'Custom Millwork', to: '/custom-millwork' },
   { label: 'About', to: '/#about' },
   { label: 'Contact Us', to: '/contact' },
   { label: 'Blog', to: '/blog' },
