@@ -50,17 +50,10 @@ export default function AboutUs() {
 
           <div className="flex flex-col gap-6">
             <p className="font-sans text-xl font-medium text-royal-blue">
-              Built for Professionals.
-              <br />
-              Trusted by Homeowners
+              Built for Professionals. Trusted by Homeowners
             </p>
             <p className="font-sans text-lg leading-relaxed text-gray-600">
-              The Royal Wood Shop Ltd is a leading specialized supplier of interior trim,
-              mouldings, and doors for upscale renovation and new build projects in Toronto,
-              GTA and York Region. We take pride in our ability to offer an unmatched
-              combination of extensive in-stock selection, custom millwork capability, and
-              knowledgeable service—making us the preferred choice for contractors,
-              designers, builders, and homeowners who care about detail and quality.
+              The Royal Wood Shop Ltd. supplies interior trim, mouldings and doors for high-end renovations and new builds. We carry a large in-stock selection, offer custom millwork, and have a knowledgeable team to help you get it right. That’s why contractors, designers, builders and homeowners who care about detail and quality keep coming back to us.
             </p>
           </div>
 
