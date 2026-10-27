@@ -521,17 +521,6 @@ export default function ProductEdit() {
       {/* Sticky save bar */}
       <div className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:left-60">
         <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            form="details-form"
-            disabled={saving}
-            className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60"
-          >
-            {saving ? 'Saving…' : 'Save changes'}
-          </button>
-          <Link to="/admin/products" className="text-sm text-gray-600 hover:underline">Cancel</Link>
-        </div>
-        <div className="flex items-center gap-3">
           <ConfirmForm method="post" confirm={{ title: 'Archive this product?', message: `"${product.name}" will be hidden from the site. You can publish it again from Products → Archived.`, action: 'Archive' }}>
             <input type="hidden" name="intent" value="archive" />
             <button type="submit"
@@ -546,6 +535,17 @@ export default function ProductEdit() {
               Delete product
             </button>
           </ConfirmForm>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            form="details-form"
+            disabled={saving}
+            className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60"
+          >
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+          <Link to="/admin/products" className="text-sm text-gray-600 hover:underline">Cancel</Link>
         </div>
       </div>
 
