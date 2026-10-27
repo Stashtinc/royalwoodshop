@@ -19,6 +19,6 @@ export const STATIC_PAGES = [
   '/the-royal-edge',
   '/core-values',
   '/environmental-commitment',
-  '/services',
+  '/custom-millwork',
   '/panelling-surfaces',
 ]

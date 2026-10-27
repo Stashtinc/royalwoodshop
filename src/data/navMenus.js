@@ -33,7 +33,7 @@ export const navLinks = [
 ]
 
 export const servicesMenu = [
-  { label: 'All Services', path: '/services' },
+  { label: 'Custom Millwork', path: '/custom-millwork' },
   { label: 'Consultation', path: '/consultation' },
   { label: 'Estimate & Quotation', path: '/material-estimate-and-quotation' },
   { label: 'Delivery Service', path: '/services/delivery' },

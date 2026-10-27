@@ -12,14 +12,13 @@ function entries(items, fallback, group) {
 
 const allEntries = [
   { label: 'Products', path: '/products', group: 'Pages' },
-  { label: 'Services', path: '/services', group: 'Pages' },
   { label: 'About Royal', path: '/#about', group: 'Pages' },
   { label: 'Contact Us', path: '/contact', group: 'Pages' },
   { label: 'Resources', path: '/resources', group: 'Pages' },
 
   ...entries(productCategories, '/products', 'Products'),
   ...entries(productsMenu.categories, '/products', 'Products'),
-  ...entries(servicesMenu, '/services', 'Services'),
+  ...entries(servicesMenu, '/get-a-quote', 'Services'),
   ...entries(aboutMenu, '/#about', 'About Royal'),
   ...entries(resourcesMenu, '/resources', 'Resources'),
 

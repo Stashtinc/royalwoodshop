@@ -8,7 +8,7 @@ import Footer from './components/Footer'
 import NewsletterSignup from './components/NewsletterSignup'
 import GoogleTagManager from './components/GoogleTagManager'
 import royalEdgeHero from './assets/images/royal-edge-hero.jpg'
-import servicesHero from './assets/images/services-hero.jpg'
+import customMillworkImage from './assets/images/custom-millwork.png'
 import navCatsJson from './data/navCategories.json'
 export async function loader({ request }) {
   const { getUser } = await import('./lib/auth.server.js')
@@ -40,7 +40,7 @@ export const links = () => [
 
 const pageHeaderImages = {
   '/the-royal-edge': { image: royalEdgeHero, imageAlt: 'Close-up of custom oak moulding profiles' },
-  '/services': { image: servicesHero, imageAlt: 'Modern oak staircase with black metal balusters' },
+  '/custom-millwork': { image: customMillworkImage, imageAlt: 'Oak door with a raised-panel profile, machined and finished in the shop' },
 }
 
 /**

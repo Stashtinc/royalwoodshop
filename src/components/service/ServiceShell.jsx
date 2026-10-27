@@ -14,9 +14,7 @@ import { services } from '../../data/services'
 export function Crumb({ title, onBlue = false }) {
   return (
     <nav aria-label="Breadcrumb" className={`font-sans text-sm ${onBlue ? 'text-white/70' : 'text-gray-500'}`}>
-      <Link to="/services" className={`transition-colors ${onBlue ? 'hover:text-white' : 'hover:text-royal-blue'}`}>
-        Services
-      </Link>
+      <span>Services</span>
       <span className={`mx-2 ${onBlue ? 'text-white/40' : 'text-gray-300'}`}>/</span>
       <span className={onBlue ? 'text-white' : 'text-gray-700'}>{title}</span>
     </nav>
