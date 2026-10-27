@@ -169,7 +169,7 @@ export default function Delivery() {
         </div>
       </section>
 
-      <ServiceCta heading="Need it on site by a date? Tell us the date." />
+      <ServiceCta heading="Need it on site by a date? Tell us the date." buttonLabel="Contact us" buttonTo="/contact" />
       <OtherServices current="delivery" />
     </>
   )

@@ -25,6 +25,8 @@ export function ServiceCta({
   heading = 'Want To Start Your Project? Get a Free Quote!',
   body,
   tone = 'blue',
+  buttonLabel = 'Get a Quote',
+  buttonTo = '/get-a-quote',
 }) {
   const dark = tone === 'blue'
   return (
@@ -42,14 +44,14 @@ export function ServiceCta({
           )}
         </p>
         <Link
-          to="/get-a-quote"
+          to={buttonTo}
           className={`rounded-lg px-6 py-3.5 font-sans text-base font-medium transition-colors ${
             dark
               ? 'bg-white text-royal-blue hover:bg-parchment'
               : 'bg-royal-blue text-white hover:bg-royal-blue-dark'
           }`}
         >
-          Get a Quote
+          {buttonLabel}
         </Link>
       </div>
     </section>
