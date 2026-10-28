@@ -3,16 +3,17 @@ import { AVAILABILITY, AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
 import Thumb from './Thumb'
 
 /**
- * Dropdown product list for the quote form: search, filters, and multi-select.
+ * Dropdown list of quote lines for the form: search, filters, and multi-select.
  *
- * Ticked products are added together with "Add to quote". Products already on
- * the quote show as added and cannot be ticked twice.
+ * A line is a Part ID, which is one product in one wood, so the list shows Part
+ * IDs. Ticked lines are added together with "Add to quote". Lines already on the
+ * quote show as added and cannot be ticked twice.
  */
 
 const field =
   'rounded-lg border border-gray-300 bg-white px-3 py-2.5 font-sans text-sm focus:border-royal-blue focus:outline-none'
 
-export default function ProductPicker({ products, addedIds, onAdd }) {
+export default function ProductPicker({ parts, addedKeys, onAdd }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('')
@@ -22,24 +23,24 @@ export default function ProductPicker({ products, addedIds, onAdd }) {
   const rootRef = useRef(null)
 
   const categories = useMemo(
-    () => [...new Set(products.map((p) => p.categoryName).filter(Boolean))].sort(),
-    [products],
+    () => [...new Set(parts.map((p) => p.categoryName).filter(Boolean))].sort(),
+    [parts],
   )
   const speciesList = useMemo(
-    () => [...new Set(products.flatMap((p) => p.species ?? []))].sort(),
-    [products],
+    () => [...new Set(parts.map((p) => p.species).filter(Boolean))].sort(),
+    [parts],
   )
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return products.filter((p) => {
+    return parts.filter((p) => {
       if (category && p.categoryName !== category) return false
-      if (species && !(p.species ?? []).includes(species)) return false
+      if (species && p.species !== species) return false
       if (availability && p.availability !== availability) return false
       if (!q) return true
-      return `${p.name} ${p.productCode ?? ''} ${p.sizeDisplay ?? ''}`.toLowerCase().includes(q)
+      return `${p.partId ?? ''} ${p.productCode ?? ''} ${p.name} ${p.sizeDisplay ?? ''}`.toLowerCase().includes(q)
     })
-  }, [products, query, category, species, availability])
+  }, [parts, query, category, species, availability])
 
   // Close on outside click or Escape.
   useEffect(() => {
@@ -54,14 +55,14 @@ export default function ProductPicker({ products, addedIds, onAdd }) {
     }
   }, [open])
 
-  const toggle = (id) => setTicked((prev) => {
+  const toggle = (key) => setTicked((prev) => {
     const next = new Set(prev)
-    if (next.has(id)) next.delete(id); else next.add(id)
+    if (next.has(key)) next.delete(key); else next.add(key)
     return next
   })
 
   const addTicked = () => {
-    onAdd(products.filter((p) => ticked.has(p.id)))
+    onAdd(parts.filter((p) => ticked.has(p.key)))
     setTicked(new Set())
     setOpen(false)
     // Put the products back at the top of the screen, with the new line visible.
@@ -97,7 +98,7 @@ export default function ProductPicker({ products, addedIds, onAdd }) {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name, code or size"
+              placeholder="Search by Part ID, code, name or size"
               aria-label="Search products"
               className={`${field} w-full`}
               autoFocus
@@ -132,8 +133,8 @@ export default function ProductPicker({ products, addedIds, onAdd }) {
               <li className="px-4 py-6 text-center font-sans text-sm text-gray-500">No products match. Try another search or filter.</li>
             )}
             {results.map((p) => {
-              const added = addedIds.has(p.id)
-              const checked = ticked.has(p.id)
+              const added = addedKeys.has(p.key)
+              const checked = ticked.has(p.key)
               return (
                 <li key={p.id} role="option" aria-selected={checked} aria-disabled={added}>
                   <label className={`flex cursor-pointer items-start gap-3 px-4 py-3 hover:bg-parchment ${added ? 'opacity-50' : ''}`}>
@@ -141,14 +142,14 @@ export default function ProductPicker({ products, addedIds, onAdd }) {
                       type="checkbox"
                       checked={checked || added}
                       disabled={added}
-                      onChange={() => toggle(p.id)}
+                      onChange={() => toggle(p.key)}
                       className="mt-1 h-4 w-4 shrink-0 accent-royal-blue"
                     />
                     <Thumb product={p} />
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="font-sans text-sm font-medium text-gray-900">{p.name}</span>
+                      <span className="font-mono text-sm font-medium text-gray-900">{p.partId ?? p.productCode}</span>
                       <span className="font-sans text-xs text-gray-500">
-                        {[p.productCode, p.sizeDisplay, p.categoryName, AVAILABILITY_LABEL[p.availability]].filter(Boolean).join(' · ')}
+                        {[p.species, p.sizeDisplay, p.categoryName, AVAILABILITY_LABEL[p.availability]].filter(Boolean).join(' · ')}
                         {added && ' · on your quote'}
                       </span>
                     </span>
