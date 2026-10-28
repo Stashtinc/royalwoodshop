@@ -303,7 +303,8 @@ export default function ProductDetail({ product: productProp = null, related: re
                     <th className="py-2 pr-3 font-sans text-xs font-semibold uppercase text-gray-500">Specifications</th>
                     <th className="py-2 px-3 font-sans text-xs font-semibold uppercase text-gray-500">Part ID</th>
                     <th className="py-2 px-3 font-sans text-xs font-semibold uppercase text-gray-500">Price</th>
-                    <th className="py-2 pl-3 font-sans text-xs font-semibold uppercase text-gray-500">Availability</th>
+                    <th className="py-2 px-3 font-sans text-xs font-semibold uppercase text-gray-500">Availability</th>
+                    <th className="py-2 pl-3" aria-label="Get a quote" />
                   </tr>
                 </thead>
                 <tbody>
@@ -325,7 +326,7 @@ export default function ProductDetail({ product: productProp = null, related: re
                             <span className="text-gray-400">—</span>
                           )}
                         </td>
-                        <td className="py-3 pl-3">
+                        <td className="py-3 px-3">
                           {row.salePrice && (
                             <span className="inline-flex items-center rounded-full bg-red-500 px-2 py-0.5 text-xs font-medium text-white mr-2">On Sale</span>
                           )}
@@ -335,6 +336,16 @@ export default function ProductDetail({ product: productProp = null, related: re
                             </span>
                           ) : (
                             <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 pl-3 text-right">
+                          {product.dbId != null && (
+                            <Link
+                              to={`/get-a-quote?add=${encodeURIComponent(`${product.dbId}|${row.name}`)}`}
+                              className="inline-flex items-center whitespace-nowrap rounded-lg bg-royal-blue px-3 py-1.5 font-sans text-xs font-medium text-white hover:bg-royal-blue-dark"
+                            >
+                              Get a quote
+                            </Link>
                           )}
                         </td>
                       </tr>

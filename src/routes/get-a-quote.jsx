@@ -24,27 +24,41 @@ export async function loader() {
   let woods = new Map()
   try {
     const { productWoods } = await import('../lib/quote.server.js')
-    woods = await productWoods(all.map((p) => p.id))
+    woods = await productWoods(all.map((p) => p.dbId))
   } catch {}
-  const products = all
+  // One quote line per product and wood, as the product page's rows show them.
+  // A product with no wood (no Part IDs or species) is quoted once, as itself.
+  const parts = all
     .filter((p) => (p.status ?? 'published') === 'published')
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      productCode: p.productCode,
-      sizeDisplay: p.sizeDisplay,
-      // getAllProducts names the category `category` (the catalogue reads it the same way).
-      categoryName: p.category ?? null,
-      species: p.species ?? [],
-      availability: p.availability,
-      uom: p.uom,
-      woods: woods.get(p.id) ?? [],
-      image: p.image ?? null,
-      imageWidth: p.imageWidth ?? null,
-      imageRole: p.imageRole ?? null,
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name))
-  return { products }
+    .flatMap((p) => {
+      // The database id, not the slug: the server looks lines up by it.
+      const base = {
+        productId: p.dbId,
+        name: p.name,
+        productCode: p.productCode,
+        sizeDisplay: p.sizeDisplay,
+        // getAllProducts names the category `category` (the catalogue reads it the same way).
+        categoryName: p.category ?? null,
+        availability: p.availability,
+        uom: p.uom,
+        image: p.image ?? null,
+        imageWidth: p.imageWidth ?? null,
+        imageRole: p.imageRole ?? null,
+      }
+      const choices = woods.get(p.dbId) ?? []
+      if (!choices.length) return [{ ...base, key: `${p.dbId}|`, species: null, partId: null, increment: null }]
+      return choices.map((w) => ({
+        ...base,
+        key: `${p.dbId}|${w.name}`,
+        species: w.name,
+        partId: w.partId,
+        increment: w.increment,
+        // The Part ID is what the line is called; the product code is the fallback.
+        productCode: w.partId ?? p.productCode,
+      }))
+    })
+    .sort((a, b) => (a.productCode ?? '').localeCompare(b.productCode ?? '') || a.name.localeCompare(b.name))
+  return { parts }
 }
 
 let limiter
@@ -83,6 +97,6 @@ export async function action({ request }) {
 }
 
 export default function Route() {
-  const { products } = useLoaderData()
-  return <GetAQuote products={products} />
+  const { parts } = useLoaderData()
+  return <GetAQuote parts={parts} />
 }
