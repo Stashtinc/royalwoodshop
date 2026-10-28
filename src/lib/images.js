@@ -24,9 +24,11 @@ export function srcSet(storageKey, originalWidth) {
   // Offering all of them requests files that may not exist, so offer none and
   // let the plain src serve the image.
   if (!originalWidth) return null
-  const available = WIDTHS.filter((w) => w <= originalWidth)
-  if (!available.length) return null
-  return available.map((w) => `${variantPath(storageKey, w)} ${w}w`).join(', ')
+  // The original is always the widest candidate. Variants stop at 1440, so a
+  // 1200px drawing would otherwise top out at 960px and look soft on large
+  // or high-density screens.
+  const variants = WIDTHS.filter((w) => w < originalWidth).map((w) => `${variantPath(storageKey, w)} ${w}w`)
+  return [...variants, `${storageKey} ${originalWidth}w`].join(', ')
 }
 
 /** Small enough for a thumbnail, without downloading the full image. */
