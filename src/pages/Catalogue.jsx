@@ -596,8 +596,13 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
     () => [...new Set(allProducts.map((p) => p.heightIn).filter((h) => h != null))].sort((a, b) => a - b),
     [allProducts],
   )
-  // Height pills belong to the door styles: shown while any Interior Doors sub-category is in view.
-  const showHeights = heightOptions.length > 0 && [...selectedSubs].some((k) => k.startsWith('Interior Doors::'))
+  // Height pills belong to the categories that carry heights (the doors), whatever they are named:
+  // shown while a sub-category of one of them is in view.
+  const heightCategories = useMemo(
+    () => new Set(allProducts.filter((p) => p.heightIn != null).map((p) => p.category)),
+    [allProducts],
+  )
+  const showHeights = heightOptions.length > 0 && [...selectedSubs].some((k) => heightCategories.has(k.split('::')[0]))
 
   const sorted = useMemo(() => {
     const catIndex = Object.fromEntries(catalogueCategoryOrder.map((c, i) => [c.name, i]))
