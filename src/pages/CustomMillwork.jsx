@@ -24,6 +24,41 @@ const MASONRY_PHOTOS = [
   { src: '/images/custom-millwork/mw-11-white-oak-board.jpg', w: 1188, h: 1400, alt: 'White oak board, machined for a profile' },
 ]
 
+/**
+ * Deals photos into columns, each one going to the shortest column so far.
+ * CSS columns fill top to bottom and leave a short last column; this keeps the
+ * bottoms level.
+ */
+function distribute(photos, count) {
+  const cols = Array.from({ length: count }, () => ({ items: [], height: 0 }))
+  for (const photo of photos) {
+    const col = cols.reduce((a, b) => (b.height < a.height ? b : a))
+    col.items.push(photo)
+    col.height += photo.h / photo.w
+  }
+  return cols.map((c) => c.items)
+}
+
+const PHOTO_COLUMNS = { mobile: distribute(MASONRY_PHOTOS, 1), tablet: distribute(MASONRY_PHOTOS, 2), desktop: distribute(MASONRY_PHOTOS, 3) }
+
+function PhotoColumn({ photos }) {
+  return (
+    <div className="flex min-w-0 flex-1 flex-col gap-4">
+      {photos.map((photo) => (
+        <img
+          key={photo.src}
+          src={photo.src}
+          width={photo.w}
+          height={photo.h}
+          alt={photo.alt}
+          loading="lazy"
+          className="w-full rounded-xl"
+        />
+      ))}
+    </div>
+  )
+}
+
 export default function CustomMillwork() {
   return (
     <>
@@ -61,20 +96,16 @@ export default function CustomMillwork() {
           </p>
         </div>
 
-        {/* Project photos in a masonry wall: CSS columns, so each photo keeps its own shape. */}
+        {/* Project photos in a masonry wall, one column count per breakpoint. */}
         <div className="mx-auto mt-16 max-w-[1100px] px-6 lg:px-8">
-          <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
-            {MASONRY_PHOTOS.map((photo) => (
-              <img
-                key={photo.src}
-                src={photo.src}
-                width={photo.w}
-                height={photo.h}
-                alt={photo.alt}
-                loading="lazy"
-                className="mb-4 w-full break-inside-avoid rounded-xl"
-              />
-            ))}
+          <div className="flex flex-col gap-4 sm:hidden">
+            {PHOTO_COLUMNS.mobile.map((photos, i) => <PhotoColumn key={i} photos={photos} />)}
+          </div>
+          <div className="hidden gap-4 sm:flex lg:hidden">
+            {PHOTO_COLUMNS.tablet.map((photos, i) => <PhotoColumn key={i} photos={photos} />)}
+          </div>
+          <div className="hidden gap-4 lg:flex">
+            {PHOTO_COLUMNS.desktop.map((photos, i) => <PhotoColumn key={i} photos={photos} />)}
           </div>
         </div>
       </section>
