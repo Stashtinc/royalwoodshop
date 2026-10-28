@@ -169,16 +169,6 @@ function Gallery({ product }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className={`w-full overflow-hidden rounded-2xl border border-gray-100 bg-white ${imageFit(main.role).pad ? 'p-4' : 'aspect-[4/3]'}`}>
-        <img
-          key={main.url}
-          src={main.url}
-          srcSet={srcSet(main.url, main.width) ?? undefined}
-          sizes="(min-width: 1024px) 480px, 92vw"
-          alt={main.alt || product.name}
-          className={imageFit(main.role).pad ? 'w-full object-contain' : `h-full w-full ${imageFit(main.role).className}`}
-        />
-      </div>
       {images.length > 1 && (
         <div className="flex flex-wrap gap-2">
           {images.map((img, i) => (
@@ -193,6 +183,16 @@ function Gallery({ product }) {
           ))}
         </div>
       )}
+      <div className={`w-full overflow-hidden rounded-2xl border border-gray-100 bg-white ${imageFit(main.role).pad ? 'p-4' : 'aspect-[4/3]'}`}>
+        <img
+          key={main.url}
+          src={main.url}
+          srcSet={srcSet(main.url, main.width) ?? undefined}
+          sizes="(min-width: 1024px) 480px, 92vw"
+          alt={main.alt || product.name}
+          className={imageFit(main.role).pad ? 'w-full object-contain' : `h-full w-full ${imageFit(main.role).className}`}
+        />
+      </div>
     </div>
   )
 }
