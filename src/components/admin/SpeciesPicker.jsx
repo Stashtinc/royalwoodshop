@@ -60,9 +60,9 @@ function SpeciesDialog({ taken, onAdd, onCancel }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onCancel}>
-      <div role="dialog" aria-modal="true" aria-label="Add Species"
+      <div role="dialog" aria-modal="true" aria-label="Add Specification"
         className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-serif text-lg font-bold text-tundora">Add Species</h2>
+        <h2 className="font-serif text-lg font-bold text-tundora">Add Specification</h2>
         <div className="mt-4 flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm text-gray-600">
             Name
@@ -220,7 +220,7 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
             </div>
           )
         })}
-        {/* Add Species — a wood with its own availability and price; saved with the product */}
+        {/* Add Specification — a wood with its own availability and price; saved with the product */}
         <div className="flex items-start">
           <button
             type="button"
@@ -230,7 +230,7 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
               <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            Add Species
+            Add Specification
           </button>
         </div>
       </div>

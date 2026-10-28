@@ -9,6 +9,7 @@ export const SPECIES = [
   'Douglas Fir', 'Western Red Cedar', 'PVC', 'Steel', 'Plastic',
   'Hollow Core', 'Solid Core', 'Solid Stile & Rail',
   '16"', '18"', '20"', '22"', '24"', '26"', '28"', '30"', '32"', '34"', '36"', '38"', 'SPF',
+  'Bi-Fold 24"', 'Bi-Fold 30"', 'Bi-Fold 36"', 'Aluminum',
 ]
 
 export const AVAILABILITY = [
