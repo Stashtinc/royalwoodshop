@@ -91,8 +91,9 @@ export function validateQuote(form) {
 /** Honeypot: a field real visitors never see. Bots fill every input. */
 export const isBot = (form) => String(form.get('website_url') ?? '').trim() !== ''
 
-/** The woods each product is sold in, with the purchase increment its Part IDs
- *  carry for that wood (null = any quantity): Map(productId → [{ name, increment }]).
+/** The woods each product is sold in, with the purchase increment and Part ID its
+ *  rows carry for that wood (null = any quantity):
+ *  Map(productId → [{ name, increment, partId }]).
  *  A wood is a species ticked on the product, or one of its Part IDs' species. */
 export async function productWoods(productIds) {
   const out = new Map()
@@ -105,18 +106,24 @@ export async function productWoods(productIds) {
     .where(inArray(productAttributes.productId, productIds))
   const parts = await db.select({
     productId: productPartIds.productId, species: productPartIds.species, increment: productPartIds.purchaseIncrement,
+    partId: productPartIds.partId,
   }).from(productPartIds).where(inArray(productPartIds.productId, productIds))
 
   const woods = new Map()
-  const add = (productId, name, increment) => {
+  const add = (productId, name, increment, partId) => {
     if (!woods.has(productId)) woods.set(productId, new Map())
     const m = woods.get(productId)
-    if (!m.has(name) || (m.get(name) == null && increment != null)) m.set(name, increment == null ? null : Number(increment))
+    const prev = m.get(name) ?? { increment: null, partId: null }
+    m.set(name, {
+      increment: prev.increment ?? (increment == null ? null : Number(increment)),
+      partId: prev.partId ?? partId ?? null,
+    })
   }
-  for (const t of ticks) add(t.productId, t.species, null)
-  for (const p of parts) add(p.productId, p.species, p.increment)
+  for (const t of ticks) add(t.productId, t.species, null, null)
+  for (const p of parts) add(p.productId, p.species, p.increment, p.partId)
   for (const [id, m] of woods) {
-    out.set(id, [...m].map(([name, increment]) => ({ name, increment })).sort((a, b) => a.name.localeCompare(b.name)))
+    out.set(id, [...m].map(([name, w]) => ({ name, increment: w.increment, partId: w.partId }))
+      .sort((a, b) => a.name.localeCompare(b.name)))
   }
   return out
 }
@@ -160,7 +167,8 @@ export async function resolveItems(items) {
     }
     resolved.push({
       productId: i.productId,
-      productCode: row.productCode,
+      // The Part ID of the wood's row is the code the team orders by.
+      productCode: wood?.partId ?? row.productCode,
       productName: row.name,
       uom: row.uom,
       species: wood?.name ?? null,

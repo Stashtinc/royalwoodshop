@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Form, useActionData, useNavigation } from 'react-router'
+import { Form, useActionData, useNavigation, useSearchParams } from 'react-router'
 import ProductPicker from '../components/quote/ProductPicker'
 import Thumb from '../components/quote/Thumb'
 import { UOM_OPTIONS, AVAILABILITY_LABEL } from '../lib/catalogue-constants'
@@ -8,9 +8,12 @@ import { isMultiple, formatIncrement } from '../lib/purchase-increment'
 /**
  * Get a Quote: for renovations, new builds and large orders.
  *
- * The customer picks products (any number, from the dropdown), sets a quantity
+ * The customer picks Part IDs (any number, from the dropdown), sets a quantity
  * and a note per line, attaches plans or schedules, and sends. The team gets
  * the whole request by email with the files attached.
+ *
+ * A line is one Part ID: a product in one wood. A product page's row can link
+ * here with ?add=<productId>|<wood>, which puts that line on the quote.
  */
 
 const field =
@@ -33,52 +36,40 @@ const Section = ({ title, hint, children }) => (
 
 const uomLabel = (code) => UOM_OPTIONS.find(([c]) => c === code)?.[1] ?? code
 
-/** The wood a line is quoted in (null when the product has none). */
-const woodOf = (item) => item.woods.find((w) => w.name === item.species) ?? null
-/** The purchase increment of the line's wood, in feet (null = any quantity). */
-const incrementOf = (item) => woodOf(item)?.increment ?? null
-const woodLabel = (w) => (w.increment ? `${w.name} (multiples of ${formatIncrement(w.increment)} ft)` : w.name)
+/** The purchase increment of the line's Part ID, in feet (null = any quantity). */
+const incrementOf = (item) => item.increment ?? null
 
-export default function GetAQuote({ products }) {
+/** A new quote line from a catalogue line, with the first quantity it can take. */
+const newItem = (part) => ({ ...part, quantity: part.increment || 1, note: '' })
+
+export default function GetAQuote({ parts }) {
   const data = useActionData()
   const sending = useNavigation().state === 'submitting'
   const errors = data?.errors ?? {}
   const values = data?.values ?? {}
   const submitted = data?.ok
 
-  const [items, setItems] = useState([])
+  // A product page's row links here with ?add=<key>: that line starts the quote.
+  const [searchParams] = useSearchParams()
+  const [items, setItems] = useState(() => {
+    const part = parts.find((p) => p.key === searchParams.get('add'))
+    return part ? [newItem(part)] : []
+  })
   const [files, setFiles] = useState([])
   const fileInput = useRef(null)
 
-  const addedIds = new Set(items.map((i) => i.productId))
+  const addedKeys = new Set(items.map((i) => i.key))
 
-  function addProducts(picked) {
+  function addParts(picked) {
     setItems((prev) => {
-      const have = new Set(prev.map((i) => i.productId))
-      const fresh = picked
-        .filter((p) => !have.has(p.id))
-        .map((p) => {
-          // A product sold in one wood uses it; a product sold in several waits for a choice.
-          const species = p.woods.length === 1 ? p.woods[0].name : ''
-          const item = { productId: p.id, name: p.name, productCode: p.productCode, uom: p.uom, sizeDisplay: p.sizeDisplay, availability: p.availability, image: p.image, imageWidth: p.imageWidth, imageRole: p.imageRole, woods: p.woods, species, quantity: 1, note: '' }
-          return { ...item, quantity: incrementOf(item) || 1 }
-        })
-      return [...prev, ...fresh]
+      const have = new Set(prev.map((i) => i.key))
+      return [...prev, ...picked.filter((p) => !have.has(p.key)).map(newItem)]
     })
   }
 
-  // Choosing a wood applies its increment: a quantity that is not a multiple moves to the first one.
-  const chooseWood = (productId, species) => setItems((prev) => prev.map((i) => {
-    if (i.productId !== productId) return i
-    const next = { ...i, species }
-    const inc = incrementOf(next)
-    const q = Number(i.quantity)
-    return { ...next, quantity: inc && !isMultiple(q, inc) ? inc : i.quantity }
-  }))
-
-  const updateItem = (productId, patch) =>
-    setItems((prev) => prev.map((i) => (i.productId === productId ? { ...i, ...patch } : i)))
-  const removeItem = (productId) => setItems((prev) => prev.filter((i) => i.productId !== productId))
+  const updateItem = (key, patch) =>
+    setItems((prev) => prev.map((i) => (i.key === key ? { ...i, ...patch } : i)))
+  const removeItem = (key) => setItems((prev) => prev.filter((i) => i.key !== key))
 
   // The file input is the source of truth for what gets sent, so the list shown
   // here is written back into it whenever a file is added or removed.
@@ -155,43 +146,30 @@ export default function GetAQuote({ products }) {
             title="Products"
             hint="Search the catalogue and tick as many products as you need. Set a quantity for each one."
           >
-            <ProductPicker products={products} addedIds={addedIds} onAdd={addProducts} />
+            <ProductPicker parts={parts} addedKeys={addedKeys} onAdd={addParts} />
 
             {items.length > 0 && (
               <ul className="flex flex-col divide-y divide-gray-100 rounded-lg border border-gray-200">
                 {items.map((item) => (
-                  <li key={item.productId} className="flex flex-col gap-3 p-4">
+                  <li key={item.key} className="flex flex-col gap-3 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-start gap-3">
                         <Thumb product={item} />
                         <div className="flex min-w-0 flex-col">
-                        <span className="font-sans text-sm font-medium text-gray-900">{item.name}</span>
+                        <span className="font-mono text-sm font-medium text-gray-900">{item.partId ?? item.productCode}</span>
                         <span className="font-sans text-xs text-gray-500">
-                          {[item.productCode, item.sizeDisplay, AVAILABILITY_LABEL[item.availability], item.uom && uomLabel(item.uom), item.species || null, incrementOf(item) && `Bought in multiples of ${formatIncrement(incrementOf(item))} ft`].filter(Boolean).join(' · ')}
+                          {[item.species, item.sizeDisplay, AVAILABILITY_LABEL[item.availability], item.uom && uomLabel(item.uom), incrementOf(item) && `Bought in multiples of ${formatIncrement(incrementOf(item))} ft`].filter(Boolean).join(' · ')}
                         </span>
                         </div>
                       </div>
                       <button
                         type="button"
-                        onClick={() => removeItem(item.productId)}
+                        onClick={() => removeItem(item.key)}
                         className="shrink-0 font-sans text-sm text-gray-500 hover:text-red-700 hover:underline"
                       >
                         Remove
                       </button>
                     </div>
-                    {item.woods.length > 1 && (
-                      <label className="flex flex-col gap-1.5">
-                        <span className="font-sans text-xs font-medium text-gray-600">Wood *</span>
-                        <select
-                          value={item.species}
-                          onChange={(e) => chooseWood(item.productId, e.target.value)}
-                          className={field}
-                        >
-                          <option value="">Choose a wood</option>
-                          {item.woods.map((w) => <option key={w.name} value={w.name}>{woodLabel(w)}</option>)}
-                        </select>
-                      </label>
-                    )}
                     <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
                       <label className="flex flex-col gap-1.5">
                         <span className="font-sans text-xs font-medium text-gray-600">Quantity{incrementOf(item) ? ` (ft, multiples of ${formatIncrement(incrementOf(item))})` : ''}</span>
@@ -201,7 +179,7 @@ export default function GetAQuote({ products }) {
                           max={9999}
                           step={incrementOf(item) || 1}
                           value={item.quantity}
-                          onChange={(e) => updateItem(item.productId, { quantity: e.target.value })}
+                          onChange={(e) => updateItem(item.key, { quantity: e.target.value })}
                           className={field}
                         />
                         {incrementOf(item) && !isMultiple(Number(item.quantity), incrementOf(item)) && (
@@ -217,7 +195,7 @@ export default function GetAQuote({ products }) {
                           maxLength={300}
                           value={item.note}
                           placeholder="e.g. length, finish, which room"
-                          onChange={(e) => updateItem(item.productId, { note: e.target.value })}
+                          onChange={(e) => updateItem(item.key, { note: e.target.value })}
                           className={field}
                         />
                       </label>
