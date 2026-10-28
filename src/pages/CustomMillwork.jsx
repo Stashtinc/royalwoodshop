@@ -8,10 +8,20 @@ import customMillworkImage from '../assets/images/custom-millwork.png'
  * its lead on blue, the photograph alongside. The copy is the client's.
  */
 
-// Mixed portrait and landscape, so the columns stagger like a masonry wall.
-const MASONRY_TILES = [
-  'portrait', 'landscape', 'portrait', 'landscape', 'landscape', 'portrait',
-  'landscape', 'portrait', 'portrait', 'landscape', 'portrait', 'landscape',
+// Project photos for the masonry wall. Each keeps its own proportions, so the
+// columns stagger between portrait and landscape.
+const MASONRY_PHOTOS = [
+  { src: '/images/custom-millwork/mw-01-hallway-console.jpg', w: 1384, h: 1400, alt: 'Painted hallway with raised-panel trim, pilasters and a corner cove' },
+  { src: '/images/custom-millwork/mw-02-wall-panelling.jpg', w: 1400, h: 933, alt: 'White wall panelling with raised panels in a hallway' },
+  { src: '/images/custom-millwork/mw-03-profiles-drawings.jpg', w: 1400, h: 936, alt: 'Hardwood mouldings beside shop drawings' },
+  { src: '/images/custom-millwork/mw-04-primed-oak-trim.jpg', w: 1400, h: 1179, alt: 'Primed and oak fluted trim packs ready to ship' },
+  { src: '/images/custom-millwork/mw-05-oak-door-detail.jpg', w: 1400, h: 1050, alt: 'Close-up of a machined oak door panel with a raised profile' },
+  { src: '/images/custom-millwork/mw-06-glazed-door.jpg', w: 1050, h: 1400, alt: 'Glazed interior door with a diamond muntin pattern' },
+  { src: '/images/custom-millwork/mw-07-arch-door.jpg', w: 1236, h: 1400, alt: 'Oak arched-panel door' },
+  { src: '/images/custom-millwork/mw-08-header-cap.jpg', w: 1050, h: 1400, alt: 'Layered header cap moulding' },
+  { src: '/images/custom-millwork/mw-09-curved-window-template.jpg', w: 1400, h: 1050, alt: 'Curved moulding laid out against a quarter-round window template' },
+  { src: '/images/custom-millwork/mw-10-curved-oak-moulding.jpg', w: 1400, h: 1050, alt: 'Bent oak curved moulding' },
+  { src: '/images/custom-millwork/mw-11-white-oak-board.jpg', w: 1188, h: 1400, alt: 'White oak board, machined for a profile' },
 ]
 
 export default function CustomMillwork() {
@@ -51,13 +61,18 @@ export default function CustomMillwork() {
           </p>
         </div>
 
-        {/* Placeholder tiles for project photos; swap in the images when supplied. */}
+        {/* Project photos in a masonry wall: CSS columns, so each photo keeps its own shape. */}
         <div className="mx-auto mt-16 max-w-[1100px] px-6 lg:px-8">
           <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
-            {MASONRY_TILES.map((tile, i) => (
-              <div
-                key={i}
-                className={`mb-4 break-inside-avoid rounded-xl bg-gray-100 ${tile === 'portrait' ? 'aspect-[3/4]' : 'aspect-[4/3]'}`}
+            {MASONRY_PHOTOS.map((photo) => (
+              <img
+                key={photo.src}
+                src={photo.src}
+                width={photo.w}
+                height={photo.h}
+                alt={photo.alt}
+                loading="lazy"
+                className="mb-4 w-full break-inside-avoid rounded-xl"
               />
             ))}
           </div>
