@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Form, useActionData, useNavigation, useSearchParams } from 'react-router'
 import ProductPicker from '../components/quote/ProductPicker'
 import Thumb from '../components/quote/Thumb'
-import { UOM_OPTIONS, AVAILABILITY_LABEL } from '../lib/catalogue-constants'
+import { UOM_OPTIONS, AVAILABILITY_LABEL, AVAILABILITY_PILL } from '../lib/catalogue-constants'
 import { isMultiple, formatIncrement } from '../lib/purchase-increment'
 
 /**
@@ -157,8 +157,13 @@ export default function GetAQuote({ parts }) {
                         <Thumb product={item} />
                         <div className="flex min-w-0 flex-col">
                         <span className="font-mono text-sm font-medium text-gray-900">{item.partId ?? item.productCode}</span>
-                        <span className="font-sans text-xs text-gray-500">
-                          {[item.species, item.sizeDisplay, AVAILABILITY_LABEL[item.availability], item.uom && uomLabel(item.uom), incrementOf(item) && `Bought in multiples of ${formatIncrement(incrementOf(item))} ft`].filter(Boolean).join(' · ')}
+                        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-sans text-xs text-gray-500">
+                          {[item.species, item.sizeDisplay, item.uom && uomLabel(item.uom), incrementOf(item) && `Bought in multiples of ${formatIncrement(incrementOf(item))} ft`].filter(Boolean).join(' · ')}
+                          {item.availability && AVAILABILITY_PILL[item.availability] && (
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium ${AVAILABILITY_PILL[item.availability]}`}>
+                              {AVAILABILITY_LABEL[item.availability]}
+                            </span>
+                          )}
                         </span>
                         </div>
                       </div>
