@@ -153,8 +153,31 @@ export async function getAllProducts(db) {
     const h = Number(t.slug)
     if (!heightTicks.has(t.productId) || h < heightTicks.get(t.productId)) heightTicks.set(t.productId, h)
   }
+  // Every other attribute a product is ticked with, as a card on its page.
+  // Species (the Available-in table) and Height (its own card) have their own
+  // places, so they are left out here.
+  const attributeCards = new Map()
+  const cardTicks = await db.select({
+    productId: productAttributes.productId,
+    attrId: attributes.id,
+    attrName: attributes.name,
+    attrSort: attributes.sortOrder,
+    value: attributeValues.value,
+    valueSort: attributeValues.sortOrder,
+  }).from(productAttributes)
+    .innerJoin(attributeValues, eq(attributeValues.id, productAttributes.attributeValueId))
+    .innerJoin(attributes, eq(attributes.id, attributeValues.attributeId))
+    .where(sql`${attributes.key} not in ('species', 'height')`)
+    .orderBy(asc(attributes.sortOrder), asc(attributes.id), asc(attributeValues.sortOrder), asc(attributeValues.value))
+  for (const t of cardTicks) {
+    const cards = attributeCards.get(t.productId) ?? new Map()
+    if (!cards.has(t.attrId)) cards.set(t.attrId, { name: t.attrName, values: [] })
+    cards.get(t.attrId).values.push(t.value)
+    attributeCards.set(t.productId, cards)
+  }
   return rows.map((r) => {
     const out = shape(heightTicks.has(r.id) ? { ...r, heightIn: heightTicks.get(r.id) } : r)
+    out.attributeCards = [...(attributeCards.get(r.id)?.values() ?? [])]
     const f = from.get(r.id)
     out.priceFrom = f ? Number(f.price) : null
     out.salePriceFrom = f?.salePrice && Number.isFinite(Number(f.salePrice)) ? Number(f.salePrice) : null
