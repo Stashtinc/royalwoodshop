@@ -8,6 +8,12 @@ import customMillworkImage from '../assets/images/custom-millwork.png'
  * its lead on blue, the photograph alongside. The copy is the client's.
  */
 
+// Mixed portrait and landscape, so the columns stagger like a masonry wall.
+const MASONRY_TILES = [
+  'portrait', 'landscape', 'portrait', 'landscape', 'landscape', 'portrait',
+  'landscape', 'portrait', 'portrait', 'landscape', 'portrait', 'landscape',
+]
+
 export default function CustomMillwork() {
   return (
     <>
@@ -43,6 +49,18 @@ export default function CustomMillwork() {
             our team helps turn your drawings, samples and specifications into the finished materials your project
             requires.
           </p>
+        </div>
+
+        {/* Placeholder tiles for project photos; swap in the images when supplied. */}
+        <div className="mx-auto mt-16 max-w-[1100px] px-6 lg:px-8">
+          <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
+            {MASONRY_TILES.map((tile, i) => (
+              <div
+                key={i}
+                className={`mb-4 break-inside-avoid rounded-xl bg-gray-100 ${tile === 'portrait' ? 'aspect-[3/4]' : 'aspect-[4/3]'}`}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
