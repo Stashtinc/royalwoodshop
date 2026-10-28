@@ -574,7 +574,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
       }
       if (codeTerm && !product.productCode.toLowerCase().includes(codeTerm)) return false
       if (sizeCategory !== 'All' && product.sizeCategory !== sizeCategory) return false
-      if (heightFilter !== 'All' && Number(product.heightIn) !== heightFilter) return false
+      if (heightFilter !== 'All' && !(product.heights ?? []).includes(heightFilter)) return false
       if (species !== 'All' && !(product.species ?? []).includes(species) && !(species === 'Flex' && product.flexAvailability)) return false
       // Availability is per species, so a profile in stock in poplar and made
       // to order in walnut answers to both filters.
@@ -593,13 +593,13 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
 
   // Heights that exist in the catalogue, smallest first.
   const heightOptions = useMemo(
-    () => [...new Set(allProducts.map((p) => p.heightIn).filter((h) => h != null))].sort((a, b) => a - b),
+    () => [...new Set(allProducts.flatMap((p) => p.heights ?? []))].sort((a, b) => a - b),
     [allProducts],
   )
   // Height pills belong to the categories that carry heights (the doors), whatever they are named:
   // shown while a sub-category of one of them is in view.
   const heightCategories = useMemo(
-    () => new Set(allProducts.filter((p) => p.heightIn != null).map((p) => p.category)),
+    () => new Set(allProducts.filter((p) => (p.heights ?? []).length).map((p) => p.category)),
     [allProducts],
   )
   const showHeights = heightOptions.length > 0 && [...selectedSubs].some((k) => heightCategories.has(k.split('::')[0]))

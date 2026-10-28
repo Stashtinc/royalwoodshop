@@ -144,6 +144,8 @@ export async function getAllProducts(db) {
   }
   // Height is the Height attribute's tick (its value is the number of inches).
   // The products.height_in column is only a fallback for a product without a tick.
+  // A product can be ticked with more than one height (a kit fits 80" and 84"),
+  // so every tick is kept: heights is the list, heightIn the smallest of them.
   const heightTicks = new Map()
   const ticks = await db.select({ productId: productAttributes.productId, slug: attributeValues.slug })
     .from(productAttributes)
@@ -151,8 +153,10 @@ export async function getAllProducts(db) {
     .innerJoin(attributes, and(eq(attributes.id, attributeValues.attributeId), eq(attributes.key, 'height')))
   for (const t of ticks) {
     const h = Number(t.slug)
-    if (!heightTicks.has(t.productId) || h < heightTicks.get(t.productId)) heightTicks.set(t.productId, h)
+    if (!heightTicks.has(t.productId)) heightTicks.set(t.productId, [])
+    heightTicks.get(t.productId).push(h)
   }
+  for (const list of heightTicks.values()) list.sort((a, b) => a - b)
   // Every other attribute a product is ticked with, as a card on its page.
   // Species (the Available-in table) and Height (its own card) have their own
   // places, so they are left out here.
@@ -176,7 +180,9 @@ export async function getAllProducts(db) {
     attributeCards.set(t.productId, cards)
   }
   return rows.map((r) => {
-    const out = shape(heightTicks.has(r.id) ? { ...r, heightIn: heightTicks.get(r.id) } : r)
+    const ticked = heightTicks.get(r.id)
+    const out = shape(ticked ? { ...r, heightIn: ticked[0] } : r)
+    out.heights = ticked ?? (out.heightIn != null ? [out.heightIn] : [])
     out.attributeCards = [...(attributeCards.get(r.id)?.values() ?? [])]
     const f = from.get(r.id)
     out.priceFrom = f ? Number(f.price) : null

@@ -286,7 +286,7 @@ export default function ProductDetail({ product: productProp = null, related: re
     { label: 'Product Code', value: product.productCode },
     { label: 'Size', value: product.size },
     // Door height is a product attribute (inches), shown as its own card when set.
-    ...(product.heightIn != null ? [{ label: 'Height', value: `${Number(product.heightIn)}"` }] : []),
+    ...(product.heights?.length ? [{ label: 'Height', value: product.heights.map((h) => `${h}"`).join(', ') }] : []),
     // Every other attribute the product is ticked with: one card per attribute.
     ...(product.attributeCards ?? []).map((a) => ({ label: a.name, value: a.values.join(', ') })),
     { label: 'Unit of Measure', value: product.uom ?? null },
