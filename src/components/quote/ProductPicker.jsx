@@ -108,8 +108,8 @@ export default function ProductPicker({ parts, addedKeys, onAdd }) {
                 <option value="">All categories</option>
                 {categories.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
-              <select value={species} onChange={(e) => setSpecies(e.target.value)} aria-label="Filter by species" className={field}>
-                <option value="">All species</option>
+              <select value={species} onChange={(e) => setSpecies(e.target.value)} aria-label="Filter by specifications" className={field}>
+                <option value="">All specifications</option>
                 {speciesList.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
               <select value={availability} onChange={(e) => setAvailability(e.target.value)} aria-label="Filter by availability" className={field}>
