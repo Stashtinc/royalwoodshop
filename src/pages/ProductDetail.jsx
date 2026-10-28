@@ -342,7 +342,7 @@ export default function ProductDetail({ product: productProp = null, related: re
                           {product.dbId != null && (
                             <Link
                               to={`/get-a-quote?add=${encodeURIComponent(`${product.dbId}|${row.name}`)}`}
-                              className="inline-flex items-center whitespace-nowrap rounded-lg bg-royal-blue px-3 py-1.5 font-sans text-xs font-medium text-white hover:bg-royal-blue-dark"
+                              className="inline-flex items-center whitespace-nowrap rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-sans text-xs font-medium text-tundora transition-colors hover:border-royal-blue hover:text-royal-blue"
                             >
                               Get a quote
                             </Link>
@@ -451,12 +451,6 @@ export default function ProductDetail({ product: productProp = null, related: re
 
               {/* CTAs */}
               <div className="flex flex-wrap gap-3">
-                <Link
-                  to="/get-a-quote"
-                  className="rounded-lg border border-royal-blue bg-royal-blue px-6 py-3 font-sans text-sm font-medium text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark"
-                >
-                  Get a Quote
-                </Link>
                 {/* Plain <a>, not <Link>: these are PDF files, not app routes */}
                 <a
                   href={`${productPath(product)}/spec-sheet.pdf?download=1`}

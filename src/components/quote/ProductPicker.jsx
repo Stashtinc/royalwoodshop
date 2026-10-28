@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AVAILABILITY, AVAILABILITY_LABEL } from '../../lib/catalogue-constants'
+import { AVAILABILITY, AVAILABILITY_LABEL, AVAILABILITY_PILL } from '../../lib/catalogue-constants'
 import Thumb from './Thumb'
 
 /**
@@ -148,8 +148,13 @@ export default function ProductPicker({ parts, addedKeys, onAdd }) {
                     <Thumb product={p} />
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="font-mono text-sm font-medium text-gray-900">{p.partId ?? p.productCode}</span>
-                      <span className="font-sans text-xs text-gray-500">
-                        {[p.species, p.sizeDisplay, p.categoryName, AVAILABILITY_LABEL[p.availability]].filter(Boolean).join(' · ')}
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-sans text-xs text-gray-500">
+                        {[p.species, p.sizeDisplay, p.categoryName].filter(Boolean).join(' · ')}
+                        {p.availability && AVAILABILITY_PILL[p.availability] && (
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium ${AVAILABILITY_PILL[p.availability]}`}>
+                            {AVAILABILITY_LABEL[p.availability]}
+                          </span>
+                        )}
                         {added && ' · on your quote'}
                       </span>
                     </span>

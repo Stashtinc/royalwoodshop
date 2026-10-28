@@ -19,6 +19,13 @@ export const AVAILABILITY = [
 
 export const AVAILABILITY_LABEL = Object.fromEntries(AVAILABILITY)
 
+/** The badge colours for each availability, as the product page shows them. */
+export const AVAILABILITY_PILL = {
+  in_stock: 'bg-green-100 text-green-800',
+  quick_ship: 'bg-amber-100 text-amber-800',
+  made_to_order: 'bg-gray-100 text-gray-600',
+}
+
 /** What Royal Wood Shop type into a species column on the audit sheet. The
  *  tick says both "milled in this wood" and "and this is how it ships". */
 export const TICK_CODES = [
