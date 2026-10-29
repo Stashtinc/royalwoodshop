@@ -30,6 +30,7 @@ export const SKU_SHEET = 'Master Product List'
 export const SKU_HEADERS = [
   'Part ID', 'Base Code', 'image name', 'Product Name', 'Category', 'type sub-cat',
   'Size', 'Description', 'Specifications', 'Availability', 'Price', 'UOM', 'Purchase Increment',
+  'Lead Time',
 ]
 
 /** Base columns of a master row, as the import reads them (canon). */
@@ -56,7 +57,7 @@ export async function skuRows(db) {
   const rows = await db.select({
     id: products.id, code: products.productCode, name: products.name,
     description: products.description, size: products.sizeDisplay, price: products.price,
-    uom: products.uom,
+    uom: products.uom, leadTime: products.leadTime,
     flex: products.flexAvailable, flexAvailability: products.flexAvailability,
     category: categories.name,
   })
@@ -124,7 +125,7 @@ export async function skuRows(db) {
     const base = {
       code: p.code ?? '', image: imagesOf.get(p.id) ?? '', name: p.name ?? '', category: cats,
       sub: pl.map((x) => x.sub).join('|'), size: p.size ?? '', description: p.description ?? '',
-      price: p.price ?? '', uom: p.uom ?? '',
+      price: p.price ?? '', uom: p.uom ?? '', leadTime: p.leadTime ?? '',
     }
     const avail = new Map(speciesOf.get(p.id) ?? [])
     if (p.flex) avail.set(FLEX, p.flexAvailability)
@@ -150,7 +151,7 @@ export async function skuRows(db) {
       out.push([
         s.partId, base.code, base.image, base.name, base.category, base.sub, base.size,
         base.description, s.species, s.availability, s.price ?? '', base.uom || s.uom || '',
-        s.increment ?? '', ...(attrCells.get(p.id) ?? attrCols.map(() => '')),
+        s.increment ?? '', base.leadTime, ...(attrCells.get(p.id) ?? attrCols.map(() => '')),
       ])
     }
   }
