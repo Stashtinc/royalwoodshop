@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { SPECIES, AVAILABILITY } from '../../lib/catalogue-constants'
 import { parseIncrement } from '../../lib/purchase-increment'
 import { useConfirm } from './ConfirmDialog'
@@ -109,17 +109,12 @@ function SpeciesDialog({ taken, onAdd, onCancel }) {
  * Per-species availability picker.
  *
  * Standard species: each gets a select submitted as `species:${name}`.
- * Other: one or more rows, each submitted as other_species_name /
- *   other_species_avail (same names repeated — f.getAll() reads them in order).
  *
  * initialAvail: { [speciesName]: availabilityKey | null }
  * initialOther: [{ name, avail }, ...] for non-standard species
  * initialFlex:  availability key or null
  */
 export default function SpeciesPicker({ initialAvail = {}, initialOther = [], initialFlex = null, initialPartIds = {}, initialPartPrices = {}, initialPartSalePrices = {}, initialPartIncrements = {} }) {
-  const seed = [0]
-  const [rows, setRows] = useState(seed)
-  const nextId = useRef(seed.length)
   // Species added earlier (saved as non-standard) load back as grid cells, not Other rows.
   const [subs, setSubs] = useState(() => initialOther.map((o) => ({ name: o.name, avail: o.avail ?? "", price: initialPartPrices[o.name] ?? null, salePrice: initialPartSalePrices[o.name] ?? null })))
   const [adding, setAdding] = useState(false)
@@ -128,13 +123,6 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
   const [removed, setRemoved] = useState([])
   const [gen, setGen] = useState({})
   const [confirm, confirmDialog] = useConfirm()
-
-  const addRow = () => {
-    setRows((r) => [...r, nextId.current++])
-  }
-  const removeRow = (id) => {
-    setRows((r) => r.filter((x) => x !== id))
-  }
 
   const removeSpecies = (s) => {
     if (subs.some((x) => x.name === s)) {
@@ -243,46 +231,6 @@ export default function SpeciesPicker({ initialAvail = {}, initialOther = [], in
           onAdd={(sub) => { setSubs((list) => [...list, sub]); setAdding(false) }}
         />
       )}
-
-      {/* Other — for species not in the standard list, supports multiple rows */}
-      <div className="flex flex-col gap-2 border-t border-gray-100 pt-3">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">Other</span>
-          <button
-            type="button"
-            onClick={addRow}
-            className="flex items-center gap-1 rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-600 hover:border-gray-400 hover:text-gray-800"
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-            Add
-          </button>
-        </div>
-        {rows.map((id, idx) => (
-          <div key={id} className="flex items-center gap-2">
-            <input
-              name="other_species_name"
-              defaultValue=""
-              placeholder="Species name"
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-royal-blue"
-            />
-            <AvailSelect name="other_species_avail" defaultValue="" large />
-            {rows.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeRow(id)}
-                className="shrink-0 text-gray-400 hover:text-red-500"
-                title="Remove"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
