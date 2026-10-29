@@ -9,7 +9,7 @@ import { log } from '../../lib/activity.server.js'
  * Importing it back through Admin → Import round-trips every column.
  */
 
-const COL_WIDTHS = [24, 18, 22, 34, 19, 18, 16, 58, 18, 11, 9, 8]
+const COL_WIDTHS = [24, 18, 22, 34, 19, 18, 16, 58, 18, 11, 9, 8, 18, 16]
 const AVAIL_COL = SKU_HEADERS.indexOf('Availability') + 1
 const UOM_COL = SKU_HEADERS.indexOf('UOM') + 1
 // Long descriptions wrap inside their cell, so the Specifications column beside them stays readable.
