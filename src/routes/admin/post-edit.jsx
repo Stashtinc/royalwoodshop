@@ -389,7 +389,7 @@ export default function PostEdit() {
             className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
             {saving ? 'Saving…' : isNew ? 'Create article' : 'Save changes'}
           </button>
-          <Link to="/admin/posts" className="text-sm text-gray-600 hover:underline">Cancel</Link>
+          <Link to="/admin/posts" className="rounded-lg border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50">Cancel</Link>
         </div>
       </Form>
     </div>

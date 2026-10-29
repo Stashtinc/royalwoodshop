@@ -547,7 +547,7 @@ export default function ProductEdit() {
           >
             {saving ? 'Saving…' : 'Save changes'}
           </button>
-          <Link to="/admin/products" className="text-sm text-gray-600 hover:underline">Cancel</Link>
+          <Link to="/admin/products" className="rounded-lg border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50">Cancel</Link>
         </div>
       </div>
 
