@@ -400,9 +400,10 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   const speciesOptions = useMemo(() => speciesFacet(allProducts), [allProducts])
   const availabilityOptions = useMemo(() => availabilityFacet(allProducts), [allProducts])
   const [searchParams] = useSearchParams()
-  // A URL slug names a category as the database has it. The names in CATEGORY_SLUGS can drift
-  // (the live "Interior Door" is "interior-doors"), so the products' own category slugs are used too.
-  const nameOfSlug = (slug) => allProducts.find((p) => p.categorySlug === slug)?.category
+  // A URL slug names a category as the database has it: the admin's category list first, then the
+  // products' own category slugs, then the static map. The static names can drift from the live ones.
+  const nameOfSlug = (slug) => dbCategories.find((c) => c.slug === slug)?.name
+    ?? allProducts.find((p) => p.categorySlug === slug)?.category
     ?? CATEGORY_BY_SLUG[slug] ?? null
   const [search, setSearch] = useState('')
   const [productCode, setProductCode] = useState(() => searchParams.get('code') || '')
