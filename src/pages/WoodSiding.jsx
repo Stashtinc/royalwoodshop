@@ -171,7 +171,9 @@ export default function WoodSiding() {
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {TRIM_PROFILES.map((p) => (
               <figure key={p.src} className="flex flex-col items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4">
-                <img src={p.src} alt={p.label} className="h-auto w-full object-contain" loading="lazy" />
+                <div className="flex h-48 w-full items-center justify-center">
+                  <img src={p.src} alt={p.label} className="max-h-full max-w-full object-contain" loading="lazy" />
+                </div>
                 <figcaption className="font-sans text-sm text-gray-600">{p.label}</figcaption>
               </figure>
             ))}
@@ -181,7 +183,9 @@ export default function WoodSiding() {
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {FINGERJOINT_PROFILES.map((p) => (
               <figure key={p.src} className="flex flex-col items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4">
-                <img src={p.src} alt={p.label} className="h-auto w-full object-contain" loading="lazy" />
+                <div className="flex h-48 w-full items-center justify-center">
+                  <img src={p.src} alt={p.label} className="max-h-full max-w-full object-contain" loading="lazy" />
+                </div>
                 <figcaption className="font-sans text-sm text-gray-600">{p.label}</figcaption>
               </figure>
             ))}
