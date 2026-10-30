@@ -10,19 +10,20 @@ import DownloadList from '../components/DownloadList'
 
 const SIDING_PROFILES = '/images/wood-siding/siding-profiles.jpg'
 
-// Trim and corner drawings, as the original site showed them.
-const TRIM_PROFILES = [
+// Drawings in two groups, so each group shares one height. Tall profiles are drawn
+// tall; wide profiles (about 2:1 or wider) would be too wide at a tall height.
+const TALL_PROFILES = [
   { src: '/images/wood-siding/quick-corner.png', label: 'Quick Corner' },
   { src: '/images/wood-siding/inside-corner.png', label: 'Inside Corner' },
   { src: '/images/wood-siding/one-piece-corner.png', label: '1 Piece Corner' },
-  { src: '/images/wood-siding/sill-trim.png', label: 'Sill Trim' },
   { src: '/images/wood-siding/drip-cap-crown.png', label: 'Drip Cap Crown' },
   { src: '/images/wood-siding/skirt-board.png', label: 'Skirt Board' },
-  { src: '/images/wood-siding/flat-trim-1-1-4.png', label: 'Flat Trim, 1¼″' },
-  { src: '/images/wood-siding/flat-trim-11-16.png', label: 'Flat Trim, 11⁄16″' },
 ]
 
-const FINGERJOINT_PROFILES = [
+const WIDE_PROFILES = [
+  { src: '/images/wood-siding/sill-trim.png', label: 'Sill Trim' },
+  { src: '/images/wood-siding/flat-trim-1-1-4.png', label: 'Flat Trim, 1¼″' },
+  { src: '/images/wood-siding/flat-trim-11-16.png', label: 'Flat Trim, 11⁄16″' },
   { src: '/images/wood-siding/fingerjoint-casing.png', label: 'Casing' },
   { src: '/images/wood-siding/fingerjoint-header.png', label: 'Header' },
   { src: '/images/wood-siding/fingerjoint-trim.png', label: 'Trim' },
@@ -168,20 +169,24 @@ export default function WoodSiding() {
           <img src={SIDING_PROFILES} alt="Cape Cod siding profiles: rabbeted bevel, channel, double rhombus, traditional cove, board and batten, Euro channel, traditional V-joint and centre V-joint" className="w-full" loading="lazy" />
 
           <h2 className="font-serif text-2xl font-bold text-royal-blue lg:text-3xl">Trim and corners</h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {TRIM_PROFILES.map((p) => (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            {TALL_PROFILES.map((p) => (
               <figure key={p.src} className="flex flex-col items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4">
-                <img src={p.src} alt={p.label} className="h-auto w-full object-contain" loading="lazy" />
+                <div className="flex h-44 w-full items-center justify-center">
+                  <img src={p.src} alt={p.label} className="h-40 w-auto max-w-full object-contain" loading="lazy" />
+                </div>
                 <figcaption className="font-sans text-sm text-gray-600">{p.label}</figcaption>
               </figure>
             ))}
           </div>
 
-          <h2 className="font-serif text-2xl font-bold text-royal-blue lg:text-3xl">Fingerjoint trim profiles (smooth)</h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {FINGERJOINT_PROFILES.map((p) => (
+          <h2 className="font-serif text-2xl font-bold text-royal-blue lg:text-3xl">Flat and fingerjoint profiles</h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            {WIDE_PROFILES.map((p) => (
               <figure key={p.src} className="flex flex-col items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4">
-                <img src={p.src} alt={p.label} className="h-auto w-full object-contain" loading="lazy" />
+                <div className="flex h-20 w-full items-center justify-center">
+                  <img src={p.src} alt={p.label} className="h-12 w-auto max-w-full object-contain" loading="lazy" />
+                </div>
                 <figcaption className="font-sans text-sm text-gray-600">{p.label}</figcaption>
               </figure>
             ))}
