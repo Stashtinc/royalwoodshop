@@ -1,5 +1,6 @@
 import { Crumb, ServiceCta } from '../components/service/ServiceShell'
 import woodSidingImage from '../assets/images/cat-wood-composite.jpg'
+import DownloadList from '../components/DownloadList'
 
 /**
  * Wood Siding: Cape Cod pre-finished Canadian siding. The copy is the client's,
@@ -54,6 +55,31 @@ const SPECS = [
   ['Touch-up paint', '1 litre can (do not freeze)'],
   ['Caulking', 'Available in standard colours'],
   ['Estimating', 'See the order information form'],
+]
+
+
+const RESOURCES = [
+  {
+    slug: 'cape-cod-siding-brochure',
+    title: 'Cape Cod Siding Brochure',
+    description: 'The Cape Cod pre-finished siding range, with its profiles and finishes.',
+    format: 'PDF',
+    href: '/downloads/cape-cod-siding-brochure.pdf',
+  },
+  {
+    slug: 'cape-cod-colour-selector',
+    title: 'Cape Cod Colour Selector',
+    description: 'Browse the Cape Cod colour range before you choose your finish.',
+    format: 'PDF',
+    href: '/downloads/cape-cod-colour-selector.pdf',
+  },
+  {
+    slug: 'cape-cod-siding-installation-guide',
+    title: 'Cape Cod Siding Installation Guide',
+    description: 'Installation instructions for Cape Cod pre-finished wood siding.',
+    format: 'PDF',
+    href: '/downloads/cape-cod-siding-installation-guide.pdf',
+  },
 ]
 
 export default function WoodSiding() {
@@ -174,6 +200,15 @@ export default function WoodSiding() {
               </div>
             ))}
           </dl>
+        </div>
+      </section>
+
+      <section className="w-full bg-[#fbfbfb] py-16 lg:py-20">
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
+          <h2 className="font-serif text-2xl font-bold text-royal-blue lg:text-3xl">Resources</h2>
+          <div className="mt-8">
+            <DownloadList files={RESOURCES} />
+          </div>
         </div>
       </section>
 
