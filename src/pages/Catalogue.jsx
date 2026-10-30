@@ -33,11 +33,11 @@ function allSubKeys(tree) {
   return keys
 }
 
-function subsFromUrl({ initialCategory, categoryParam, subParam, tree }) {
+function subsFromUrl({ initialCategory, categoryParam, subParam, tree, nameOfSlug = (slug) => CATEGORY_BY_SLUG[slug] }) {
   const wanted = new Set()
   if (initialCategory) wanted.add(initialCategory)
   for (const slug of (categoryParam || '').split(',')) {
-    const name = CATEGORY_BY_SLUG[slug.trim()]
+    const name = nameOfSlug(slug.trim())
     if (name) wanted.add(name)
   }
 
@@ -400,6 +400,10 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   const speciesOptions = useMemo(() => speciesFacet(allProducts), [allProducts])
   const availabilityOptions = useMemo(() => availabilityFacet(allProducts), [allProducts])
   const [searchParams] = useSearchParams()
+  // A URL slug names a category as the database has it. The names in CATEGORY_SLUGS can drift
+  // (the live "Interior Door" is "interior-doors"), so the products' own category slugs are used too.
+  const nameOfSlug = (slug) => allProducts.find((p) => p.categorySlug === slug)?.category
+    ?? CATEGORY_BY_SLUG[slug] ?? null
   const [search, setSearch] = useState('')
   const [productCode, setProductCode] = useState(() => searchParams.get('code') || '')
   const [sizeCategory, setSizeCategory] = useState('All')
@@ -412,7 +416,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   // client's first render disagree with the served HTML and trip a hydration
   // mismatch. The effect below applies it a beat later instead.
   const [selectedSubs, setSelectedSubs] = useState(() =>
-    subsFromUrl({ initialCategory, categoryParam: null, tree: catalogueCategoryOrder }),
+    subsFromUrl({ initialCategory, categoryParam: null, tree: catalogueCategoryOrder, nameOfSlug }),
   )
   const [expandedCats, setExpandedCats] = useState(new Set())
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -470,7 +474,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
     setSelectedSubs(
       Array.isArray(saved) && saved.some((k) => known.has(k))
         ? new Set(saved.filter((k) => known.has(k)))
-        : subsFromUrl({ initialCategory, categoryParam, subParam, tree: catalogueCategoryOrder }),
+        : subsFromUrl({ initialCategory, categoryParam, subParam, tree: catalogueCategoryOrder, nameOfSlug }),
     )
     setPage(1)
   }, [categoryParam, subParam, initialCategory, catalogueCategoryOrder, savedKey])
