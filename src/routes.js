@@ -18,6 +18,7 @@ export default [
   route('environmental-commitment', 'routes/environmental.jsx'),
   route('panelling-surfaces', 'routes/panelling-surfaces.jsx'),
   route('custom-millwork', 'routes/custom-millwork.jsx'),
+  route('wood-siding', 'routes/wood-siding.jsx'),
   // Service pages keep the addresses WordPress used, so the pages that already
   // rank keep ranking. These must be declared before the ':slug' article
   // catch-all at the bottom, or an article route would swallow them.
