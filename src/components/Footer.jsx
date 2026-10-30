@@ -14,7 +14,7 @@ const quickLinks = [
 // Same destinations as the homepage product cards.
 const productLinks = [
   'Interior Trim & Mouldings',
-  'Interior Doors – Stock & Custom',
+  'Interior Doors',
   'Custom Millwork',
   'Wall & Ceiling Panelling',
   'Stairs & Railings',
