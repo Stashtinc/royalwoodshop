@@ -16,16 +16,16 @@ export const productCategories = [
       'We stock a large inventory of interior trim profiles suitable for both modern and traditional homes.',
   },
   {
-    name: 'Interior Doors – Stock & Custom',
-    path: '/products/interior-doors',
+    name: 'Interior Doors',
+    // The catalogue, with Interior Doors selected.
+    path: '/products?category=interior-doors',
     image: catInteriorDoors,
     description:
       'From standard six-panel doors to fully custom designs, we supply doors for every style and budget.',
   },
-  // No catalogue category for millwork yet, so this opens the whole catalogue.
   {
     name: 'Custom Millwork',
-    path: '/products',
+    path: '/custom-millwork',
     image: catCustomMillwork,
     description:
       'Our in-house millwork shop can match or create custom profiles to bring your vision to life.',

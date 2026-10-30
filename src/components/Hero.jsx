@@ -34,7 +34,7 @@ function HeroPanelContent({ showLogo = true }) {
       )}
       <div className="flex w-full flex-col items-start gap-9">
         <h1 className="max-w-[640px] font-serif text-3xl leading-[1.5] font-bold text-white xl:text-[36px]">
-          Your complete interior finishing supply partner since 1982
+          Your complete finishing supply partner since 1982
         </h1>
         <a
           href="#about"
