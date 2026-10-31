@@ -57,7 +57,7 @@ export const productCategories = [
   },
   {
     name: 'Wood & Composite Siding',
-    path: '/products/siding',
+    path: '/wood-siding',
     image: catWoodComposite,
     description:
       'Durable, low-maintenance siding options in both natural wood and composite materials.',
