@@ -193,6 +193,16 @@ export default function WoodSiding() {
         </div>
       </section>
 
+      <section className="w-full bg-[#fbfbfb] py-16 lg:py-20">
+        <div className="mx-auto flex max-w-[1100px] flex-col gap-8 px-6 lg:px-8">
+          <h2 className="font-serif text-2xl font-bold text-royal-blue lg:text-3xl">Trim specifications</h2>
+          <div className="grid gap-6 md:grid-cols-2">
+            <TrimSpecTable spec={TRIM_SPECS_LEFT} />
+            <TrimSpecTable spec={TRIM_SPECS_RIGHT} />
+          </div>
+        </div>
+      </section>
+
       <section className="w-full bg-white py-16 lg:py-20">
         <div className="mx-auto flex max-w-[860px] flex-col gap-8 px-6 lg:px-8">
           <h2 className="font-serif text-2xl font-bold text-royal-blue lg:text-3xl">Specifications</h2>
