@@ -82,6 +82,59 @@ const RESOURCES = [
   },
 ]
 
+// Trim sizes, nominal and actual, as the original site listed them.
+const TRIM_SPECS_LEFT = {
+  image: '/images/wood-siding/flat-trim-1-1-4.png',
+  imageAlt: 'Flat trim, 1¼″ thick',
+  rows: [
+    ['2 x 4', '1 1/4″ x 3 1/2″'],
+    ['2 x 5', '1 1/4″ x 4 1/4″'],
+    ['2 x 6', '1 1/4″ x 5 1/2″'],
+    ['2 x 8', '1 1/4″ x 7″'],
+    ['2 x 10', '1 1/4″ x 9″'],
+  ],
+}
+
+const TRIM_SPECS_RIGHT = {
+  image: '/images/wood-siding/flat-trim-11-16.png',
+  imageAlt: 'Flat trim, 11⁄16″ thick',
+  rows: [
+    ['1 x 2', '11/16″ x 1 5/8″'],
+    ['1 x 3', '11/16″ x 2 1/2″'],
+    ['1 x 4', '11/16″ x 3 1/2″'],
+    ['1 x 5', '11/16″ x 4 3/4″'],
+    ['1 x 6', '11/16″ x 5 1/2″'],
+    ['1 x 8', '11/16″ x 7″'],
+    ['1 x 10', '11/16″ x 9″'],
+  ],
+}
+
+function TrimSpecTable({ spec }) {
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-gray-100 bg-white">
+      <div className="flex h-24 items-center justify-center bg-[#fbfbfb] p-4">
+        <img src={spec.image} alt={spec.imageAlt} className="max-h-full max-w-full object-contain" loading="lazy" />
+      </div>
+      <table className="w-full border-collapse text-center font-sans text-sm">
+        <thead>
+          <tr className="bg-royal-blue text-white">
+            <th className="px-4 py-3 font-medium">Nominal</th>
+            <th className="px-4 py-3 font-medium">Actual</th>
+          </tr>
+        </thead>
+        <tbody>
+          {spec.rows.map(([nominal, actual]) => (
+            <tr key={nominal} className="border-t border-gray-100 text-gray-600">
+              <td className="px-4 py-3">{nominal}</td>
+              <td className="px-4 py-3">{actual}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function WoodSiding() {
   return (
     <>
@@ -189,6 +242,16 @@ export default function WoodSiding() {
                 <figcaption className="font-sans text-sm text-gray-600">{p.label}</figcaption>
               </figure>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full bg-[#fbfbfb] py-16 lg:py-20">
+        <div className="mx-auto flex max-w-[1100px] flex-col gap-8 px-6 lg:px-8">
+          <h2 className="font-serif text-2xl font-bold text-royal-blue lg:text-3xl">Trim specifications</h2>
+          <div className="grid gap-6 md:grid-cols-2">
+            <TrimSpecTable spec={TRIM_SPECS_LEFT} />
+            <TrimSpecTable spec={TRIM_SPECS_RIGHT} />
           </div>
         </div>
       </section>
