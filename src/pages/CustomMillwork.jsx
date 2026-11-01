@@ -11,7 +11,7 @@ import customMillworkImage from '../assets/images/custom-millwork.png'
 // Project photos for the masonry wall. Each keeps its own proportions, so the
 // columns stagger between portrait and landscape.
 const MASONRY_PHOTOS = [
-  { src: '/images/custom-millwork/mw-01-hallway-console.jpg', w: 1384, h: 1400, alt: 'Painted hallway with raised-panel trim, pilasters and a corner cove' },
+  { src: '/images/custom-millwork/mw-12-mto-french-door.jpg', w: 771, h: 750, alt: 'Made-to-order French door in white oak with glass panes' },
   { src: '/images/custom-millwork/mw-02-wall-panelling.jpg', w: 1400, h: 933, alt: 'White wall panelling with raised panels in a hallway' },
   { src: '/images/custom-millwork/mw-03-profiles-drawings.jpg', w: 1400, h: 936, alt: 'Hardwood mouldings beside shop drawings' },
   { src: '/images/custom-millwork/mw-04-primed-oak-trim.jpg', w: 1400, h: 1179, alt: 'Primed and oak fluted trim packs ready to ship' },
