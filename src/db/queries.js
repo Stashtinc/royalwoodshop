@@ -159,15 +159,22 @@ export async function getAllProducts(db) {
     .innerJoin(attributes, eq(attributes.id, attributeCategories.attributeId))
     .where(eq(attributes.key, 'height'))).map((r) => r.categoryId))
   const reach = new Map()
+  const heightKeysOf = new Map()
   if (heightScope.size) {
-    const links = await db.select({ productId: productCategories.productId, categoryId: productCategories.categoryId, parentId: categories.parentId })
+    const links = await db.select({ productId: productCategories.productId, categoryId: productCategories.categoryId, name: categories.name, parentId: categories.parentId })
       .from(productCategories)
       .innerJoin(categories, eq(categories.id, productCategories.categoryId))
+    const nameOf = new Map((await db.select({ id: categories.id, name: categories.name }).from(categories)).map((c) => [c.id, c.name]))
     for (const l of links) {
       if (!reach.has(l.productId)) reach.set(l.productId, new Set())
       const set = reach.get(l.productId)
       set.add(l.categoryId)
       if (l.parentId) set.add(l.parentId)
+      // The sub-categories this product is in, where the Height attribute applies (a sub, or under a scoped top).
+      if (l.parentId && (heightScope.has(l.categoryId) || heightScope.has(l.parentId))) {
+        if (!heightKeysOf.has(l.productId)) heightKeysOf.set(l.productId, new Set())
+        heightKeysOf.get(l.productId).add(`${nameOf.get(l.parentId)}::${l.name}`)
+      }
     }
   }
   const inHeightScope = (productId) => !heightScope.size || [...(reach.get(productId) ?? [])].some((id) => heightScope.has(id))
@@ -206,6 +213,7 @@ export async function getAllProducts(db) {
     const out = shape(ticked ? { ...r, heightIn: ticked[0] } : inHeightScope(r.id) ? r : { ...r, heightIn: null })
     out.heights = ticked ?? (out.heightIn != null ? [out.heightIn] : [])
     out.attributeCards = [...(attributeCards.get(r.id)?.values() ?? [])]
+    out.heightKeys = [...(heightKeysOf.get(r.id) ?? [])]
     const f = from.get(r.id)
     out.priceFrom = f ? Number(f.price) : null
     out.salePriceFrom = f?.salePrice && Number.isFinite(Number(f.salePrice)) ? Number(f.salePrice) : null
