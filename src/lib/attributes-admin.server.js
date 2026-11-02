@@ -173,12 +173,16 @@ export async function managedAttributes() {
 }
 
 /** The attributes that apply to a product, given the category ids it is linked to
- *  (top-level and sub-level) and the category tree. An attribute applies when one of
- *  its categories is the product's top-level category, or when it has no categories. */
+ *  (top-level and sub-level) and the category tree. An attribute applies when it has no
+ *  categories, or when one of its categories (top-level or sub-level) is one the product
+ *  is linked to, or sits above one it is linked to. */
 export function attributesFor(attrs, linkedIds, tree) {
   const linked = new Set(linkedIds)
-  const topIds = new Set(tree.filter((c) => linked.has(c.id) || c.subcategories.some((s) => linked.has(s.id))).map((c) => c.id))
-  return attrs.filter((a) => a.scopeIds.length === 0 || a.scopeIds.some((id) => topIds.has(id)))
+  const reach = new Set(linked)
+  for (const c of tree) {
+    if (c.subcategories.some((s) => linked.has(s.id))) reach.add(c.id)
+  }
+  return attrs.filter((a) => a.scopeIds.length === 0 || a.scopeIds.some((id) => reach.has(id)))
 }
 
 /** The value ids a product is ticked with, grouped by attribute id. */
