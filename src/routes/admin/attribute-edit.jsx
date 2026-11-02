@@ -221,7 +221,7 @@ export default function AttributeEdit() {
               : 'border-gray-400 bg-white font-medium text-tundora hover:border-gray-500'
         }`}
       >
-        <input type="checkbox" name="categoryIds" value={c.id} checked={on} onChange={onToggle} className="sr-only" />
+        <input type="checkbox" form="attribute-details" name="categoryIds" value={c.id} checked={on} onChange={onToggle} className="sr-only" />
         {c.name}
       </label>
     )
@@ -250,6 +250,24 @@ export default function AttributeEdit() {
           )}
         </section>
 
+      </Form>
+
+      <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5">
+        <h2 className="font-serif font-bold text-tundora">Values</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          {attribute.values.map((v) => (
+            <ValueChip key={v.id} value={v} />
+          ))}
+          <AddValue />
+        </div>
+        {attribute.values.length === 0 && <p className="font-sans text-sm text-gray-500">No values yet. Use Add value to start.</p>}
+      </div>
+
+      {data?.error && (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 font-sans text-sm text-red-800">
+          {data.error}
+        </div>
+      )}
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
           <div className="flex flex-col gap-1">
             <h2 className="font-serif font-bold text-tundora">Applies to categories</h2>
@@ -263,6 +281,7 @@ export default function AttributeEdit() {
                 <label className="flex w-fit cursor-pointer items-center gap-3">
                   <input
                     type="checkbox"
+                    form="attribute-details"
                     name="categoryIds"
                     value={cat.id}
                     checked={selected.has(cat.id)}
@@ -282,24 +301,6 @@ export default function AttributeEdit() {
             ))}
           </div>
         </section>
-      </Form>
-
-      <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5">
-        <h2 className="font-serif font-bold text-tundora">Values</h2>
-        <div className="flex flex-wrap items-center gap-2">
-          {attribute.values.map((v) => (
-            <ValueChip key={v.id} value={v} />
-          ))}
-          <AddValue />
-        </div>
-        {attribute.values.length === 0 && <p className="font-sans text-sm text-gray-500">No values yet. Use Add value to start.</p>}
-      </div>
-
-      {data?.error && (
-        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 font-sans text-sm text-red-800">
-          {data.error}
-        </div>
-      )}
       <Toast message={data?.saved} stamp={data} />
 
       <div className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:left-60">
