@@ -179,13 +179,38 @@ export default function AttributeEdit() {
     if (next.has(id)) next.delete(id); else next.add(id)
     return next
   })
+  // A category's All ticks every sub-category under it, and unticks them all.
+  const toggleCategory = (cat) => setSelected((prev) => {
+    const next = new Set(prev)
+    const subIds = cat.subcategories.map((s) => s.id)
+    if (next.has(cat.id)) {
+      next.delete(cat.id)
+      subIds.forEach((id) => next.delete(id))
+    } else {
+      next.add(cat.id)
+      subIds.forEach((id) => next.add(id))
+    }
+    return next
+  })
+  // A sub-category: unticking one clears its category's All; ticking them all ticks the category.
+  const toggleSub = (cat, sub) => setSelected((prev) => {
+    const next = new Set(prev)
+    if (next.has(sub.id)) {
+      next.delete(sub.id)
+      next.delete(cat.id)
+    } else {
+      next.add(sub.id)
+      if (cat.subcategories.every((s) => next.has(s.id))) next.add(cat.id)
+    }
+    return next
+  })
   const scopeDirty = [...selected].sort((a, b) => a - b).join() !== [...attribute.scopeIds].sort((a, b) => a - b).join()
   const dirty = nameDirty || scopeDirty
   function checkDirty() {
     const fd = new FormData(formRef.current)
     setNameDirty(String(fd.get('name') ?? '').trim() !== attribute.name)
   }
-  const scopeChip = (c, sub = false) => {
+  const scopeChip = (c, sub = false, onToggle = () => toggleScope(c.id)) => {
     const on = selected.has(c.id)
     return (
       <label
@@ -196,7 +221,7 @@ export default function AttributeEdit() {
               : 'border-gray-400 bg-white font-medium text-tundora hover:border-gray-500'
         }`}
       >
-        <input type="checkbox" name="categoryIds" value={c.id} checked={on} onChange={() => toggleScope(c.id)} className="sr-only" />
+        <input type="checkbox" name="categoryIds" value={c.id} checked={on} onChange={onToggle} className="sr-only" />
         {c.name}
       </label>
     )
@@ -241,7 +266,7 @@ export default function AttributeEdit() {
                     name="categoryIds"
                     value={cat.id}
                     checked={selected.has(cat.id)}
-                    onChange={() => toggleScope(cat.id)}
+                    onChange={() => toggleCategory(cat)}
                     aria-label={`All of ${cat.name}`}
                     className="h-4 w-4 accent-royal-blue"
                   />
@@ -250,7 +275,7 @@ export default function AttributeEdit() {
                 </label>
                 {cat.subcategories.length > 0 && (
                   <div className="flex flex-wrap gap-2.5">
-                    {cat.subcategories.map((sub) => scopeChip(sub, true))}
+                    {cat.subcategories.map((sub) => scopeChip(sub, true, () => toggleSub(cat, sub)))}
                   </div>
                 )}
               </div>
