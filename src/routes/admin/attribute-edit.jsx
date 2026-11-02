@@ -215,7 +215,7 @@ export default function AttributeEdit() {
     return (
       <label
         key={c.id}
-        className={`inline-flex cursor-pointer items-center rounded-full border px-4 py-2 font-sans text-base leading-none transition-colors ${
+        className={`inline-flex cursor-pointer items-center rounded-full border px-3 py-1 font-sans text-sm leading-none transition-colors ${
           on ? 'border-royal-blue bg-royal-blue text-white'
             : sub ? 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
               : 'border-gray-400 bg-white font-medium text-tundora hover:border-gray-500'
@@ -270,7 +270,7 @@ export default function AttributeEdit() {
                     aria-label={`All of ${cat.name}`}
                     className="h-4 w-4 accent-royal-blue"
                   />
-                  <span className="font-serif text-lg font-bold text-tundora">{cat.name}</span>
+                  <span className="font-serif text-base font-bold text-tundora">{cat.name}</span>
                   <span className="font-sans text-sm text-gray-500">All</span>
                 </label>
                 {cat.subcategories.length > 0 && (
