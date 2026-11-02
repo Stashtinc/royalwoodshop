@@ -609,7 +609,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
     const keys = new Set()
     for (const p of allProducts) {
       if (!(p.heights ?? []).length) continue
-      for (const { category, sub } of p.placements ?? []) keys.add(`${category}::${sub}`)
+      for (const key of p.heightKeys ?? []) keys.add(key)
     }
     return keys
   }, [allProducts])
