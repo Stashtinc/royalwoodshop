@@ -4,8 +4,9 @@ import { ConfirmForm } from '../../components/admin/ConfirmDialog'
 import Toast from '../../components/admin/Toast'
 import { requireUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
+import { listCategoriesWithSubs } from '../../lib/admin-queries.server.js'
 import {
-  getAttribute, categoryOptions, renameAttribute, setScope, deleteAttribute,
+  getAttribute, renameAttribute, setScope, deleteAttribute,
   addValues, renameValue, deleteValue,
 } from '../../lib/attributes-admin.server.js'
 
@@ -13,7 +14,7 @@ export async function loader({ request, params }) {
   await requireUser(request)
   const attribute = await getAttribute(params.id)
   if (!attribute) throw new Response('Not found', { status: 404 })
-  return { attribute, categories: await categoryOptions() }
+  return { attribute, categories: await listCategoriesWithSubs() }
 }
 
 export async function action({ request, params }) {
@@ -170,13 +171,60 @@ export default function AttributeEdit() {
   const [editingName, setEditingName] = useState(false)
   // Save is solid only when the name or the categories differ from what is saved.
   const formRef = useRef(null)
-  const [dirty, setDirty] = useState(false)
+  const [nameDirty, setNameDirty] = useState(false)
+  // Categories and sub-categories ticked: any category or sub-category, chosen independently.
+  const [selected, setSelected] = useState(() => new Set(attribute.scopeIds))
+  const toggleScope = (id) => setSelected((prev) => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
+  // A category's All ticks every sub-category under it, and unticks them all.
+  const toggleCategory = (cat) => setSelected((prev) => {
+    const next = new Set(prev)
+    const subIds = cat.subcategories.map((s) => s.id)
+    if (next.has(cat.id)) {
+      next.delete(cat.id)
+      subIds.forEach((id) => next.delete(id))
+    } else {
+      next.add(cat.id)
+      subIds.forEach((id) => next.add(id))
+    }
+    return next
+  })
+  // A sub-category: unticking one clears its category's All; ticking them all ticks the category.
+  const toggleSub = (cat, sub) => setSelected((prev) => {
+    const next = new Set(prev)
+    if (next.has(sub.id)) {
+      next.delete(sub.id)
+      next.delete(cat.id)
+    } else {
+      next.add(sub.id)
+      if (cat.subcategories.every((s) => next.has(s.id))) next.add(cat.id)
+    }
+    return next
+  })
+  const scopeDirty = [...selected].sort((a, b) => a - b).join() !== [...attribute.scopeIds].sort((a, b) => a - b).join()
+  const dirty = nameDirty || scopeDirty
   function checkDirty() {
     const fd = new FormData(formRef.current)
-    const name = String(fd.get('name') ?? '').trim()
-    const cats = fd.getAll('categoryIds').map(Number).sort((a, b) => a - b).join()
-    const saved = [...attribute.scopeIds].sort((a, b) => a - b).join()
-    setDirty(name !== attribute.name || cats !== saved)
+    setNameDirty(String(fd.get('name') ?? '').trim() !== attribute.name)
+  }
+  const scopeChip = (c, sub = false, onToggle = () => toggleScope(c.id)) => {
+    const on = selected.has(c.id)
+    return (
+      <label
+        key={c.id}
+        className={`inline-flex cursor-pointer items-center rounded-full border px-4 py-2 font-sans text-base leading-none transition-colors ${
+          on ? 'border-royal-blue bg-royal-blue text-white'
+            : sub ? 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
+              : 'border-gray-400 bg-white font-medium text-tundora hover:border-gray-500'
+        }`}
+      >
+        <input type="checkbox" name="categoryIds" value={c.id} checked={on} onChange={onToggle} className="sr-only" />
+        {c.name}
+      </label>
+    )
   }
 
   return (
@@ -203,13 +251,34 @@ export default function AttributeEdit() {
         </section>
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
-          <h2 className="font-serif font-bold text-tundora">Applies to categories</h2>
-          <div className="flex flex-wrap gap-3">
-            {categories.map((c) => (
-              <label key={c.id} className="flex items-center gap-2 font-sans text-sm text-tundora">
-                <input type="checkbox" name="categoryIds" value={c.id} defaultChecked={attribute.scopeIds.includes(c.id)} className="accent-royal-blue" />
-                {c.name}
-              </label>
+          <div className="flex flex-col gap-1">
+            <h2 className="font-serif font-bold text-tundora">Applies to categories</h2>
+            <p className="font-sans text-sm text-gray-500">
+              Tick a category to apply the attribute to all of it, or tick individual sub-categories. Nothing ticked means every product.
+            </p>
+          </div>
+          <div className="flex flex-col gap-5">
+            {categories.map((cat) => (
+              <div key={cat.id} className="flex flex-col gap-3">
+                <label className="flex w-fit cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="categoryIds"
+                    value={cat.id}
+                    checked={selected.has(cat.id)}
+                    onChange={() => toggleCategory(cat)}
+                    aria-label={`All of ${cat.name}`}
+                    className="h-4 w-4 accent-royal-blue"
+                  />
+                  <span className="font-serif text-lg font-bold text-tundora">{cat.name}</span>
+                  <span className="font-sans text-sm text-gray-500">All</span>
+                </label>
+                {cat.subcategories.length > 0 && (
+                  <div className="flex flex-wrap gap-2.5">
+                    {cat.subcategories.map((sub) => scopeChip(sub, true, () => toggleSub(cat, sub)))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </section>
