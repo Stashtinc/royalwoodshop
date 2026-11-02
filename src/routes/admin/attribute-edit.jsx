@@ -4,8 +4,9 @@ import { ConfirmForm } from '../../components/admin/ConfirmDialog'
 import Toast from '../../components/admin/Toast'
 import { requireUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
+import { listCategoriesWithSubs } from '../../lib/admin-queries.server.js'
 import {
-  getAttribute, categoryOptions, renameAttribute, setScope, deleteAttribute,
+  getAttribute, renameAttribute, setScope, deleteAttribute,
   addValues, renameValue, deleteValue,
 } from '../../lib/attributes-admin.server.js'
 
@@ -13,7 +14,7 @@ export async function loader({ request, params }) {
   await requireUser(request)
   const attribute = await getAttribute(params.id)
   if (!attribute) throw new Response('Not found', { status: 404 })
-  return { attribute, categories: await categoryOptions() }
+  return { attribute, categories: await listCategoriesWithSubs() }
 }
 
 export async function action({ request, params }) {
@@ -170,13 +171,35 @@ export default function AttributeEdit() {
   const [editingName, setEditingName] = useState(false)
   // Save is solid only when the name or the categories differ from what is saved.
   const formRef = useRef(null)
-  const [dirty, setDirty] = useState(false)
+  const [nameDirty, setNameDirty] = useState(false)
+  // Categories and sub-categories ticked: any category or sub-category, chosen independently.
+  const [selected, setSelected] = useState(() => new Set(attribute.scopeIds))
+  const toggleScope = (id) => setSelected((prev) => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
+  const scopeDirty = [...selected].sort((a, b) => a - b).join() !== [...attribute.scopeIds].sort((a, b) => a - b).join()
+  const dirty = nameDirty || scopeDirty
   function checkDirty() {
     const fd = new FormData(formRef.current)
-    const name = String(fd.get('name') ?? '').trim()
-    const cats = fd.getAll('categoryIds').map(Number).sort((a, b) => a - b).join()
-    const saved = [...attribute.scopeIds].sort((a, b) => a - b).join()
-    setDirty(name !== attribute.name || cats !== saved)
+    setNameDirty(String(fd.get('name') ?? '').trim() !== attribute.name)
+  }
+  const scopeChip = (c, sub = false) => {
+    const on = selected.has(c.id)
+    return (
+      <label
+        key={c.id}
+        className={`inline-flex cursor-pointer items-center rounded-full border px-3 py-1.5 font-sans text-sm transition-colors ${
+          on ? 'border-royal-blue bg-royal-blue text-white'
+            : sub ? 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+              : 'border-gray-300 bg-white font-medium text-tundora hover:border-gray-400'
+        }`}
+      >
+        <input type="checkbox" name="categoryIds" value={c.id} checked={on} onChange={() => toggleScope(c.id)} className="sr-only" />
+        {c.name}
+      </label>
+    )
   }
 
   return (
@@ -203,13 +226,18 @@ export default function AttributeEdit() {
         </section>
 
         <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5">
-          <h2 className="font-serif font-bold text-tundora">Applies to categories</h2>
-          <div className="flex flex-wrap gap-3">
-            {categories.map((c) => (
-              <label key={c.id} className="flex items-center gap-2 font-sans text-sm text-tundora">
-                <input type="checkbox" name="categoryIds" value={c.id} defaultChecked={attribute.scopeIds.includes(c.id)} className="accent-royal-blue" />
-                {c.name}
-              </label>
+          <div className="flex flex-col gap-1">
+            <h2 className="font-serif font-bold text-tundora">Applies to categories</h2>
+            <p className="font-sans text-sm text-gray-500">
+              Tick a category to apply the attribute to all of it, or tick individual sub-categories. Nothing ticked means every product.
+            </p>
+          </div>
+          <div className="flex flex-col gap-4">
+            {categories.map((cat) => (
+              <div key={cat.id} className="flex flex-wrap items-center gap-2">
+                {scopeChip(cat)}
+                {cat.subcategories.map((sub) => scopeChip(sub, true))}
+              </div>
             ))}
           </div>
         </section>
