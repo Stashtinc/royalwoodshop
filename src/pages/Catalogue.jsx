@@ -603,11 +603,17 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
   )
   // Height pills belong to the categories that carry heights (the doors), whatever they are named:
   // shown while a sub-category of one of them is in view.
-  const heightCategories = useMemo(
-    () => new Set(allProducts.filter((p) => (p.heights ?? []).length).map((p) => p.category)),
-    [allProducts],
-  )
-  const showHeights = heightOptions.length > 0 && [...selectedSubs].some((k) => heightCategories.has(k.split('::')[0]))
+  // Keyed by sub-category, as the sidebar keys its selection: the row shows only while a
+  // sub-category that has products with heights is selected.
+  const heightSubs = useMemo(() => {
+    const keys = new Set()
+    for (const p of allProducts) {
+      if (!(p.heights ?? []).length) continue
+      for (const { category, sub } of p.placements ?? []) keys.add(`${category}::${sub}`)
+    }
+    return keys
+  }, [allProducts])
+  const showHeights = heightOptions.length > 0 && [...selectedSubs].some((k) => heightSubs.has(k))
 
   const sorted = useMemo(() => {
     const catIndex = Object.fromEntries(catalogueCategoryOrder.map((c, i) => [c.name, i]))

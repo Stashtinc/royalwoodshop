@@ -1,6 +1,7 @@
 import { eq, sql, asc, desc, and, inArray } from 'drizzle-orm'
 import {
-  products, categories, attributes, attributeValues, productAttributes, productImages, productPartIds,
+  products, categories, attributes, attributeValues, attributeCategories, productAttributes, productImages, productPartIds,
+  productCategories,
 } from './schema.js'
 
 /** Fallback names only — used when a product has no primary category. */
@@ -151,7 +152,27 @@ export async function getAllProducts(db) {
     .from(productAttributes)
     .innerJoin(attributeValues, eq(attributeValues.id, productAttributes.attributeValueId))
     .innerJoin(attributes, and(eq(attributes.id, attributeValues.attributeId), eq(attributes.key, 'height')))
+  // A height only counts for a product in a category the Height attribute applies to (the
+  // same rule as the product editor). Stray ticks outside that scope are ignored.
+  const heightScope = new Set((await db.select({ categoryId: attributeCategories.categoryId })
+    .from(attributeCategories)
+    .innerJoin(attributes, eq(attributes.id, attributeCategories.attributeId))
+    .where(eq(attributes.key, 'height'))).map((r) => r.categoryId))
+  const reach = new Map()
+  if (heightScope.size) {
+    const links = await db.select({ productId: productCategories.productId, categoryId: productCategories.categoryId, parentId: categories.parentId })
+      .from(productCategories)
+      .innerJoin(categories, eq(categories.id, productCategories.categoryId))
+    for (const l of links) {
+      if (!reach.has(l.productId)) reach.set(l.productId, new Set())
+      const set = reach.get(l.productId)
+      set.add(l.categoryId)
+      if (l.parentId) set.add(l.parentId)
+    }
+  }
+  const inHeightScope = (productId) => !heightScope.size || [...(reach.get(productId) ?? [])].some((id) => heightScope.has(id))
   for (const t of ticks) {
+    if (!inHeightScope(t.productId)) continue
     const h = Number(t.slug)
     if (!heightTicks.has(t.productId)) heightTicks.set(t.productId, [])
     heightTicks.get(t.productId).push(h)
@@ -181,7 +202,8 @@ export async function getAllProducts(db) {
   }
   return rows.map((r) => {
     const ticked = heightTicks.get(r.id)
-    const out = shape(ticked ? { ...r, heightIn: ticked[0] } : r)
+    // Out of the Height scope, the old height column is ignored too.
+    const out = shape(ticked ? { ...r, heightIn: ticked[0] } : inHeightScope(r.id) ? r : { ...r, heightIn: null })
     out.heights = ticked ?? (out.heightIn != null ? [out.heightIn] : [])
     out.attributeCards = [...(attributeCards.get(r.id)?.values() ?? [])]
     const f = from.get(r.id)
