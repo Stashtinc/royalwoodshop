@@ -234,9 +234,25 @@ export default function AttributeEdit() {
           </div>
           <div className="flex flex-col gap-5">
             {categories.map((cat) => (
-              <div key={cat.id} className="flex flex-wrap items-center gap-2.5">
-                {scopeChip(cat)}
-                {cat.subcategories.map((sub) => scopeChip(sub, true))}
+              <div key={cat.id} className="flex flex-col gap-3">
+                <label className="flex w-fit cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="categoryIds"
+                    value={cat.id}
+                    checked={selected.has(cat.id)}
+                    onChange={() => toggleScope(cat.id)}
+                    aria-label={`All of ${cat.name}`}
+                    className="h-4 w-4 accent-royal-blue"
+                  />
+                  <span className="font-serif text-lg font-bold text-tundora">{cat.name}</span>
+                  <span className="font-sans text-sm text-gray-500">All</span>
+                </label>
+                {cat.subcategories.length > 0 && (
+                  <div className="flex flex-wrap gap-2.5">
+                    {cat.subcategories.map((sub) => scopeChip(sub, true))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
