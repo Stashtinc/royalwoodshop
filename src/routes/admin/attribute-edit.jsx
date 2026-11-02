@@ -190,10 +190,10 @@ export default function AttributeEdit() {
     return (
       <label
         key={c.id}
-        className={`inline-flex cursor-pointer items-center rounded-full border px-3 py-1.5 font-sans text-sm transition-colors ${
+        className={`inline-flex cursor-pointer items-center rounded-full border px-4 py-2 font-sans text-base leading-none transition-colors ${
           on ? 'border-royal-blue bg-royal-blue text-white'
-            : sub ? 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-              : 'border-gray-300 bg-white font-medium text-tundora hover:border-gray-400'
+            : sub ? 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
+              : 'border-gray-400 bg-white font-medium text-tundora hover:border-gray-500'
         }`}
       >
         <input type="checkbox" name="categoryIds" value={c.id} checked={on} onChange={() => toggleScope(c.id)} className="sr-only" />
@@ -232,9 +232,9 @@ export default function AttributeEdit() {
               Tick a category to apply the attribute to all of it, or tick individual sub-categories. Nothing ticked means every product.
             </p>
           </div>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-5">
             {categories.map((cat) => (
-              <div key={cat.id} className="flex flex-wrap items-center gap-2">
+              <div key={cat.id} className="flex flex-wrap items-center gap-2.5">
                 {scopeChip(cat)}
                 {cat.subcategories.map((sub) => scopeChip(sub, true))}
               </div>
