@@ -13,7 +13,7 @@ export const productCategories = [
     path: '/products/trim-mouldings',
     image: catInteriorTrim,
     description:
-      'We stock a large inventory of interior trim profiles suitable for both modern and traditional homes.',
+      'Choose from our large inventory of architectural trim & Mouldings in stock.',
   },
   {
     name: 'Interior Doors',
