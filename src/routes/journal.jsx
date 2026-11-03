@@ -2,8 +2,14 @@ import { Link, useLoaderData } from 'react-router'
 import { publishedPosts } from '../data/blog'
 import { pageMeta, truncate } from '../seo'
 
-export function loader() {
-  return { posts: publishedPosts }
+export async function loader() {
+  // The database first, so a newly published article is listed at once. The built snapshot is the fallback.
+  try {
+    const { listPublishedForSite } = await import('../lib/posts.server.js')
+    return { posts: await listPublishedForSite() }
+  } catch {
+    return { posts: publishedPosts }
+  }
 }
 
 export const meta = () => pageMeta({
