@@ -87,6 +87,19 @@ export async function listCategories() {
   }).from(postCategories).orderBy(postCategories.name)
 }
 
+/** Creates a blog category by name, or returns the existing one with that name. */
+export async function createCategory(rawName) {
+  const name = String(rawName ?? '').trim().replace(/\s+/g, ' ').slice(0, 120)
+  if (!name) throw new Error('Enter a category name.')
+  const db = await getDb()
+  const [existing] = await db.select({ id: postCategories.id, name: postCategories.name, slug: postCategories.slug })
+    .from(postCategories).where(eq(postCategories.name, name)).limit(1)
+  if (existing) return { ...existing, n: 0 }
+  const slug = name.toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  const [row] = await db.insert(postCategories).values({ name, slug }).returning({ id: postCategories.id, name: postCategories.name, slug: postCategories.slug })
+  return { ...row, n: 0 }
+}
+
 export async function savePost(id, data, categoryNames = []) {
   const db = await getDb()
   const values = {
