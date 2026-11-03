@@ -87,8 +87,8 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-300 focus-within:border-royal-blue">
-      <div className="flex flex-wrap items-center gap-1 border-b border-gray-200 bg-gray-50 px-2 py-1.5">
+    <div className="flex h-[70vh] min-h-[26rem] flex-col overflow-hidden rounded-lg border border-gray-300 focus-within:border-royal-blue">
+      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-gray-200 bg-gray-50 px-2 py-1.5">
         <select
           value={block}
           onChange={(e) => exec('formatBlock', e.target.value)}
@@ -125,7 +125,7 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
           document.execCommand('insertText', false, text)
           sync()
         }}
-        className="prose-royal min-h-[26rem] max-w-none bg-white px-4 py-3 outline-none"
+        className="prose-royal min-h-0 flex-1 overflow-y-auto max-w-none bg-white px-4 py-3 outline-none"
       />
 
       <input ref={hidden} type="hidden" name={name} defaultValue={defaultValue} />
