@@ -2,10 +2,18 @@ import { Link, useLoaderData } from 'react-router'
 import { getPost } from '../data/blog'
 import { pageMeta, truncate, BASE, SITE } from '../seo'
 
-export function loader({ params }) {
-  const post = getPost(params.slug)
+export async function loader({ request, params }) {
+  let post = getPost(params.slug)
+  if (!post) {
+    // A signed-in admin can preview a draft, which is not on the public site yet.
+    const { getUser } = await import('../lib/auth.server.js')
+    if (await getUser(request)) {
+      const { getPostBySlug } = await import('../lib/posts.server.js')
+      post = await getPostBySlug(params.slug)
+    }
+  }
   if (!post) throw new Response('Not found', { status: 404 })
-  return { post }
+  return { post, preview: Boolean(post.status && post.status !== 'published') }
 }
 
 export const meta = ({ data }) => {
@@ -38,10 +46,15 @@ export const meta = ({ data }) => {
 const dateFormat = new Intl.DateTimeFormat('en-CA', { day: 'numeric', month: 'long', year: 'numeric' })
 
 export default function Article() {
-  const { post } = useLoaderData()
+  const { post, preview } = useLoaderData()
   return (
     <article className="py-12 lg:py-16">
       <div className="mx-auto max-w-[760px] px-6">
+        {preview && (
+          <p className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 font-sans text-sm text-amber-900">
+            Draft preview. This article is not published, and only signed-in admins can see it.
+          </p>
+        )}
         <nav className="flex items-center gap-2 font-sans text-sm text-gray-500">
           <Link to="/blog" className="hover:text-royal-blue">Blog</Link>
           {post.categories[0] && <><span>›</span><span>{post.categories[0]}</span></>}
