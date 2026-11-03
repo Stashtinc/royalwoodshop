@@ -223,6 +223,8 @@ function NewCategory({ onAdded }) {
 export default function PostEdit() {
   const { post, categories, isNew, aiEnabled } = useLoaderData()
   const [addedCategories, setAddedCategories] = useState([])
+  // Thumbnail of a header image as soon as it is chosen, before saving.
+  const [headerPreview, setHeaderPreview] = useState(null)
   const data = useActionData()
   const nav = useNavigation()
   // The AI fetcher also drives nav.state on this route, so distinguish a real
@@ -389,10 +391,11 @@ export default function PostEdit() {
 
             <section className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4">
               <h2 className="font-serif font-bold text-tundora">Header image</h2>
-              {featured && (
-                <img src={featured} alt="" className="aspect-[3/2] w-full rounded-lg object-cover" />
+              {(headerPreview || featured) && (
+                <img src={headerPreview || featured} alt="" className="aspect-[3/2] w-full rounded-lg object-cover" />
               )}
               <input type="file" name="featuredImageFile" accept="image/*"
+                onChange={(e) => { const file = e.target.files?.[0]; setHeaderPreview(file ? URL.createObjectURL(file) : null) }}
                 className="text-xs text-gray-600 file:mr-2 file:rounded file:border file:border-gray-300 file:bg-white file:px-2 file:py-1 file:text-xs" />
               <label className="flex flex-col gap-1.5">
                 <span className="text-xs font-medium text-gray-600">Image description</span>
