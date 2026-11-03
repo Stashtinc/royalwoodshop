@@ -309,7 +309,7 @@ export default function PostEdit() {
 
       <Toast message={data?.error} stamp={data} tone="error" />
 
-      <Form ref={formRef} method="post" encType="multipart/form-data" className="flex flex-col gap-6">
+      <Form ref={formRef} method="post" encType="multipart/form-data" className="flex flex-col gap-6 pb-24">
         <input type="hidden" name="featuredImageExisting" value={featured} readOnly />
 
         <label className="flex flex-col gap-1.5">
@@ -320,17 +320,18 @@ export default function PostEdit() {
 
         <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-gray-700">Article</span>
-              <RichText name="contentHtml" defaultValue={post?.contentHtml ?? ''} apiRef={editorApi} />
-            </div>
-
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-gray-700">
                 Summary <span className="font-normal text-gray-400">shown on the blog listing</span>
               </span>
               <textarea name="excerpt" rows={3} defaultValue={post?.excerpt ?? ''} className={field} />
             </label>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-gray-700">Article</span>
+              <RichText name="contentHtml" defaultValue={post?.contentHtml ?? ''} apiRef={editorApi} />
+            </div>
+
           </div>
 
           <aside className="flex flex-col gap-4">
@@ -421,9 +422,9 @@ export default function PostEdit() {
           </aside>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-end gap-3 border-t border-gray-200 bg-white px-6 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:left-60">
           <button disabled={saving}
-            className="rounded-lg bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-60">
+            className="rounded-lg border border-royal-blue bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:border-royal-blue-dark hover:bg-royal-blue-dark disabled:opacity-60">
             {saving ? 'Saving…' : isNew ? 'Create article' : 'Save changes'}
           </button>
           <Link to="/admin/posts" className="rounded-lg border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50">Cancel</Link>
