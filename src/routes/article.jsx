@@ -5,11 +5,13 @@ import { pageMeta, truncate, BASE, SITE } from '../seo'
 export async function loader({ request, params }) {
   let post = getPost(params.slug)
   if (!post) {
-    // A signed-in admin can preview a draft, which is not on the public site yet.
-    const { getUser } = await import('../lib/auth.server.js')
-    if (await getUser(request)) {
-      const { getPostBySlug } = await import('../lib/posts.server.js')
-      post = await getPostBySlug(params.slug)
+    // Not in the built snapshot yet: a post published since the last build, or a draft. The
+    // database is the source, so a published post shows at once; a draft only to a signed-in admin.
+    const { getPostBySlug } = await import('../lib/posts.server.js')
+    const row = await getPostBySlug(params.slug)
+    if (row) {
+      const { getUser } = await import('../lib/auth.server.js')
+      if (row.status === 'published' || (await getUser(request))) post = row
     }
   }
   if (!post) throw new Response('Not found', { status: 404 })
