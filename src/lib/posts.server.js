@@ -48,6 +48,12 @@ export async function getPostBySlug(slug) {
   return row ? shape(row) : null
 }
 
+/** Published articles for the public blog list, read from the database so a new one shows at once. */
+export async function listPublishedForSite() {
+  const all = await allPostsForSnapshot()
+  return all.filter((p) => p.status === 'published').map(({ contentHtml, ...p }) => p)
+}
+
 export async function getPostById(id) {
   const db = await getDb()
   const [row] = await db.select({
