@@ -57,6 +57,8 @@ export const UOM_OPTIONS = [
   ['SqFt', 'Square Foot'],
   ['Kit', 'Kit'],
   ['Pc', 'Piece'],
+  ['Pr', 'Pair'],
+  ['Bdl', 'Bundle'],
 ]
 
 const UOM_ALIASES = {
@@ -65,6 +67,8 @@ const UOM_ALIASES = {
   sqft: 'SqFt', 'sq ft': 'SqFt', sf: 'SqFt', 'square foot': 'SqFt', 'square feet': 'SqFt',
   kit: 'Kit', kits: 'Kit',
   pc: 'Pc', pcs: 'Pc', piece: 'Pc', pieces: 'Pc',
+  pr: 'Pr', pair: 'Pr', pairs: 'Pr',
+  bdl: 'Bdl', bundle: 'Bdl', bundles: 'Bdl',
 }
 
 /** "LFT", "lin ft", "Each" → "Lft", "Ea"; an unknown unit is kept as typed; blank → null. */
