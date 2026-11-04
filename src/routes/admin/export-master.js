@@ -3,6 +3,7 @@ import { getDb } from '../../lib/db.server.js'
 import { SKU_SHEET, SKU_HEADERS, skuRows } from '../../lib/sku-master.server.js'
 import { masterAttributeColumns } from '../../lib/attributes-admin.server.js'
 import { log } from '../../lib/activity.server.js'
+import { UOM_OPTIONS } from '../../lib/catalogue-constants.js'
 
 /**
  * The Master Product List, one row per SKU (see lib/sku-master.server.js).
@@ -57,7 +58,7 @@ export async function loader({ request }) {
       type: 'list', allowBlank: true, formulae: ['"S,QS,MO"'], showDropDown: false,
     }
     row.getCell(UOM_COL).dataValidation = {
-      type: 'list', allowBlank: true, formulae: ['"Lft,Ea,SqFt,Kit,Pc"'], showDropDown: false,
+      type: 'list', allowBlank: true, formulae: [`"${UOM_OPTIONS.map(([code]) => code).join(',')}"`], showDropDown: false,
     }
   }
 
