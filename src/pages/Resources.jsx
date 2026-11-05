@@ -7,6 +7,7 @@ const LEADS = {
   '/resources/downloads': 'Product catalogues and brochures: Royal Woodworking and the Alexandria East Quick Ship range.',
   '/glossary': 'A plain-language reference for the trim and millwork terms you will come across, from architrave to wainscoting.',
   '/faq': 'Common questions about trim, moulding, doors and installation, answered by our team.',
+  '/pre-hanging-service': 'Door pre-hanging service: hinges, door swing, jamb and stop chosen for your wall, machined in our shop and ready to hang.',
   '/installation-tips': 'Practical guidance for installing crown moulding and interior trim: nailing, cutting, materials and tools.',
 }
 
