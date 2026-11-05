@@ -21,5 +21,6 @@ export const STATIC_PAGES = [
   '/environmental-commitment',
   '/custom-millwork',
   '/wood-siding',
+  '/pre-hanging-service',
   '/panelling-surfaces',
 ]

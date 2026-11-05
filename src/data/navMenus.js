@@ -52,4 +52,5 @@ export const resourcesMenu = [
   { label: 'Glossary of Terms', path: '/glossary' },
   { label: 'FAQ', path: '/faq' },
   { label: 'Installation Tips', path: '/installation-tips' },
+  { label: 'Pre-Hanging Service', path: '/pre-hanging-service' },
 ]
