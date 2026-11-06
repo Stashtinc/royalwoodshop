@@ -211,6 +211,8 @@ const PRODUCT_FIELDS = [
 export function skuRowsToMaster(skuRows) {
   // Likewise a sheet with no Purchase Increment column leaves the Part ID increments alone.
   const hasIncrement = skuRows.some((r) => 'purchase increment' in r)
+  // Likewise a sheet with no Lead Time column leaves the products' lead times alone.
+  const hasLeadTime = skuRows.some((r) => 'lead time' in r)
   // Grouped ignoring case, but the code keeps its own spelling: 113 products
   // have lowercase codes (c400-hanger) and the import matches them as typed.
   // A row with no code at all stands alone: two code-less products can share
@@ -233,6 +235,11 @@ export function skuRowsToMaster(skuRows) {
       const values = [...new Set(rows.map((r) => r[from]).filter(Boolean))]
       m[to] = values[0] ?? ''
       if (values.length > 1) conflicts.push({ code, field: from, values })
+    }
+    if (hasLeadTime) {
+      const values = [...new Set(rows.map((r) => r['lead time']).filter(Boolean))]
+      m['lead time'] = values[0] ?? ''
+      if (values.length > 1) conflicts.push({ code, field: 'lead time', values })
     }
     const other = []
     for (const r of rows) {

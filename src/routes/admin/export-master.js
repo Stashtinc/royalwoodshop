@@ -1,7 +1,7 @@
 import { requireUser } from '../../lib/auth.server'
 import { getDb } from '../../lib/db.server.js'
 import { SKU_SHEET, SKU_HEADERS, skuRows } from '../../lib/sku-master.server.js'
-import { masterAttributeColumns } from '../../lib/attributes-admin.server.js'
+import { managedAttributes } from '../../lib/attributes-admin.server.js'
 import { log } from '../../lib/activity.server.js'
 import { UOM_OPTIONS } from '../../lib/catalogue-constants.js'
 
@@ -39,7 +39,8 @@ export async function loader({ request }) {
 
   // Attribute columns (Height and any added later) are marked: a line break and "(attribute)" in the
   // header, and a different header colour. The import strips the marker to find the attribute.
-  const attrHeaders = (await masterAttributeColumns()).map((c) => `${c.name}\n(attribute)`)
+  const attrs = await managedAttributes()
+  const attrHeaders = attrs.map((c) => `${c.name}\n(attribute)`)
   const headers = [...SKU_HEADERS, ...attrHeaders]
   const hdr = ws.addRow(headers)
   hdr.height = 30
@@ -51,8 +52,19 @@ export async function loader({ request }) {
     cell.border = { top: THIN, bottom: THIN, left: THIN, right: THIN }
   })
 
+  // Each attribute column offers its values as a dropdown. Excel lists are capped at 255 characters
+  // and cannot hold a comma, so a longer or comma-containing list is left as free text. The warning
+  // style lets a cell hold several values joined with "|".
+  const attrLists = attrs.map((a) => {
+    const labels = a.values.map((v) => v.value)
+    const list = labels.join(',')
+    if (!labels.length || list.length > 250 || labels.some((l) => l.includes(',') || l.includes('"'))) return null
+    return { type: 'list', allowBlank: true, formulae: [`"${list}"`], showErrorMessage: true, errorStyle: 'warning', errorTitle: 'Not a listed value', error: 'This value is not one of the listed values. Keep it only if you mean to add it.' }
+  })
+
   for (const values of rows) {
     const row = ws.addRow(values)
+    attrLists.forEach((dv, i) => { if (dv) row.getCell(SKU_HEADERS.length + i + 1).dataValidation = dv })
     row.getCell(DESCRIPTION_COL).alignment = { wrapText: true, vertical: 'top' }
     row.getCell(AVAIL_COL).dataValidation = {
       type: 'list', allowBlank: true, formulae: ['"S,QS,MO"'], showDropDown: false,
