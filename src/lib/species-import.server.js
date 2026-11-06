@@ -340,7 +340,7 @@ const CATEGORY_DEFS = [
   ['stair-components',        'Stair Components',         [],                                                              true],
   ['sheet-stock',             'Sheet Stock',              ['SHEET GOODS'],                                                 true],
   ['siding',                  'Exterior Siding',          ['SIDING', 'EXTERIOR SIDING'],                                  true],
-  ['aria-fittes-floor-vents', 'Aria Fittes Floor Vents',  ['ARIA FITTES', 'ARIA FITTES FLOOR VENTS'],                     true],
+  ['aria-fittes-floor-vents', 'Aria Fittes Floor Vents',  ['ARIA FITTES', 'ARIA FITTES FLOOR VENTS', 'ARIA FITTES VENT'],  true],
 ]
 const CATEGORY_SLUG = {}
 const CATEGORY_TITLE = {}
