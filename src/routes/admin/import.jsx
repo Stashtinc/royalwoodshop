@@ -22,8 +22,9 @@ export async function loader({ request }) {
  * back into one row per product for the column-per-species import, and
  * carries its Part IDs; a column-per-species sheet is read as before.
  */
-async function readImport(buffer, fileName) {
-  const sku = await readSkuSheet(buffer)
+async function readImport(buffer, fileName, knownSku) {
+  // The caller may already have read the Master List (the preview does); reading it again is slow.
+  const sku = knownSku !== undefined ? knownSku : await readSkuSheet(buffer)
   if (sku) {
     const { masterRows, partRows, priceRows, conflicts, products } = skuRowsToMaster(sku.rows)
     return {
@@ -75,7 +76,7 @@ export async function action({ request }) {
     }
 
     let parsedSheet
-    try { parsedSheet = await readImport(buffer, file.name) }
+    try { parsedSheet = await readImport(buffer, file.name, skuSheet) }
     catch (e) {
       if (!partIds) return { error: e.message }
       // A Part ID list on its own: nothing else in the file to import.
