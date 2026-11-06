@@ -89,7 +89,15 @@ export async function renameAttribute(id, name) {
   const db = await getDb()
   const clean = String(name ?? '').trim()
   if (!clean) throw new Error('Name cannot be blank.')
-  await db.update(attributes).set({ name: clean }).where(eq(attributes.id, Number(id)))
+  // The key follows the name: the Master List matches a sheet column to an attribute by its key.
+  const key = slugify(clean)
+  const [current] = await db.select({ key: attributes.key }).from(attributes).where(eq(attributes.id, Number(id))).limit(1)
+  // Height is read by its key in the product code, so its key stays put.
+  if (current?.key === 'height' && key !== 'height') throw new Error('Height keeps its name: the site reads it by that key.')
+  const [taken] = await db.select({ id: attributes.id }).from(attributes)
+    .where(and(eq(attributes.key, key), sql`${attributes.id} <> ${Number(id)}`)).limit(1)
+  if (taken) throw new Error(`There is already an attribute called "${clean}".`)
+  await db.update(attributes).set({ name: clean, key }).where(eq(attributes.id, Number(id)))
 }
 
 /** Replaces the categories an attribute applies to. */
