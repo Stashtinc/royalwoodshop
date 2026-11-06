@@ -899,13 +899,17 @@ export default function Import() {
                         <span className="font-mono text-xs text-gray-500">{c.code}</span>
                         <span className="text-gray-800">{c.name}</span>
                         <span className={`ml-auto text-xs ${edit ? 'font-medium text-royal-blue' : 'text-gray-600'}`}>
-                          {display.species.length
+                          {/* Species are shown only when they change; an edited row always shows them. */}
+                          {(c.speciesChanged !== false || edit) && (display.species.length
                             ? display.species
                                 .map((x) => x.availability
                                   ? `${x.name} (${AVAILABILITY_LABEL[x.availability]})`
                                   : x.name)
                                 .join(', ')
-                            : '—'}
+                            : '—')}
+                          {c.speciesChanged === false && !edit && c.changed?.length > 0 && (
+                            <span className="text-gray-700">Updates: {c.changed.join(', ')}</span>
+                          )}
                           {display.flex && ' · flex'}
                           {edit && <span className="ml-1 text-[10px] text-royal-blue/70">(edited)</span>}
                         </span>
