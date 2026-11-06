@@ -278,14 +278,38 @@ export async function productAttributeCells(productIds) {
 
 /** Applies one product's attribute cells from the master sheet: sheet = { attributeKey: [valueSlugs] }.
  *  An attribute the sheet lists is set to exactly those values; blank clears it. */
-export async function setProductAttributesFromSheet(productId, sheet) {
+export async function setProductAttributesFromSheet(productId, sheet, cache = null) {
   const db = await getDb()
-  const attrs = await db.select().from(attributes)
+  // A bulk import passes one cache for every product, so the lists are read once, not per product.
+  const { attrs, valuesByAttr } = cache ?? await loadAttributeCache()
+  const pid = Number(productId)
   for (const [key, slugs] of Object.entries(sheet ?? {})) {
     const attr = attrs.find((a) => a.key === key && !NOT_MANAGED_HERE.has(a.key))
     if (!attr) continue
-    const vals = await db.select({ id: attributeValues.id, slug: attributeValues.slug }).from(attributeValues)
-      .where(eq(attributeValues.attributeId, attr.id))
-    await setProductAttribute(productId, attr.id, vals.filter((v) => slugs.includes(v.slug)).map((v) => v.id))
+    const vals = valuesByAttr.get(attr.id) ?? []
+    const chosen = vals.filter((v) => slugs.includes(v.slug)).map((v) => v.id)
+    if (vals.length) {
+      await db.delete(productAttributes).where(and(
+        eq(productAttributes.productId, pid),
+        inArray(productAttributes.attributeValueId, vals.map((v) => v.id)),
+      ))
+    }
+    if (chosen.length) {
+      await db.insert(productAttributes).values(chosen.map((attributeValueId) => ({ productId: pid, attributeValueId })))
+    }
   }
+}
+
+/** Every attribute and its values, read once for a bulk write. */
+export async function loadAttributeCache() {
+  const db = await getDb()
+  const attrs = await db.select().from(attributes)
+  const values = await db.select({ id: attributeValues.id, slug: attributeValues.slug, attributeId: attributeValues.attributeId })
+    .from(attributeValues)
+  const valuesByAttr = new Map()
+  for (const v of values) {
+    if (!valuesByAttr.has(v.attributeId)) valuesByAttr.set(v.attributeId, [])
+    valuesByAttr.get(v.attributeId).push({ id: v.id, slug: v.slug })
+  }
+  return { attrs, valuesByAttr }
 }
