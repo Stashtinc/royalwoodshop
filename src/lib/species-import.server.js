@@ -333,7 +333,7 @@ const imageRole = () => 'profile_drawing'
 const CATEGORY_DEFS = [
   ['trim-mouldings',          'Trim & Moulding',         ['TRIM AND MOULDINGS', 'TRIM & MOULDINGS', 'TRIM AND MOULDING'], true],
   ['flat-stock-lumber',       'Flat Stock Lumber',        ['FLAT STOCK LUMBER', 'FLAT STOCK', 'S4S FLAT STOCK'],          true],
-  ['interior-doors',          'Interior Doors',           [],                                                              true],
+  ['interior-doors',          'Interior Doors',           ['INTERIOR DOOR'],                                               true],
   ['door-hardware',           'Door Hardware',            [],                                                              true],
   ['wall-ceiling-panelling',  'Wall & Ceiling Panelling', ['PANELLING'],                                                   true],
   ['stair-railing',           'Stair & Railing',          ['STAIRS & RAILINGS', 'STAIR RAILING', 'STAIRS AND RAILINGS'],  true],
