@@ -94,7 +94,7 @@ export default function PreHangingService() {
             </div>
           </Step>
 
-          <Step number="3" title="Door jamb">
+          <Step number="3" title="Door jamb & Stop">
             <div className="grid gap-8 md:grid-cols-[1fr_280px] md:items-center">
               <p className="font-sans text-base leading-relaxed text-gray-600">
                 Choose the jamb to suit your wall. FJ Primed Pine is available in 4-5/8″ for a 2×4 wall with ½″ drywall,
@@ -102,13 +102,10 @@ export default function PreHangingService() {
               </p>
               <img src="/images/pre-hanging/door-jamb.jpg" alt="Primed pine door jamb" className="w-full rounded-xl bg-[#fbfbfb] p-4" loading="lazy" />
             </div>
+            <p className="mt-6 font-sans text-base leading-relaxed text-gray-600">Plain 3/8 × 1 primed stop.</p>
           </Step>
 
-          <Step number="4" title="Door stop">
-            <p className="font-sans text-base leading-relaxed text-gray-600">Plain 3/8 × 1 primed stop.</p>
-          </Step>
-
-          <Step number="5" title="Lead time">
+          <Step number="4" title="Lead time">
             <p className="font-sans text-base leading-relaxed text-gray-600">
               Please allow approximately 1 week. We confirm the lead time when you place your order.
             </p>
