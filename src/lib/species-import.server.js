@@ -8,7 +8,7 @@ import {
 } from '../db/schema.js'
 import { SPECIES, TICK_CODES, TICK_ALIASES, bestAvailability, normaliseUom } from './catalogue-constants.js'
 import { parseIncrement } from './purchase-increment.js'
-import { setProductAttributesFromSheet } from './attributes-admin.server.js'
+import { setProductAttributesFromSheet, loadAttributeCache } from './attributes-admin.server.js'
 
 /** Ticked beside species on the sheet, but stored as a product flag. */
 const FLEX = 'Flex'
@@ -838,6 +838,9 @@ export async function apply(rows, overrides = {}, options = {}) {
     valueIds.set(s.toLowerCase(), v.id)
   }
 
+  // Attribute lists are read once here, not once per product.
+  const attrCache = await loadAttributeCache()
+
   let written = 0, subcategorised = 0, imaged = 0, duplicateImages = 0
   const moved = []
   for (const p of parsed) {
@@ -864,6 +867,9 @@ export async function apply(rows, overrides = {}, options = {}) {
     // Species-only: only replace when something is ticked.
     if (layout === 'master' || allSpecies.length) {
       await db.delete(productAttributes).where(eq(productAttributes.productId, product.id))
+      // One ticks row per species value (a repeated species keeps its last availability),
+      // written in a single statement rather than one round trip per species.
+      const ticks = new Map()
       for (const s of allSpecies) {
         let vid = valueIds.get(s.name.toLowerCase())
         if (!vid) {
@@ -879,14 +885,15 @@ export async function apply(rows, overrides = {}, options = {}) {
           vid = v.id
           valueIds.set(s.name.toLowerCase(), vid)
         }
-        if (vid) {
-          await db.insert(productAttributes)
-            .values({ productId: product.id, attributeValueId: vid, availability: s.availability })
-            .onConflictDoUpdate({
-              target: [productAttributes.productId, productAttributes.attributeValueId],
-              set: { availability: s.availability },
-            })
-        }
+        if (vid) ticks.set(vid, { productId: product.id, attributeValueId: vid, availability: s.availability })
+      }
+      if (ticks.size) {
+        await db.insert(productAttributes)
+          .values([...ticks.values()])
+          .onConflictDoUpdate({
+            target: [productAttributes.productId, productAttributes.attributeValueId],
+            set: { availability: sql`excluded.availability` },
+          })
       }
     }
 
@@ -942,9 +949,9 @@ export async function apply(rows, overrides = {}, options = {}) {
         const wasSet = new Map(existing.map((e) => [e.key, e]))
 
         await db.delete(productImages).where(eq(productImages.productId, product.id))
-        for (const [i, key] of keys.entries()) {
+        const imageRows = keys.map((key, i) => {
           const file = key.slice('/uploads/'.length)
-          await db.insert(productImages).values({
+          return {
             productId: product.id,
             storageKey: key,
             // alt_text is required; keep what was written for this image if we
@@ -955,8 +962,9 @@ export async function apply(rows, overrides = {}, options = {}) {
             width: uploads.widths.get(file) ?? null,
             role: wasSet.get(key)?.role ?? imageRole(file),
             sortOrder: i,
-          })
-        }
+          }
+        })
+        if (imageRows.length) await db.insert(productImages).values(imageRows)
         imaged++
       }
 
@@ -1020,7 +1028,7 @@ export async function apply(rows, overrides = {}, options = {}) {
 
     await db.update(products).set(patch).where(eq(products.id, product.id))
     // Attribute columns: each one's ticks become the values in its cell (blank clears it).
-    if (p.attributes) await setProductAttributesFromSheet(product.id, p.attributes)
+    if (p.attributes) await setProductAttributesFromSheet(product.id, p.attributes, attrCache)
 
     written++
   }
