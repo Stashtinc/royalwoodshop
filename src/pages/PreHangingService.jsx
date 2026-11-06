@@ -1,6 +1,17 @@
 import { Link } from 'react-router'
 import { ServiceCta } from '../components/service/ServiceShell'
 import servicesHero from '../assets/images/services-hero.jpg'
+import DownloadList from '../components/DownloadList'
+
+const RESOURCES = [
+  {
+    slug: 'pre-hanging-service',
+    title: 'Door Pre-Hanging Service',
+    description: 'The pre-hanging options in one sheet: hinges, door swing, jamb, stop, lead time and machining.',
+    format: 'PDF',
+    href: '/downloads/pre-hanging-service.pdf',
+  },
+]
 
 /**
  * Door Pre-Hanging Service. The copy is the client's, from the revised service sheet.
@@ -117,6 +128,15 @@ export default function PreHangingService() {
               </ul>
               <p className="font-sans text-sm text-gray-500">Ask us about our magnetic door catches.</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full bg-[#fbfbfb] py-16 lg:py-20">
+        <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
+          <h2 className="font-serif text-2xl font-bold text-royal-blue lg:text-3xl">Resources</h2>
+          <div className="mt-8">
+            <DownloadList files={RESOURCES} />
           </div>
         </div>
       </section>
