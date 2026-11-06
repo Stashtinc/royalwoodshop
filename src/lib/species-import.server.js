@@ -333,7 +333,7 @@ const imageRole = () => 'profile_drawing'
 const CATEGORY_DEFS = [
   ['trim-mouldings',          'Trim & Moulding',         ['TRIM AND MOULDINGS', 'TRIM & MOULDINGS', 'TRIM AND MOULDING'], true],
   ['flat-stock-lumber',       'Flat Stock Lumber',        ['FLAT STOCK LUMBER', 'FLAT STOCK', 'S4S FLAT STOCK'],          true],
-  ['interior-doors',          'Interior Doors',           [],                                                              true],
+  ['interior-doors',          'Interior Doors',           ['INTERIOR DOOR'],                                               true],
   ['door-hardware',           'Door Hardware',            [],                                                              true],
   ['wall-ceiling-panelling',  'Wall & Ceiling Panelling', ['PANELLING'],                                                   true],
   ['stair-railing',           'Stair & Railing',          ['STAIRS & RAILINGS', 'STAIR RAILING', 'STAIRS AND RAILINGS'],  true],
@@ -357,6 +357,12 @@ const categoryTitle = (name) => CATEGORY_TITLE[categorySlug(name)] ?? String(nam
  *  A blank cell is "leave it alone" and never appears here. */
 /** Master fields an empty cell clears. The name is never cleared. */
 const CLEARABLE = new Set(['description', 'sizeDisplay', 'uom', 'heightIn', 'leadTime'])
+
+/** How the preview names each product field that would change. */
+const FIELD_LABELS = {
+  name: 'name', description: 'description', sizeDisplay: 'size', uom: 'UOM',
+  heightIn: 'height', leadTime: 'lead time',
+}
 
 function fieldDiff(sheet, current) {
   const out = {}
@@ -698,10 +704,22 @@ export async function analyse(rows, { layout = 'species', downloadedAt = null } 
     if (p.flex) summary.willSetFlex++
 
     if (summary.changes.length < 40) {
+      // What actually differs for this row, so the preview can say so rather
+      // than listing the species of a row whose only change is, say, a lead time.
+      const changed = []
+      if (speciesWouldChange) changed.push('species')
+      if (availWouldChange) changed.push('availability')
+      if (flexWouldChange) changed.push('flex')
+      for (const f of Object.keys(fields)) changed.push(FIELD_LABELS[f] ?? f)
+      if (subsWouldChange) changed.push('sub-categories')
+      if (imagesWouldChange) changed.push('images')
+      if (categoryNeedsSet) changed.push('category')
       summary.changes.push({
         code: p.code,
         name: product.name,
         species: allSpecies,
+        speciesChanged: speciesWouldChange,
+        changed,
         availability: p.availability,
         flex: p.flex,
       })
