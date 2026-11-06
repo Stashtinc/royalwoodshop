@@ -920,7 +920,13 @@ export async function apply(rows, overrides = {}, options = {}) {
     // Master: always replace species (authoritative source of truth).
     // Species-only: only replace when something is ticked.
     if (layout === 'master' || allSpecies.length) {
-      await db.delete(productAttributes).where(eq(productAttributes.productId, product.id))
+      // Only the species ticks are replaced here. Other attributes (Fittes, Height, ...) are set from
+      // their own sheet columns below, so an attribute the sheet does not carry is left alone.
+      await db.delete(productAttributes).where(and(
+        eq(productAttributes.productId, product.id),
+        inArray(productAttributes.attributeValueId,
+          db.select({ id: attributeValues.id }).from(attributeValues).where(eq(attributeValues.attributeId, attr.id))),
+      ))
       // One ticks row per species value (a repeated species keeps its last availability),
       // written in a single statement rather than one round trip per species.
       const ticks = new Map()
