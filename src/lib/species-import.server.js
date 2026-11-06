@@ -507,6 +507,39 @@ export async function analyse(rows, { layout = 'species', downloadedAt = null } 
     }
   }
 
+  // Managed attributes (Height, Fittes, ...) as each product has them now, by attribute key.
+  // The sheet's attribute cells are compared with these, so an attribute-only edit is a change.
+  const attrCache = await loadAttributeCache()
+  const attrById = new Map(attrCache.attrs.filter((a) => a.key !== 'species').map((a) => [a.id, a]))
+  const attrSlugsNow = new Map()
+  if (layout === 'master' && productIds.length) {
+    const ticks = await db.select({
+      productId: productAttributes.productId, attributeId: attributeValues.attributeId, slug: attributeValues.slug,
+    }).from(productAttributes)
+      .innerJoin(attributeValues, eq(attributeValues.id, productAttributes.attributeValueId))
+      .where(inArray(productAttributes.productId, productIds))
+    for (const t of ticks) {
+      const a = attrById.get(t.attributeId)
+      if (!a) continue
+      const k = `${t.productId}|${a.key}`
+      if (!attrSlugsNow.has(k)) attrSlugsNow.set(k, [])
+      attrSlugsNow.get(k).push(t.slug)
+    }
+  }
+  // Names of the attribute columns whose cells would change this product (a blank cell clears it, as apply does).
+  const attributeChangesFor = (sheetAttrs, productId) => {
+    const out = []
+    for (const [key, slugs] of Object.entries(sheetAttrs ?? {})) {
+      const attr = [...attrById.values()].find((a) => a.key === key)
+      if (!attr) continue
+      const known = new Set((attrCache.valuesByAttr.get(attr.id) ?? []).map((v) => v.slug))
+      const want = [...new Set(slugs.filter((s) => known.has(s)))].sort().join('|')
+      const have = [...new Set(attrSlugsNow.get(`${productId}|${key}`) ?? [])].sort().join('|')
+      if (want !== have) out.push(attr.name)
+    }
+    return out
+  }
+
   const sameSubs = (a, b) => {
     const key = (xs) => xs.map((x) => x.toLowerCase()).sort().join('|')
     return key(a) === key(b)
@@ -675,7 +708,9 @@ export async function analyse(rows, { layout = 'species', downloadedAt = null } 
       && !product.categorySlug
       && !product.primaryCategoryId
 
+    const attrChanges = layout === 'master' ? attributeChangesFor(p.attributes, product.id) : []
     const hasFieldWork = Object.keys(fields).length > 0 || subsWouldChange || imagesWouldChange || categoryNeedsSet
+      || attrChanges.length > 0
 
     // Nothing ticked at all — apply skips these rows too
     if (!allSpecies.length && !p.availability && !p.flex && !hasFieldWork) {
@@ -714,6 +749,7 @@ export async function analyse(rows, { layout = 'species', downloadedAt = null } 
       if (subsWouldChange) changed.push('sub-categories')
       if (imagesWouldChange) changed.push('images')
       if (categoryNeedsSet) changed.push('category')
+      for (const name of attrChanges) changed.push(name)
       summary.changes.push({
         code: p.code,
         name: product.name,
