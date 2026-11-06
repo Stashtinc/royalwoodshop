@@ -36,6 +36,11 @@ export const SKU_HEADERS = [
 /** Base columns of a master row, as the import reads them (canon). */
 const BASE_KEYS = new Set(SKU_HEADERS.map((h) => canon(h)))
 const slugOf = (s) => String(s ?? '').trim().toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+/** Short spellings the sheet has used for an attribute value, mapped to the value's slug.
+ *  "Frame" was typed for "Framed (self Rimming)" on the Fittes column. */
+const ATTRIBUTE_VALUE_ALIASES = { frame: 'framed-self-rimming' }
+const attributeSlugOf = (s) => { const slug = slugOf(s); return ATTRIBUTE_VALUE_ALIASES[slug] ?? slug }
+
 /** The attribute columns present in a sheet (anything that is not a base column). */
 function attributeKeysOf(rows) {
   const keys = new Set()
@@ -262,7 +267,7 @@ export function skuRowsToMaster(skuRows) {
     m.attributes = {}
     for (const key of attributeKeysOf(rows)) {
       const set = new Set()
-      for (const r of rows) for (const part of String(r[key] ?? '').split('|')) { const slug = slugOf(part); if (slug) set.add(slug) }
+      for (const r of rows) for (const part of String(r[key] ?? '').split('|')) { const slug = attributeSlugOf(part); if (slug) set.add(slug) }
       // The attribute's header carries a marker ("Height (attribute)"): strip it to get the attribute.
       m.attributes[slugOf(key.replace(/\s*\(attribute\)\s*$/, ''))] = [...set]
     }
