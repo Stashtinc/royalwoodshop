@@ -193,6 +193,7 @@ function readRow(r, layout = 'species') {
     description: cell(r, 'description') || null,
     sizeDisplay: cell(r, 'size') || null,
     uom: normaliseUom(uomKey ? cell(r, uomKey) : ''),
+    ...('lead time' in r ? { leadTime: cell(r, 'lead time') || null } : {}),
   }
   row.images = pipes(r['image name'])
   // Attribute columns (e.g. Height): only a sheet that has them sets them.
@@ -355,7 +356,7 @@ const categoryTitle = (name) => CATEGORY_TITLE[categorySlug(name)] ?? String(nam
 /** Which of the extra columns differ from what the database already holds.
  *  A blank cell is "leave it alone" and never appears here. */
 /** Master fields an empty cell clears. The name is never cleared. */
-const CLEARABLE = new Set(['description', 'sizeDisplay', 'uom', 'heightIn'])
+const CLEARABLE = new Set(['description', 'sizeDisplay', 'uom', 'heightIn', 'leadTime'])
 
 function fieldDiff(sheet, current) {
   const out = {}
