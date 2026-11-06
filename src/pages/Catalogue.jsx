@@ -921,7 +921,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                       value={species}
                       onChange={withPageReset(setSpecies)}
                       options={[
-                        { value: 'All', label: 'Wood species' },
+                        { value: 'All', label: 'Specifications' },
                         ...speciesOptions.map((o) => ({ value: o.value, label: `${o.value} (${o.count})` })),
                       ]}
                     />
