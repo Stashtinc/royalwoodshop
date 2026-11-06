@@ -364,6 +364,13 @@ const FIELD_LABELS = {
   heightIn: 'height', leadTime: 'lead time',
 }
 
+/** Text as a person sees it: line breaks and runs of spaces collapse, and curly quotes
+ *  are straight ones. A difference only in those is not a change. */
+const plainText = (s) => String(s ?? '')
+  .replace(/[“”″]/g, '"').replace(/[‘’]/g, "'")
+  .replace(/\s+/g, ' ').trim()
+const sameText = (a, b) => plainText(a) === plainText(b)
+
 function fieldDiff(sheet, current) {
   const out = {}
   for (const [k, v] of Object.entries(sheet ?? {})) {
@@ -374,7 +381,7 @@ function fieldDiff(sheet, current) {
     }
     const same = k === 'price' || k === 'heightIn'
       ? Number(now ?? NaN) === Number(v)
-      : String(now ?? '').trim() === String(v).trim()
+      : sameText(now, v)
     if (!same) out[k] = { from: now ?? null, to: v }
   }
   return out
