@@ -138,7 +138,17 @@ export async function renameValue(valueId, value) {
   const db = await getDb()
   const clean = String(value ?? '').trim()
   if (!clean) throw new Error('A value cannot be blank.')
-  await db.update(attributeValues).set({ value: clean }).where(eq(attributeValues.id, Number(valueId)))
+  // The slug follows the name: the Master List matches a sheet cell to a value by its slug.
+  const [current] = await db.select({ attributeId: attributeValues.attributeId }).from(attributeValues)
+    .where(eq(attributeValues.id, Number(valueId))).limit(1)
+  if (!current) throw new Error('That value no longer exists.')
+  const slug = slugify(clean)
+  const [taken] = await db.select({ id: attributeValues.id }).from(attributeValues)
+    .where(and(eq(attributeValues.attributeId, current.attributeId), eq(attributeValues.slug, slug),
+      sql`${attributeValues.id} <> ${Number(valueId)}`))
+    .limit(1)
+  if (taken) throw new Error(`There is already a value called "${clean}".`)
+  await db.update(attributeValues).set({ value: clean, slug }).where(eq(attributeValues.id, Number(valueId)))
 }
 
 /** Removes a value. Products that had it lose that tick; the products themselves stay.
