@@ -807,7 +807,13 @@ export async function apply(rows, overrides = {}, options = {}) {
   // is the source of truth so a product not in it should not stay published.
   const archiveMissing = options.archiveMissing ?? (layout === 'master')
   const db = await getDb()
+  // Phase timings, logged on the server so a slow import shows where the time goes.
+  const t0 = Date.now()
+  const phase = {}
+  const mark = (name, since) => { phase[name] = Date.now() - since; return Date.now() }
+  let tp = Date.now()
   const { summary, parsed: base, byCode } = await analyse(rows, { layout })
+  tp = mark("analyse", tp)
   const uploads = layout === 'master' ? await readUploads() : { files: new Set(), widths: new Map() }
 
   // Merge any manual corrections made in the preview UI before writing.
@@ -881,6 +887,7 @@ export async function apply(rows, overrides = {}, options = {}) {
     created++
   }
   summary.created = created
+  tp = mark("createProducts", tp)
 
   const [attr] = await db.insert(attributes)
     .values({ key: 'species', name: 'Wood species', sortOrder: 1 })
@@ -902,6 +909,7 @@ export async function apply(rows, overrides = {}, options = {}) {
   // Attribute lists are read once here, not once per product.
   const attrCache = await loadAttributeCache()
 
+  tp = Date.now()
   let written = 0, subcategorised = 0, imaged = 0, duplicateImages = 0
   const moved = []
   for (const p of parsed) {
@@ -1099,6 +1107,7 @@ export async function apply(rows, overrides = {}, options = {}) {
 
     written++
   }
+  tp = mark("products", tp)
 
   const [{ withSpecies }] = await db
     .select({ withSpecies: sql`count(distinct ${productAttributes.productId})::int` })
@@ -1132,8 +1141,11 @@ export async function apply(rows, overrides = {}, options = {}) {
     baseline,
   })
 
+  mark("archiveAndTotals", tp)
+  phase.total = Date.now() - t0
+  console.log("[import timing]", JSON.stringify(phase))
   return {
     ...summary, written, archived, moved, subcategorised, imaged, duplicateImages,
-    totals: { withSpecies, withAvail, ticksWithAvail },
+    totals: { withSpecies, withAvail, ticksWithAvail }, timings: phase,
   }
 }
