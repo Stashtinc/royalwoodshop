@@ -38,6 +38,7 @@ export const servicesMenu = [
   { label: 'Estimate & Quotation', path: '/material-estimate-and-quotation' },
   { label: 'Delivery Service', path: '/services/delivery' },
   { label: 'Saw Blade Sharpening', path: '/saw-blade-sharpening' },
+  { label: 'Pre-Hanging Service', path: '/pre-hanging-service' },
 ]
 
 export const aboutMenu = [
@@ -52,5 +53,4 @@ export const resourcesMenu = [
   { label: 'Glossary of Terms', path: '/glossary' },
   { label: 'FAQ', path: '/faq' },
   { label: 'Installation Tips', path: '/installation-tips' },
-  { label: 'Pre-Hanging Service', path: '/pre-hanging-service' },
 ]
