@@ -261,8 +261,9 @@ export function skuRowsToMaster(skuRows) {
     // Attribute columns (any column that is not a base column) carry the ticked values per attribute.
     m.attributes = {}
     for (const key of attributeKeysOf(rows)) {
+      // The cells carry value labels as the export writes them; the import matches them by label.
       const set = new Set()
-      for (const r of rows) for (const part of String(r[key] ?? '').split('|')) { const slug = slugOf(part); if (slug) set.add(slug) }
+      for (const r of rows) for (const part of String(r[key] ?? '').split('|')) { const label = part.trim(); if (label) set.add(label) }
       // The attribute's header carries a marker ("Height (attribute)"): strip it to get the attribute.
       m.attributes[slugOf(key.replace(/\s*\(attribute\)\s*$/, ''))] = [...set]
     }

@@ -8,7 +8,7 @@ import {
 } from '../db/schema.js'
 import { SPECIES, TICK_CODES, TICK_ALIASES, bestAvailability, normaliseUom } from './catalogue-constants.js'
 import { parseIncrement } from './purchase-increment.js'
-import { setProductAttributesFromSheet, loadAttributeCache } from './attributes-admin.server.js'
+import { setProductAttributesFromSheet, loadAttributeCache, matchAttributeValues } from './attributes-admin.server.js'
 
 /** Ticked beside species on the sheet, but stored as a product flag. */
 const FLEX = 'Flex'
@@ -539,8 +539,7 @@ export async function analyse(rows, { layout = 'species', downloadedAt = null } 
     for (const [key, slugs] of Object.entries(sheetAttrs ?? {})) {
       const attr = [...attrById.values()].find((a) => a.key === key)
       if (!attr) continue
-      const known = new Set((attrCache.valuesByAttr.get(attr.id) ?? []).map((v) => v.slug))
-      const want = [...new Set(slugs.filter((s) => known.has(s)))].sort().join('|')
+      const want = [...new Set(matchAttributeValues(slugs, attrCache.valuesByAttr.get(attr.id) ?? []).map((v) => v.slug))].sort().join('|')
       const have = [...new Set(attrSlugsNow.get(`${productId}|${key}`) ?? [])].sort().join('|')
       if (want !== have) out.push(attr.name)
     }

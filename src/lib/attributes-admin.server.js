@@ -294,18 +294,29 @@ export async function productAttributeCells(productIds) {
   return out
 }
 
-/** Applies one product's attribute cells from the master sheet: sheet = { attributeKey: [valueSlugs] }.
+/** How a label is compared: case, line breaks, runs of spaces and curly quotes do not count. */
+const labelKey = (s) => String(s ?? '').replace(/[“”″]/g, '"').replace(/\s+/g, ' ').trim().toLowerCase()
+
+/** The stored values a sheet cell names. The cell carries value labels as the export writes them
+ *  ("Framed", 78"); a label matches its value by its text. A bare slug still matches its value. */
+export function matchAttributeValues(labels, vals) {
+  const want = new Set((labels ?? []).map(labelKey).filter(Boolean))
+  const slugs = new Set((labels ?? []).map(slugify).filter(Boolean))
+  return vals.filter((v) => want.has(labelKey(v.value)) || slugs.has(v.slug))
+}
+
+/** Applies one product's attribute cells from the master sheet: sheet = { attributeKey: [value labels] }.
  *  An attribute the sheet lists is set to exactly those values; blank clears it. */
 export async function setProductAttributesFromSheet(productId, sheet, cache = null) {
   const db = await getDb()
   // A bulk import passes one cache for every product, so the lists are read once, not per product.
   const { attrs, valuesByAttr } = cache ?? await loadAttributeCache()
   const pid = Number(productId)
-  for (const [key, slugs] of Object.entries(sheet ?? {})) {
+  for (const [key, labels] of Object.entries(sheet ?? {})) {
     const attr = attrs.find((a) => a.key === key && !NOT_MANAGED_HERE.has(a.key))
     if (!attr) continue
     const vals = valuesByAttr.get(attr.id) ?? []
-    const chosen = vals.filter((v) => slugs.includes(v.slug)).map((v) => v.id)
+    const chosen = matchAttributeValues(labels, vals).map((v) => v.id)
     if (vals.length) {
       await db.delete(productAttributes).where(and(
         eq(productAttributes.productId, pid),
@@ -322,12 +333,12 @@ export async function setProductAttributesFromSheet(productId, sheet, cache = nu
 export async function loadAttributeCache() {
   const db = await getDb()
   const attrs = await db.select().from(attributes)
-  const values = await db.select({ id: attributeValues.id, slug: attributeValues.slug, attributeId: attributeValues.attributeId })
+  const values = await db.select({ id: attributeValues.id, slug: attributeValues.slug, value: attributeValues.value, attributeId: attributeValues.attributeId })
     .from(attributeValues)
   const valuesByAttr = new Map()
   for (const v of values) {
     if (!valuesByAttr.has(v.attributeId)) valuesByAttr.set(v.attributeId, [])
-    valuesByAttr.get(v.attributeId).push({ id: v.id, slug: v.slug })
+    valuesByAttr.get(v.attributeId).push({ id: v.id, slug: v.slug, value: v.value })
   }
   return { attrs, valuesByAttr }
 }
