@@ -64,7 +64,7 @@ export async function action({ request, params }) {
       for (const file of files) {
         const res = await saveUpload(file, { slug: product?.slug })
         if (res.error) { errors.push(res.error); continue }
-        results.push(await addImageOnce(params.id, { ...res, altText }, { ownsFile: true }))
+        results.push(await addImageOnce(params.id, { ...res, altText }, { ownsFile: true, force: f.get('force') === '1' }))
       }
     } else {
       for (const path of f.getAll('path').map(String)) {
@@ -351,6 +351,10 @@ function ImagesSection() {
 
       <Form method="post" encType="multipart/form-data" className="flex flex-col gap-3">
         <input type="hidden" name="intent" value="upload" />
+        <label className="flex items-start gap-2 text-xs text-gray-600">
+          <input type="checkbox" name="force" value="1" className="mt-0.5" />
+          <span>Add even if it looks like a picture the product already has (tick before choosing the file)</span>
+        </label>
         <ImageDropZone
           hint={`JPG, PNG, WebP or AVIF · up to ${limits.maxMb} MB each · several at once`}
         />
