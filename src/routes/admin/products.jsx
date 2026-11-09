@@ -535,12 +535,12 @@ export default function Products() {
               <th className="px-4 py-3 text-right" title="Product page views on this site (from Oct 13, 2026)">
                 <Link to={sortLink('views')} className="inline-flex items-center gap-1 hover:text-royal-blue">Views<SortIndicator col="views" /></Link>
               </th>
-              <th className="px-4 py-3" />
+              <th className="sticky right-0 bg-gray-50 px-4 py-3 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.12)]" />
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} ref={r.id === savedId ? savedRowRef : null} className={`border-b border-gray-100 last:border-0 ${bulkEdit && selectedIds.has(r.id) ? (statusFilter === 'archived' ? 'bg-amber-50' : 'bg-red-50') : ''}`}>
+              <tr key={r.id} ref={r.id === savedId ? savedRowRef : null} className={`group border-b border-gray-100 last:border-0 hover:bg-gray-50 ${bulkEdit && selectedIds.has(r.id) ? (statusFilter === 'archived' ? 'bg-amber-50' : 'bg-red-50') : ''}`}>
                 {bulkEdit && (
                   <td className="px-4 py-2.5">
                     <input
@@ -591,7 +591,7 @@ export default function Products() {
                     : <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">not set</span>}
                 </td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-gray-600">{Number(r.views ?? 0).toLocaleString('en-CA')}</td>
-                <td className="px-4 py-2.5 text-right">
+                <td className={`sticky right-0 px-4 py-2.5 text-right shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.12)] ${bulkEdit && selectedIds.has(r.id) ? (statusFilter === 'archived' ? 'bg-amber-50' : 'bg-red-50') : 'bg-white group-hover:bg-gray-50'}`}>
                   <div className="flex items-center justify-end gap-3">
                     {statusFilter !== 'active' && !bulkEdit && (
                       <Form method="post">
