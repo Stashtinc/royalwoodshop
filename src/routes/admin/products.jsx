@@ -5,7 +5,7 @@ import { listProducts, listCategoriesWithSubs, bulkArchiveProducts, bulkPublishP
 import { deleteUpload } from '../../lib/uploads.server'
 import { syncProductsJson } from '../../lib/sync.server'
 import { log } from '../../lib/activity.server'
-import { AVAILABILITY_LABEL, SPECIES } from '../../lib/catalogue-constants'
+import { AVAILABILITY_LABEL, AVAILABILITY_PILL, SPECIES } from '../../lib/catalogue-constants'
 import { thumbSrc } from '../../lib/images'
 import Pagination from '../../components/admin/Pagination'
 import { ConfirmForm } from '../../components/admin/ConfirmDialog'
@@ -118,6 +118,9 @@ export async function action({ request }) {
   await syncProductsJson()
   return { archived: count }
 }
+
+/** A price for the list: "$12.50", or a dash when the product has none. */
+const money = (v) => (v == null || v === '' || Number.isNaN(Number(v)) ? '—' : `$${Number(v).toFixed(2)}`)
 
 const MISSING_LABEL = {
   species: 'missing species',
@@ -491,7 +494,8 @@ export default function Products() {
       <Pagination page={page} pages={pages} total={total} perPage={perPage} />
 
       <div className={`overflow-hidden rounded-2xl border border-gray-200 bg-white transition-opacity ${searching ? 'opacity-60' : ''}`}>
-        <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[68rem] text-left text-sm">
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr className="text-xs font-bold tracking-wide text-gray-500 uppercase">
               {bulkEdit && (
@@ -515,7 +519,16 @@ export default function Products() {
               <th className="px-4 py-3">
                 <Link to={sortLink('category')} className="inline-flex items-center gap-1 hover:text-royal-blue">Category<SortIndicator col="category" /></Link>
               </th>
+              <th className="px-4 py-3">
+                <Link to={sortLink('subCategory')} className="inline-flex items-center gap-1 hover:text-royal-blue">Sub-category<SortIndicator col="subCategory" /></Link>
+              </th>
               <th className="px-4 py-3">Species</th>
+              <th className="px-4 py-3 text-right" title="Lowest price across the product's Part IDs">
+                <Link to={sortLink('price')} className="inline-flex items-center gap-1 hover:text-royal-blue">Price<SortIndicator col="price" /></Link>
+              </th>
+              <th className="px-4 py-3 text-right" title="Lowest sale price across the product's Part IDs">
+                <Link to={sortLink('salePrice')} className="inline-flex items-center gap-1 hover:text-royal-blue">Sale price<SortIndicator col="salePrice" /></Link>
+              </th>
               <th className="px-4 py-3">
                 <Link to={sortLink('availability')} className="inline-flex items-center gap-1 hover:text-royal-blue">Availability<SortIndicator col="availability" /></Link>
               </th>
@@ -564,15 +577,18 @@ export default function Products() {
                   {r.flexAvailable && <span className="ml-2 rounded bg-teal-100 px-1.5 py-0.5 text-[10px] text-teal-800">flex</span>}
                 </td>
                 <td className="px-4 py-2.5 text-gray-600">{r.category ?? '—'}</td>
+                <td className="px-4 py-2.5 text-gray-600">{r.subCategory || '—'}</td>
                 <td className="px-4 py-2.5 text-gray-600">
                   {r.species?.length
                     ? r.species.join(', ')
                     : <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">not set</span>}
                 </td>
-                <td className="px-4 py-2.5 text-gray-600">
+                <td className="px-4 py-2.5 text-right tabular-nums text-gray-600">{money(r.price)}</td>
+                <td className="px-4 py-2.5 text-right tabular-nums text-gray-600">{money(r.salePrice)}</td>
+                <td className="px-4 py-2.5">
                   {r.availability
-                    ? AVAILABILITY_LABEL[r.availability] ?? r.availability.replace(/_/g, ' ')
-                    : <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">not set</span>}
+                    ? <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${AVAILABILITY_PILL[r.availability] ?? 'bg-gray-100 text-gray-600'}`}>{AVAILABILITY_LABEL[r.availability] ?? r.availability.replace(/_/g, ' ')}</span>
+                    : <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">not set</span>}
                 </td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-gray-600">{Number(r.views ?? 0).toLocaleString('en-CA')}</td>
                 <td className="px-4 py-2.5 text-right">
@@ -591,10 +607,11 @@ export default function Products() {
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={bulkEdit ? 9 : 8} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
+              <tr><td colSpan={bulkEdit ? 12 : 11} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <Pagination page={page} pages={pages} total={total} perPage={perPage} compact />
