@@ -494,7 +494,8 @@ export default function Products() {
       <Pagination page={page} pages={pages} total={total} perPage={perPage} />
 
       <div className={`overflow-hidden rounded-2xl border border-gray-200 bg-white transition-opacity ${searching ? 'opacity-60' : ''}`}>
-        <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[68rem] text-left text-sm">
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr className="text-xs font-bold tracking-wide text-gray-500 uppercase">
               {bulkEdit && (
@@ -610,6 +611,7 @@ export default function Products() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <Pagination page={page} pages={pages} total={total} perPage={perPage} compact />
