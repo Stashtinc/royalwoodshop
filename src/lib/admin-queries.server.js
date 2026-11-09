@@ -70,6 +70,16 @@ export async function saveProductCategories(productId, { primaryCategoryId, cate
   }
 }
 
+/** The sub-categories a product is filed under, as "A, B" (blank when none). */
+const subCategoryNames = sql`(select string_agg(c.name, ', ' order by c.name) from product_categories pc
+  join categories c on c.id = pc.category_id
+  where pc.product_id = products.id and c.parent_id is not null)`
+
+/** The lowest price (or sale price) across a product's Part IDs, as a number. Part ID prices are
+ *  text, so the first number in each is read; blanks and text without a number are ignored. */
+const lowestPrice = (column) => sql`(select min(substring(regexp_replace(pp.${sql.raw(column)}, ',', '', 'g') from '([0-9]+(?:\\.[0-9]+)?)')::numeric)
+  from product_part_ids pp where pp.product_id = products.id)`
+
 export async function listProducts({ q = '', page = 1, perPage = 25, missing = '', category = '', categoryId = null, subCategoryId = null, species = '', availability = '', sortBy = 'code', sortDir = 'asc', status = 'active', photosFirst = true } = {}) {
   const db = await getDb()
   const where = []
@@ -129,16 +139,24 @@ export async function listProducts({ q = '', page = 1, perPage = 25, missing = '
     imageCount: sql`(select count(*)::int from product_images pi
                      where pi.product_id = products.id)`.as('imageCount'),
     views: products.views,
+    subCategory: subCategoryNames,
+    price: lowestPrice('price'),
+    salePrice: lowestPrice('sale_price'),
   })
     .from(products)
     .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
     .where(clause)
     .orderBy(...(() => {
       const d = sortDir === 'desc' ? desc : asc
+      // Blank prices sort last whichever way the column is sorted.
+      const dn = (expr) => sql`${expr} ${sortDir === 'desc' ? sql`desc` : sql`asc`} nulls last`
       const cols = {
         code: [d(products.productCode), asc(products.name)],
         name: [d(products.name)],
         category: [d(categories.name), asc(products.productCode)],
+        subCategory: [d(subCategoryNames), asc(products.productCode)],
+        price: [dn(lowestPrice('price')), asc(products.productCode)],
+        salePrice: [dn(lowestPrice('sale_price')), asc(products.productCode)],
         availability: [d(products.availability), asc(products.productCode)],
         id: [d(products.id)],
         updated: [d(products.updatedAt), d(products.id)],
