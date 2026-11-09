@@ -83,9 +83,10 @@ export async function dedupeImageKeys(keys) {
  * Adds an image to a product unless it already shows that picture. A sharper
  * copy replaces the old one in place (same position, role and description);
  * a copy no sharper than what is there is not added — and when `ownsFile`,
- * the just-saved upload is deleted again. Returns 'added' | 'replaced' | 'skipped'.
+ * the just-saved upload is deleted again. `force` adds the image without the
+ * check, for pictures the check wrongly treats as copies. Returns 'added' | 'replaced' | 'skipped'.
  */
-export async function addImageOnce(productId, img, { ownsFile = false } = {}) {
+export async function addImageOnce(productId, img, { ownsFile = false, force = false } = {}) {
   const { getDb } = await import('./db.server.js')
   const { productImages } = await import('../db/schema.js')
   const { eq } = await import('drizzle-orm')
@@ -94,7 +95,7 @@ export async function addImageOnce(productId, img, { ownsFile = false } = {}) {
   const db = await getDb()
   const existing = await db.select({ id: productImages.id, storageKey: productImages.storageKey })
     .from(productImages).where(eq(productImages.productId, Number(productId)))
-  const match = await findSameImage(img.storageKey, existing)
+  const match = force ? null : await findSameImage(img.storageKey, existing)
   if (!match) { await addImage(productId, img); return 'added' }
   if (match.newPx > match.px) {
     await db.update(productImages)
