@@ -2,6 +2,7 @@ import { eq, inArray, and } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { products, productPartIds, productAttributes, attributeValues, attributes, quoteRequests, quoteItems, quoteFiles } from '../db/schema.js'
 import { isMultiple, formatIncrement } from './purchase-increment.js'
+import { contactTo } from './contact.server.js'
 
 /**
  * The Get a Quote form: a serious project enquiry.
@@ -238,7 +239,7 @@ async function sendEmail(values, lines, files) {
 
     await transport.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      to: process.env.CONTACT_TO || 'info@royalwoodshop.com',
+      to: contactTo(),
       replyTo: `"${values.name.replace(/"/g, '')}" <${values.email}>`,
       subject: `Quote request from ${values.name}${values.company ? ` (${values.company})` : ''}`,
       text: [

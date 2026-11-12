@@ -21,7 +21,7 @@ auto-deploy turned off (or be deleted) so there are never two live copies.
 | `VITE_SEARCH_INDEXING` | `on`, set on the day of the domain switch | Google is told not to crawl the site |
 | `VITE_GTM_ID` | `GTM-TW6NDWG` | No traffic reaches Google Analytics |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | From the mailbox provider | Contact enquiries are saved but nobody is emailed |
-| `CONTACT_TO` | `info@royalwoodshop.com` | Enquiries go to info@royalwoodshop.com anyway |
+| `CONTACT_TO` | `sales@royalwoodshop.com` | Every form (Contact, Consultation, Material Estimate, Get a Quote) goes to sales@royalwoodshop.com anyway |
 | `MAILCHIMP_API_KEY`, `MAILCHIMP_AUDIENCE_ID` | From Mailchimp | The newsletter form says signup is unavailable |
 
 ## For the admin dashboard panels
@@ -63,6 +63,7 @@ directly, and counts hits in the `redirects` table.
 - `/robots.txt`: says `Allow: /` once `VITE_SEARCH_INDEXING` is on.
 - An old address such as `/mouldings/product/sho-moulding-sho305f/` answers with
   a 301 to the new site.
-- The contact form: a test message arrives at `CONTACT_TO`.
+- The forms: a test from Contact, Consultation, Material Estimate and Get a Quote
+  each arrives at `CONTACT_TO` (sales@royalwoodshop.com).
 - The newsletter: signing up sends a Mailchimp confirmation email.
 - Google Analytics → Reports → Realtime shows your own visit.

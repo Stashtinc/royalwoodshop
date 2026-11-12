@@ -128,7 +128,9 @@ mentioning to Stasht.
 
 ## Enquiries and newsletter
 
-- Messages from the **contact form** are emailed to info@royalwoodshop.com.
+- Messages from the **Contact**, **Consultation**, **Material Estimate** and
+  **Get a Quote** forms are emailed to sales@royalwoodshop.com. The subject line
+  says which form it came from, and Reply goes straight to the customer.
 - **Newsletter** signups go to Mailchimp. People are only added once they click
   the confirmation email Mailchimp sends them.
 
