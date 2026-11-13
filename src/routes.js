@@ -62,6 +62,8 @@ export default [
   route('faq', 'routes/faq.jsx'),
   route('installation-tips', 'routes/installation-tips.jsx'),
   route('design-system', 'routes/design-system.jsx'),
+  route('terms-and-conditions', 'routes/terms-and-conditions.jsx'),
+  route('privacy-policy', 'routes/privacy-policy.jsx'),
 
   route('404', 'routes/not-found.jsx'),
 
