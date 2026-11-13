@@ -224,7 +224,7 @@ export default function PageHeader({ image = heroRight, imageAlt = 'Interior sta
             </nav>
             <Link
               to="/get-a-quote"
-              className="shrink-0 rounded-lg border border-tundora bg-white px-4 py-2.5 font-sans text-sm whitespace-nowrap text-gray-900 transition-colors hover:border-royal-blue hover:bg-royal-blue hover:text-white"
+              className="shrink-0 rounded-lg border border-royal-blue bg-white px-4 py-2.5 font-sans text-sm whitespace-nowrap text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
             >
               Get a Quote
             </Link>
