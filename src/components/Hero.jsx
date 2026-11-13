@@ -63,14 +63,27 @@ function HeroPanelContent({ showLogo = true }) {
 }
 
 function ProductHotspot({ left, top, name, partNo, price, to, popoverSide = 'left' }) {
+  // The wrapper is a zero-size anchor at the dot's centre, so offsets are
+  // measured from the centre. The pulse ring is 32px across (16px radius);
+  // the popover clears it by 24px (mt-6 / mb-6 / ml-6 / mr-6).
   const popoverPositionClass =
     popoverSide === 'bottom'
-      ? 'top-0 left-0 mt-5 -translate-x-1/2'
+      ? 'top-0 left-0 mt-6 -translate-x-1/2'
       : popoverSide === 'top'
-      ? 'bottom-0 left-0 mb-5 -translate-x-1/2'
+      ? 'bottom-0 left-0 mb-6 -translate-x-1/2'
       : popoverSide === 'right'
-      ? 'top-0 left-full ml-4 -translate-y-1/2'
-      : 'top-0 right-full mr-4 -translate-y-1/2'
+      ? 'top-0 left-0 ml-6 -translate-y-1/2'
+      : 'top-0 right-0 mr-6 -translate-y-1/2'
+  // Invisible strip across the gap, so the popover stays open while the
+  // cursor crosses it on the way from the dot.
+  const bridgeClass =
+    popoverSide === 'bottom'
+      ? 'left-0 top-full h-6 w-full'
+      : popoverSide === 'top'
+      ? 'bottom-full left-0 h-6 w-full'
+      : popoverSide === 'right'
+      ? 'top-0 left-full h-full w-6'
+      : 'top-0 right-full h-full w-6'
   const arrowPositionClass =
     popoverSide === 'bottom'
       ? 'bottom-full left-1/2 -translate-x-1/2 translate-y-1/2'
@@ -81,12 +94,13 @@ function ProductHotspot({ left, top, name, partNo, price, to, popoverSide = 'lef
       : 'top-1/2 left-full -translate-x-1/2 -translate-y-1/2'
 
   return (
-    <div className="group absolute z-20 hidden xl:block" style={{ left, top }}>
+    <div className="group absolute z-20 hidden h-0 w-0 xl:block" style={{ left, top }}>
       <button
         type="button"
         aria-label={`View ${name} product details`}
         className="relative flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
       >
+        <span className={`absolute ${bridgeClass}`} />
         <span className="absolute h-full w-full animate-ping rounded-full bg-black/40" />
         <span className="relative h-4 w-4 rounded-full bg-white" />
       </button>
