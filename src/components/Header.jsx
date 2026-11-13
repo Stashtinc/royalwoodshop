@@ -202,7 +202,7 @@ export default function Header({ navCategories = navCatsJson }) {
 
           <Link
             to="/get-a-quote"
-            className="shrink-0 rounded-lg border border-royal-blue bg-royal-blue px-4 py-2.5 font-sans text-sm text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark hover:text-white"
+            className="shrink-0 rounded-lg border border-royal-blue bg-white px-4 py-2.5 font-sans text-sm text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
           >
             Get a Quote
           </Link>
@@ -342,7 +342,7 @@ export default function Header({ navCategories = navCatsJson }) {
           <Link
             to="/get-a-quote"
             onClick={() => setMenuOpen(false)}
-            className="mt-2 inline-block w-fit rounded-lg border border-royal-blue bg-royal-blue px-5 py-3 font-sans text-sm text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark hover:text-white"
+            className="mt-2 inline-block w-fit rounded-lg border border-royal-blue bg-white px-5 py-3 font-sans text-sm text-royal-blue transition-colors hover:bg-royal-blue hover:text-white"
           >
             Get a Quote
           </Link>
