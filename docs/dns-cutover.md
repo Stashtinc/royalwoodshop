@@ -50,10 +50,25 @@ the panel may hold a few more. Compare with the panel before changing anything.
 - **Mailboxes** (info@, sales@ …) are Microsoft 365. MX, DKIM, autodiscover and
   the Teams/Intune records all point at Microsoft. The website switch does not
   touch any of them.
-- **The old website's forms** (Contact, Consultation, Material Estimate) are
-  Contact Form 7 on WordPress. They send through WordPress's mailer on WP
-  Engine, unless an SMTP plugin routes them elsewhere. The plugin and the
-  recipient address are only visible in the WordPress admin (commands below).
+- **The old website's forms** are Contact Form 7 on WordPress, checked in the
+  WP admin on 2026-11-14. No SMTP plugin is installed, so WordPress sends them
+  through WP Engine's own mail server; the `a` in the SPF record is what lets
+  that server send as @royalwoodshop.com.
+
+  | Page | CF7 form | To | From |
+  |---|---|---|---|
+  | /contact | 69 "Contact form 1" | info@royalwoodshop.com | [name] &lt;website@royalwoodshop.com&gt; |
+  | /consultation, /material-estimate-and-quotation | 9589 "Contact form - Services" | info@royalwoodshop.com | [name] &lt;website@royalwoodshop.com&gt; |
+
+  Both set Reply-To to the visitor and send no auto-reply. Form 9589's email
+  was copied from the unused "Contractor" form (7319): its subject reads
+  `Become a Contractor Submission: ""` and its body leaves out the phone
+  number. The new site fixes both and sends every form to sales@ (CONTACT_TO).
+  Nothing else runs on submit: CF7 Redirection has no actions set. Contact Form
+  CFDB7 keeps a copy of every submission; export it before WP Engine is retired.
+- **Also on the old site, not yet on the new one:** CallRail call tracking
+  (company 269625012, number-swap script) and the Redirection plugin's 301
+  list (Tools → Redirection; export and compare with ours).
 - **The office** (68.179.121.1, a static TeraGo line in Ontario, named
   `remote`) is allowed to send as @royalwoodshop.com by SPF. That is typically a
   copier's scan-to-email, the ERP, or a local relay that Crestline set up. This
