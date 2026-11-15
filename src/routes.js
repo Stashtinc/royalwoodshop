@@ -32,6 +32,7 @@ export default [
 
   // Admin. Never prerendered — it runs on the server that holds the database.
   route('admin/login', 'routes/admin/login.jsx'),
+  route('admin/preview', 'routes/admin/preview.jsx'),
   route('admin/logout', 'routes/admin/logout.js'),
   route('admin', 'routes/admin/layout.jsx', [
     index('routes/admin/dashboard.jsx'),
