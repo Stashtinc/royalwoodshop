@@ -531,6 +531,29 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  // Phone and tablet: tapping a category loads just that category and closes the
+  // panel, so the products are on screen straight away. Desktop keeps the sidebar.
+  function loadCategoryOnMobile(category, subs) {
+    if (typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches) {
+      return toggleCategory(category, subs)
+    }
+    setSelectedSubs(rememberSubs(new Set(subs.map((sub) => `${category}::${sub}`))))
+    setPage(1)
+    setFilterOpen(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // Phone and tablet: tapping a sub-category loads just that sub-category and closes the panel.
+  function loadSubOnMobile(category, sub) {
+    if (typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches) {
+      return toggleSub(category, sub)
+    }
+    setSelectedSubs(rememberSubs(new Set([`${category}::${sub}`])))
+    setPage(1)
+    setFilterOpen(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   function toggleExpanded(catName) {
     setExpandedCats((prev) => {
       const next = new Set(prev)
@@ -797,7 +820,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                         />
                         <button
                           type="button"
-                          onClick={() => toggleCategory(cat.name, cat.subcategories)}
+                          onClick={() => loadCategoryOnMobile(cat.name, cat.subcategories)}
                           className="flex flex-1 items-center justify-between gap-1 text-left font-sans text-sm font-semibold text-tundora hover:text-royal-blue"
                         >
                           <span>
@@ -824,7 +847,7 @@ export default function Catalogue({ initialCategory = null, products = null, dbC
                                 <input
                                   type="checkbox"
                                   checked={selectedSubs.has(key)}
-                                  onChange={() => toggleSub(cat.name, sub)}
+                                  onChange={() => loadSubOnMobile(cat.name, sub)}
                                   className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 accent-royal-blue"
                                 />
                                 {sub} <span className="text-gray-400">({categoryCounts[key] || 0})</span>
