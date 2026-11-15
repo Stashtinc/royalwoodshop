@@ -292,8 +292,11 @@ export default function PostEdit() {
           {post && (
             <a href={`/${post.slug}`} target="_blank" rel="noreferrer"
               className="text-sm text-gray-500 hover:text-royal-blue">
-              View on site ↗
+              {post.status === 'published' ? 'View on site ↗' : 'Preview draft ↗'}
             </a>
+          )}
+          {!post && (
+            <span className="text-sm text-gray-400">Save the draft to get a preview link.</span>
           )}
         </div>
       </div>
