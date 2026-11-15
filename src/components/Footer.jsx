@@ -65,6 +65,11 @@ function HouzzIcon() {
   )
 }
 
+const legalLinks = [
+  { label: 'Terms and Conditions', to: '/terms-and-conditions' },
+  { label: 'Privacy Policy', to: '/privacy-policy' },
+]
+
 const socialLinks = [
   { label: 'Facebook', href: 'https://www.facebook.com/theroyalwoodshop', Icon: FacebookIcon },
   { label: 'Pinterest', href: 'https://www.pinterest.com/royalwoodshop', Icon: PinterestIcon },
@@ -136,6 +141,14 @@ export default function Footer() {
             <p className="font-sans text-sm text-white/60">
               © {new Date().getFullYear()} The Royal Wood Shop Ltd. All rights reserved.
             </p>
+
+            <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 font-sans text-sm text-white/60">
+              {legalLinks.map((link) => (
+                <Link key={link.label} to={link.to} className="transition-colors hover:text-white">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
 
             {/* Deliberately understated, and nofollow so it never invites
                 automated login attempts. */}

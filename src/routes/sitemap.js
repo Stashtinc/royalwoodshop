@@ -17,6 +17,8 @@ const MORE_PAGES = [
   '/glossary',
   '/faq',
   '/installation-tips',
+  '/terms-and-conditions',
+  '/privacy-policy',
 ]
 
 const xmlEscape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
