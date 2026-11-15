@@ -20,7 +20,9 @@ auto-deploy turned off (or be deleted) so there are never two live copies.
 | `VITE_SITE_URL` | `https://www.royalwoodshop.com` | Falls back to the same address, so this is a safeguard |
 | `VITE_SEARCH_INDEXING` | `on`, set on the day of the domain switch | Google is told not to crawl the site |
 | `VITE_GTM_ID` | `GTM-TW6NDWG` | No traffic reaches Google Analytics |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | From the mailbox provider | Contact enquiries are saved but nobody is emailed |
+| `RESEND_API_KEY` | From Resend (API Keys). The domain must be verified in Resend first | Enquiries are saved but nobody is emailed (unless SMTP is set) |
+| `MAIL_FROM` | `Royal Wood Shop Website <website@royalwoodshop.com>` | Sender defaults to that address |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Only if not using Resend; needs Railway Pro | — |
 | `CONTACT_TO` | `sales@royalwoodshop.com` | Every form (Contact, Consultation, Material Estimate, Get a Quote) goes to sales@royalwoodshop.com anyway |
 | `MAILCHIMP_API_KEY`, `MAILCHIMP_AUDIENCE_ID` | From Mailchimp | The newsletter form says signup is unavailable |
 

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { contactMessages } from '../db/schema.js'
+import { sendMail } from './mailer.server.js'
 
 /**
  * The public enquiry forms: /contact, and the Consultation and Material
@@ -10,11 +11,9 @@ import { contactMessages } from '../db/schema.js'
  * a mail-server outage or a missing setting never loses a customer — the
  * message is still there to read. Email is the notification, not the record.
  *
- * Email goes out over plain SMTP so any provider works (Google Workspace,
- * Microsoft 365, the host's own mail server, Resend, Postmark…):
+ * Email goes out through lib/mailer.server.js: Resend (RESEND_API_KEY) or any
+ * SMTP server (SMTP_HOST…), sent from MAIL_FROM. See that file for settings.
  *
- *   SMTP_HOST, SMTP_PORT (587), SMTP_USER, SMTP_PASS
- *   SMTP_FROM   the sender, e.g. "Royal Wood Shop website <web@royalwoodshop.com>"
  *   CONTACT_TO  who receives enquiries (default sales@royalwoodshop.com)
  */
 
@@ -109,41 +108,19 @@ export async function handleEnquiry(request, { source = 'contact', ...rules } = 
   return { ok: true }
 }
 
-async function sendEmail({ name, email, phone, message }, from) {
-  const host = process.env.SMTP_HOST?.trim()
-  if (!host) {
-    if (process.env.NODE_ENV === 'production') {
-      console.warn('[contact] SMTP_HOST is not set — enquiry saved but not emailed')
-    }
-    return { ok: false, error: 'SMTP not configured' }
-  }
-  try {
-    const nodemailer = (await import('nodemailer')).default
-    const port = Number(process.env.SMTP_PORT || 587)
-    const transport = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
-    })
-    await transport.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      to: contactTo(),
-      replyTo: `"${name.replace(/"/g, '')}" <${email}>`,
-      subject: `${from.subject} from ${name}`,
-      text: [
-        `Name: ${name}`,
-        `Email: ${email}`,
-        `Phone: ${phone || '—'}`,
-        '',
-        message || '(no message)',
-        '',
-        `— Sent from ${from.footer} on royalwoodshop.com`,
-      ].join('\n'),
-    })
-    return { ok: true }
-  } catch (e) {
-    console.error('[contact] email failed:', e.message)
-    return { ok: false, error: e.message.slice(0, 500) }
-  }
+function sendEmail({ name, email, phone, message }, from) {
+  return sendMail({
+    to: contactTo(),
+    replyTo: `"${name.replace(/"/g, '')}" <${email}>`,
+    subject: `${from.subject} from ${name}`,
+    text: [
+      `Name: ${name}`,
+      `Email: ${email}`,
+      `Phone: ${phone || '—'}`,
+      '',
+      message || '(no message)',
+      '',
+      `— Sent from ${from.footer} on royalwoodshop.com`,
+    ].join('\n'),
+  }, 'contact')
 }
