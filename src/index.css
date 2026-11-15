@@ -145,6 +145,25 @@ body {
   height: auto;
   max-width: 100%;
 }
+/* Images placed left or right of the text wrap around it, as the editor intended. */
+.prose-royal img.alignleft,
+.prose-royal figure.alignleft { float: left; margin: 0.4em 1.5em 1em 0; }
+.prose-royal img.alignright,
+.prose-royal figure.alignright { float: right; margin: 0.4em 0 1em 1.5em; }
+.prose-royal img.aligncenter,
+.prose-royal figure.aligncenter { display: block; margin-left: auto; margin-right: auto; }
+.prose-royal figure { max-width: 100%; }
+.prose-royal figure img { display: block; margin: 0 auto; }
+.prose-royal figure.alignleft img,
+.prose-royal figure.alignright img { margin: 0; }
+.prose-royal figcaption {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #6b6b6b;
+  margin-top: 0.5em;
+}
+.prose-royal::after { content: ''; display: table; clear: both; }
 .prose-royal blockquote {
   border-left: 3px solid var(--color-royal-blue);
   padding-left: 1.1em;

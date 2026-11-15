@@ -1,6 +1,7 @@
 import { Link, useLoaderData } from 'react-router'
 import { getPost } from '../data/blog'
 import { pageMeta, truncate, BASE, SITE } from '../seo'
+import { cleanWpContent } from '../lib/wpContent'
 
 export async function loader({ request, params }) {
   let post = getPost(params.slug)
@@ -80,7 +81,7 @@ export default function Article() {
             both of which produce HTML. */}
         <div
           className="prose-royal mt-8"
-          dangerouslySetInnerHTML={{ __html: post.contentHtml ?? '' }}
+          dangerouslySetInnerHTML={{ __html: cleanWpContent(post.contentHtml ?? '') }}
         />
 
         <div className="mt-12 border-t border-gray-200 pt-8">
