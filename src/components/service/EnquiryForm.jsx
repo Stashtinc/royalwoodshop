@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useActionData, useFetcher } from 'react-router'
 
 /**
  * The enquiry form, matching the fields the old site asked for:
@@ -9,22 +9,28 @@ import { useState } from 'react'
  * instances ever land on one page — duplicate ids silently break the click
  * target on the second one.
  *
- * NOTE: like the contact form, this does not send anywhere yet — submitting
- * shows the confirmation and nothing leaves the browser. Wiring it to an inbox
- * is a separate job, and until it is done nobody should rely on it.
+ * It posts to the action of the page it sits on (Consultation, Material
+ * Estimate), which stores the enquiry and emails it to sales@, the same way
+ * /contact does. A fetcher keeps the visitor on the page and in place.
  */
 
 const field =
   'rounded-lg border border-gray-300 px-4 py-3 font-sans focus:border-royal-blue focus:outline-none'
 const labelClass = 'font-sans text-sm font-medium text-tundora'
 
-export default function EnquiryForm({ heading = 'Get Free Consultation Today!', idPrefix = 'enquiry' }) {
-  const [submitted, setSubmitted] = useState(false)
+const FieldError = ({ children }) =>
+  children ? <p className="font-sans text-sm text-red-700">{children}</p> : null
 
-  function handleSubmit(event) {
-    event.preventDefault()
-    setSubmitted(true)
-  }
+export default function EnquiryForm({ heading = 'Get Free Consultation Today!', idPrefix = 'enquiry' }) {
+  const fetcher = useFetcher()
+  // Without JavaScript the browser posts the page itself; its answer arrives as
+  // the page's action data instead of the fetcher's.
+  const actionData = useActionData()
+  const data = fetcher.data ?? actionData
+  const sending = fetcher.state !== 'idle'
+  const submitted = data?.ok
+  const errors = data?.errors ?? {}
+  const values = data?.values ?? {}
 
   return (
     <div className="flex flex-col gap-5 rounded-2xl border border-gray-100 bg-white p-7 lg:p-8">
@@ -39,34 +45,50 @@ export default function EnquiryForm({ heading = 'Get Free Consultation Today!', 
           </p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <fetcher.Form method="post" className="relative flex flex-col gap-4">
+          {/* Honeypot: hidden from people, irresistible to bots. */}
+          <div aria-hidden="true" className="absolute -left-[9999px]">
+            <label>Company<input type="text" name="company" tabIndex={-1} autoComplete="off" /></label>
+          </div>
+
           <div className="flex flex-col gap-2">
             <label htmlFor={`${idPrefix}-name`} className={labelClass}>Your Name (required)</label>
-            <input id={`${idPrefix}-name`} name="name" type="text" required className={field} />
+            <input id={`${idPrefix}-name`} name="name" defaultValue={values.name} type="text" required className={field} />
+            <FieldError>{errors.name}</FieldError>
           </div>
 
           <div className="flex flex-col gap-2">
             <label htmlFor={`${idPrefix}-email`} className={labelClass}>Your Email (required)</label>
-            <input id={`${idPrefix}-email`} name="email" type="email" required className={field} />
+            <input id={`${idPrefix}-email`} name="email" defaultValue={values.email} type="email" required className={field} />
+            <FieldError>{errors.email}</FieldError>
           </div>
 
           <div className="flex flex-col gap-2">
             <label htmlFor={`${idPrefix}-phone`} className={labelClass}>Phone Number (required)</label>
-            <input id={`${idPrefix}-phone`} name="phone" type="tel" required className={field} />
+            <input id={`${idPrefix}-phone`} name="phone" defaultValue={values.phone} type="tel" required className={field} />
+            <FieldError>{errors.phone}</FieldError>
           </div>
 
           <div className="flex flex-col gap-2">
             <label htmlFor={`${idPrefix}-message`} className={labelClass}>Your Message</label>
-            <textarea id={`${idPrefix}-message`} name="message" rows={4} className={field} />
+            <textarea id={`${idPrefix}-message`} name="message" defaultValue={values.message} rows={4} className={field} />
+            <FieldError>{errors.message}</FieldError>
           </div>
+
+          {data?.formError && (
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 font-sans text-sm text-red-800">
+              {data.formError}
+            </p>
+          )}
 
           <button
             type="submit"
-            className="mt-1 rounded-lg border border-royal-blue bg-royal-blue px-6 py-3.5 font-sans text-base text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark"
+            disabled={sending}
+            className="mt-1 rounded-lg border border-royal-blue bg-royal-blue px-6 py-3.5 font-sans text-base text-white transition-colors hover:border-royal-blue-dark hover:bg-royal-blue-dark disabled:opacity-60"
           >
-            Send Message
+            {sending ? 'Sending…' : 'Send Message'}
           </button>
-        </form>
+        </fetcher.Form>
       )}
     </div>
   )

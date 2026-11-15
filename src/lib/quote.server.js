@@ -2,6 +2,8 @@ import { eq, inArray, and } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { products, productPartIds, productAttributes, attributeValues, attributes, quoteRequests, quoteItems, quoteFiles } from '../db/schema.js'
 import { isMultiple, formatIncrement } from './purchase-increment.js'
+import { contactTo } from './contact.server.js'
+import { sendMail } from './mailer.server.js'
 
 /**
  * The Get a Quote form: a serious project enquiry.
@@ -214,56 +216,33 @@ export async function saveAndNotify(values, lines, files, { ip } = {}) {
   return { ok: Boolean(id) || sent.ok }
 }
 
-async function sendEmail(values, lines, files) {
-  const host = process.env.SMTP_HOST?.trim()
-  if (!host) {
-    if (process.env.NODE_ENV === 'production') {
-      console.warn('[quote] SMTP_HOST is not set; request saved but not emailed')
-    }
-    return { ok: false, error: 'SMTP not configured' }
-  }
-  try {
-    const nodemailer = (await import('nodemailer')).default
-    const port = Number(process.env.SMTP_PORT || 587)
-    const transport = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
-    })
+function sendEmail(values, lines, files) {
+  const itemLines = lines.length
+    ? lines.map((l) => `- ${l.quantity} × ${l.productName}${l.productCode ? ` (${l.productCode})` : ''}${l.species ? ` in ${l.species}` : ''}${l.uom ? ` [${l.uom}]` : ''}${l.note ? ` — ${l.note}` : ''}`)
+    : ['(none selected)']
 
-    const itemLines = lines.length
-      ? lines.map((l) => `- ${l.quantity} × ${l.productName}${l.productCode ? ` (${l.productCode})` : ''}${l.species ? ` in ${l.species}` : ''}${l.uom ? ` [${l.uom}]` : ''}${l.note ? ` — ${l.note}` : ''}`)
-      : ['(none selected)']
-
-    await transport.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      to: process.env.CONTACT_TO || 'info@royalwoodshop.com',
-      replyTo: `"${values.name.replace(/"/g, '')}" <${values.email}>`,
-      subject: `Quote request from ${values.name}${values.company ? ` (${values.company})` : ''}`,
-      text: [
-        `Name: ${values.name}`,
-        `Company: ${values.company || '—'}`,
-        `Email: ${values.email}`,
-        `Phone: ${values.phone}`,
-        '',
-        'Products:',
-        ...itemLines,
-        '',
-        'Project notes:',
-        values.notes || '—',
-        '',
-        `Attachments: ${files.length ? files.map((f) => f.filename).join(', ') : 'none'}`,
-        '',
-        '— Sent from the Get a Quote form on royalwoodshop.com',
-      ].join('\n'),
-      attachments: files.map((f) => ({ filename: f.filename, content: f.data, contentType: f.contentType })),
-    })
-    return { ok: true }
-  } catch (e) {
-    console.error('[quote] email failed:', e.message)
-    return { ok: false, error: e.message.slice(0, 500) }
-  }
+  return sendMail({
+    to: contactTo(),
+    replyTo: `"${values.name.replace(/"/g, '')}" <${values.email}>`,
+    subject: `Quote request from ${values.name}${values.company ? ` (${values.company})` : ''}`,
+    text: [
+      `Name: ${values.name}`,
+      `Company: ${values.company || '—'}`,
+      `Email: ${values.email}`,
+      `Phone: ${values.phone}`,
+      '',
+      'Products:',
+      ...itemLines,
+      '',
+      'Project notes:',
+      values.notes || '—',
+      '',
+      `Attachments: ${files.length ? files.map((f) => f.filename).join(', ') : 'none'}`,
+      '',
+      '— Sent from the Get a Quote form on royalwoodshop.com',
+    ].join('\n'),
+    attachments: files.map((f) => ({ filename: f.filename, content: f.data, contentType: f.contentType })),
+  }, 'quote')
 }
 
 /** Reads uploaded files into memory for storage and the email. */

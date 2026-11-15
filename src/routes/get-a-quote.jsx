@@ -90,7 +90,7 @@ export async function action({ request }) {
   if (!ok) {
     return {
       values,
-      formError: 'Sorry, your request could not be sent. Please call us at 905-727-1387 or email info@royalwoodshop.com.',
+      formError: 'Sorry, your request could not be sent. Please call us at 905-727-1387 or email sales@royalwoodshop.com.',
     }
   }
   return { ok: true }

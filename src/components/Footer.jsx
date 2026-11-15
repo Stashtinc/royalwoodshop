@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import logo from '../assets/images/logo.svg'
 import { productCategories } from '../data/productCategories'
+import { useCategoryName } from '../lib/categoryNames'
 
 const quickLinks = [
   { label: 'Products', to: '/#products' },
@@ -11,14 +12,16 @@ const quickLinks = [
   { label: 'Resources', to: '/resources' },
 ]
 
-// Same destinations as the homepage product cards.
+// Same destinations as the homepage product cards, picked by slug (or, for
+// Custom Millwork, which is a page rather than a category, by path). The label
+// shown is the category's name in the database.
 const productLinks = [
-  'Interior Trim & Mouldings',
-  'Interior Doors',
-  'Custom Millwork',
-  'Wall & Ceiling Panelling',
-  'Stairs & Railings',
-].map((label) => ({ label, to: productCategories.find((c) => c.name === label).path }))
+  'trim-mouldings',
+  'interior-doors',
+  '/custom-millwork',
+  'wall-ceiling-panelling',
+  'stair-railing',
+].map((key) => productCategories.find((c) => c.slug === key || c.path === key))
 
 function FacebookIcon() {
   return (
@@ -78,6 +81,7 @@ const socialLinks = [
 ]
 
 export default function Footer() {
+  const categoryName = useCategoryName()
   return (
     <footer className="w-full bg-royal-blue text-white">
       <div className="mx-auto flex max-w-[1280px] flex-col gap-12 px-6 py-16 lg:px-8">
@@ -108,13 +112,13 @@ export default function Footer() {
           <div className="flex flex-col gap-4">
             <h3 className="font-serif text-lg font-bold text-white">Products</h3>
             <nav className="flex flex-col gap-3">
-              {productLinks.map(({ label, to }) => (
+              {productLinks.map((category) => (
                 <Link
-                  key={label}
-                  to={to}
+                  key={category.path}
+                  to={category.path}
                   className="font-sans text-sm text-white/70 transition-colors hover:text-white"
                 >
-                  {label}
+                  {categoryName(category)}
                 </Link>
               ))}
             </nav>
