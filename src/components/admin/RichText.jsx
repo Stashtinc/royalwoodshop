@@ -38,6 +38,9 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
   const editor = useRef(null)
   const hidden = useRef(null)
   const [block, setBlock] = useState('p')
+  // HTML mode: a plain source box, so markup pasted from elsewhere is kept as written.
+  const [htmlMode, setHtmlMode] = useState(false)
+  const [sourceText, setSourceText] = useState('')
 
   useEffect(() => {
     if (editor.current && !editor.current.innerHTML) {
@@ -58,15 +61,34 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
   useEffect(() => {
     if (!apiRef) return
     apiRef.current = {
-      getHtml: () => editor.current?.innerHTML ?? '',
+      getHtml: () => (htmlMode ? sourceText : editor.current?.innerHTML) ?? '',
       setHtml: (html) => {
         if (!editor.current) return
         editor.current.innerHTML = html || '<p></p>'
+        setSourceText(html || '')
         sync()
       },
     }
     return () => { apiRef.current = null }
   })
+
+  // Switching modes moves the content across: the rich text becomes source, and the source becomes rich text.
+  const toggleHtml = () => {
+    if (!htmlMode) {
+      setSourceText(editor.current?.innerHTML ?? '')
+      setHtmlMode(true)
+    } else {
+      if (editor.current) editor.current.innerHTML = sourceText || '<p></p>'
+      setHtmlMode(false)
+      sync()
+    }
+  }
+
+  const onSourceChange = (e) => {
+    setSourceText(e.target.value)
+    if (hidden.current) hidden.current.value = e.target.value
+    onDirty?.()
+  }
 
   const exec = (command, value = null) => {
     document.execCommand(command, false, value)
@@ -89,6 +111,7 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
   return (
     <div className="flex h-[70vh] min-h-[26rem] flex-col overflow-hidden rounded-lg border border-gray-300 focus-within:border-royal-blue">
       <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-gray-200 bg-gray-50 px-2 py-1.5">
+        <div className={`flex flex-wrap items-center gap-1 ${htmlMode ? 'pointer-events-none opacity-40' : ''}`} aria-disabled={htmlMode}>
         <select
           value={block}
           onChange={(e) => exec('formatBlock', e.target.value)}
@@ -108,10 +131,28 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
         <Btn title="Remove link" onClick={() => exec('unlink')}>⌫</Btn>
         <span className="mx-1 h-5 w-px bg-gray-300" />
         <Btn title="Clear formatting" onClick={() => exec('removeFormat')}>✕</Btn>
+        </div>
+
+        <span className="mx-1 ml-auto h-5 w-px bg-gray-300" />
+        <Btn title={htmlMode ? 'Back to the visual editor' : 'Edit the HTML source'} active={htmlMode} onClick={toggleHtml}>
+          <span className="font-mono text-xs font-semibold">&lt;/&gt; HTML</span>
+        </Btn>
       </div>
+
+      {htmlMode && (
+        <textarea
+          value={sourceText}
+          onChange={onSourceChange}
+          spellCheck={false}
+          placeholder="Paste or write HTML here"
+          aria-label="HTML source"
+          className="min-h-0 flex-1 resize-none overflow-y-auto bg-white px-4 py-3 font-mono text-[13px] leading-relaxed text-gray-800 outline-none"
+        />
+      )}
 
       <div
         ref={editor}
+        hidden={htmlMode}
         contentEditable
         suppressContentEditableWarning
         onInput={sync}
