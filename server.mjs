@@ -15,6 +15,17 @@ const build = await import('./build/server/index.js')
 
 const app = express()
 app.disable('x-powered-by')
+
+// The bare domain sends visitors (and Google) to www, the canonical address,
+// as the old WordPress site did. Without it both addresses serve the same
+// pages and split the search ranking. Path and query are kept.
+app.use((req, res, next) => {
+  if (req.hostname === 'royalwoodshop.com') {
+    return res.redirect(301, `https://www.royalwoodshop.com${req.originalUrl}`)
+  }
+  next()
+})
+
 app.use(compression())
 
 // Uploads are served from the site's own domain, so a file that can carry a
