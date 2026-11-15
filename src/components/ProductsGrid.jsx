@@ -1,7 +1,9 @@
 import { Link } from 'react-router'
 import { productCategories } from '../data/productCategories'
+import { useCategoryName } from '../lib/categoryNames'
 
 export default function ProductsGrid() {
+  const categoryName = useCategoryName()
   return (
     <section id="products" className="w-full bg-[#fbfbfb] py-10 lg:py-24">
       <div className="mx-auto flex max-w-[1280px] flex-col items-center gap-14 px-6 lg:px-8">
@@ -18,24 +20,24 @@ export default function ProductsGrid() {
         <div className="grid w-full grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
           {productCategories.map((category) => (
             <Link
-              key={category.name}
+              key={category.path}
               to={category.path}
               className="group relative flex aspect-[2/3] items-end overflow-hidden rounded-2xl border-b-[8px] border-royal-blue p-4 transition-all duration-150 hover:shadow-xl active:scale-[0.96] active:brightness-90 active:shadow-none sm:rounded-[36px] sm:border-b-[15px] sm:p-7"
             >
               <img
                 src={category.image}
-                alt={category.name}
+                alt={categoryName(category)}
                 className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-0 group-active:opacity-0"
               />
               <div className="absolute inset-0 bg-gradient-to-b from-black/5 from-50% to-black/80 transition-opacity duration-300 group-hover:opacity-0 group-active:opacity-0" />
               <p className="relative font-serif text-base font-medium text-white transition-opacity duration-300 group-hover:opacity-0 group-active:opacity-0 sm:text-2xl">
-                {category.name}
+                {categoryName(category)}
               </p>
 
               <div className="absolute inset-0 flex flex-col justify-between bg-royal-blue px-4 pt-4 pb-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-active:opacity-100 sm:px-7 sm:pt-7 sm:pb-4">
                 <div className="flex flex-col gap-2 sm:gap-4">
                   <h3 className="font-serif text-lg leading-tight font-medium text-white sm:text-3xl">
-                    {category.name}
+                    {categoryName(category)}
                   </h3>
                   <p className="font-sans text-xs text-white/90 sm:text-base">{category.description}</p>
                 </div>
