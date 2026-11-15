@@ -7,17 +7,21 @@ import catStairsRailings from '../assets/images/cat-stairs-railings.jpg'
 import catSheetStock from '../assets/images/cat-sheet-stock.jpg'
 import catWoodComposite from '../assets/images/cat-wood-composite.jpg'
 
+// `name` is the fallback; the page shows the database name for `slug`
+// (see useCategoryName in lib/categoryNames.js).
 export const productCategories = [
   {
-    name: 'Interior Trim & Mouldings',
+    name: 'Trim & Moulding',
+    slug: 'trim-mouldings',
     path: '/products/trim-mouldings',
     image: catInteriorTrim,
     description:
       'Choose from our large inventory of architectural trim & Mouldings in stock.',
   },
   {
-    name: 'Interior Doors',
-    // The catalogue, with Interior Doors selected.
+    name: 'Interior Door',
+    slug: 'interior-doors',
+    // The catalogue, with Interior Door selected.
     path: '/products?category=interior-doors',
     image: catInteriorDoors,
     description:
@@ -32,31 +36,36 @@ export const productCategories = [
   },
   {
     name: 'Wall & Ceiling Panelling',
+    slug: 'wall-ceiling-panelling',
     path: '/products/wall-ceiling-panelling',
     image: catWallCeiling,
     description:
       'Add architectural detail with our range of wall and ceiling panelling systems, in-stock and made-to-order.',
   },
   {
-    name: 'Flat Stock & Dimensional Boards',
+    name: 'Flat Stock Lumber',
+    slug: 'flat-stock-lumber',
     path: '/products/flat-stock-lumber',
     image: catFlatStock,
     description: 'A wide selection of flat stock and dimensional lumber, ready for your next project.',
   },
   {
-    name: 'Stairs & Railings',
+    name: 'Stair & Railing',
+    slug: 'stair-railing',
     path: '/products/stair-railing',
     image: catStairsRailings,
     description: 'Stock and custom staircase components, railings, and balusters built to last.',
   },
   {
     name: 'Sheet Stock',
+    slug: 'sheet-stock',
     path: '/products/sheet-stock',
     image: catSheetStock,
     description: 'MDF, plywood, and specialty sheet goods stocked in a range of sizes and thicknesses.',
   },
   {
-    name: 'Wood & Composite Siding',
+    name: 'Exterior Siding',
+    slug: 'siding',
     path: '/wood-siding',
     image: catWoodComposite,
     description:
