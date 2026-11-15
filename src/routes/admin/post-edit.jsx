@@ -289,14 +289,31 @@ export default function PostEdit() {
             AI Assist
           </button>
 
-          {post && (
+          <button
+            type="button"
+            onClick={() => {
+              // Preview shows what is in the editor now, saved or not.
+              const form = formRef.current
+              const value = (name) => form?.elements[name]?.value ?? ''
+              try {
+                localStorage.setItem('rws-article-preview', JSON.stringify({
+                  title: value('title'),
+                  excerpt: value('excerpt'),
+                  contentHtml: value('contentHtml'),
+                  date: value('publishedAt') || '',
+                }))
+              } catch {}
+              window.open('/admin/preview', '_blank', 'noopener')
+            }}
+            className="rounded-lg border border-royal-blue px-3 py-1.5 font-sans text-sm text-royal-blue hover:bg-royal-blue hover:text-white"
+          >
+            Preview
+          </button>
+          {post && post.status === 'published' && (
             <a href={`/${post.slug}`} target="_blank" rel="noreferrer"
               className="text-sm text-gray-500 hover:text-royal-blue">
-              {post.status === 'published' ? 'View on site ↗' : 'Preview draft ↗'}
+              View on site ↗
             </a>
-          )}
-          {!post && (
-            <span className="text-sm text-gray-400">Save the draft to get a preview link.</span>
           )}
         </div>
       </div>
