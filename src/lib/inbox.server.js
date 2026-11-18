@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, inArray } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { contactMessages, quoteRequests, quoteItems, quoteFiles } from '../db/schema.js'
 
@@ -104,4 +104,24 @@ export async function getQuoteFile(id) {
   const db = await getDb()
   const [f] = await db.select().from(quoteFiles).where(eq(quoteFiles.id, id)).limit(1)
   return f ?? null
+}
+
+/**
+ * Permanently removes the chosen enquiries and quote requests. A quote's items
+ * and attachments go with it (cascade). Returns the number removed.
+ */
+export async function deleteInboxItems(selected) {
+  const db = await getDb()
+  const enquiryIds = selected.filter((s) => s.kind === 'enquiry').map((s) => s.id)
+  const quoteIds = selected.filter((s) => s.kind === 'quote').map((s) => s.id)
+  let removed = 0
+  if (enquiryIds.length) {
+    const rows = await db.delete(contactMessages).where(inArray(contactMessages.id, enquiryIds)).returning({ id: contactMessages.id })
+    removed += rows.length
+  }
+  if (quoteIds.length) {
+    const rows = await db.delete(quoteRequests).where(inArray(quoteRequests.id, quoteIds)).returning({ id: quoteRequests.id })
+    removed += rows.length
+  }
+  return removed
 }
