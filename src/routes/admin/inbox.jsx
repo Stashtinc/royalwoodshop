@@ -67,7 +67,7 @@ export default function Inbox() {
         <h1 className="font-serif text-2xl font-bold text-tundora">Inbox</h1>
         <p className="mt-1 font-sans text-sm text-gray-500">
           Website enquiries and quote requests, newest first. Each one was saved before its email was sent.
-          If it says <strong>Email failed</strong> or <strong>Not emailed</strong>, follow up by phone or email.
+          If it says <strong>Failed</strong> or <strong>Not emailed</strong>, follow up by phone or email.
         </p>
       </div>
 

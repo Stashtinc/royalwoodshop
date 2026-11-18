@@ -19,7 +19,7 @@ function enquirySource(message) {
 
 function emailStatus(row) {
   if (row.emailedAt) return { state: 'sent', label: 'Sent' }
-  if (row.emailError) return { state: 'failed', label: 'Email failed' }
+  if (row.emailError) return { state: 'failed', label: 'Failed' }
   return { state: 'none', label: 'Not emailed' }
 }
 

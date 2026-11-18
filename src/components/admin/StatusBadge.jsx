@@ -7,7 +7,7 @@ const STATUS_STYLE = {
 /** Whether an enquiry's notification email went out. */
 export default function StatusBadge({ status }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-sans text-xs font-medium ring-1 ring-inset ${STATUS_STYLE[status.state]}`}>
+    <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 font-sans text-xs font-medium ring-1 ring-inset ${STATUS_STYLE[status.state]}`}>
       {status.label}
     </span>
   )
