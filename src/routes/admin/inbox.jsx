@@ -172,7 +172,7 @@ export default function Inbox() {
                         if (e.target.closest('input, a, button')) return
                         navigate(`/admin/inbox/${r.kind}/${r.id}`)
                       }}
-                      className={`cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${r.unread ? 'bg-yellow-100 font-semibold hover:bg-yellow-200' : ''}`}
+                      className="cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
                     >
                       <td className="px-4 py-3">
                         <input

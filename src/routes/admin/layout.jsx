@@ -4,9 +4,7 @@ import { requireUser } from '../../lib/auth.server'
 import logoBlue from '../../assets/images/logo-blue.svg'
 
 export async function loader({ request }) {
-  const user = await requireUser(request)
-  const { countUnread } = await import('../../lib/inbox.server.js')
-  return { user, unreadCount: await countUnread() }
+  return { user: await requireUser(request) }
 }
 
 export const meta = () => [
@@ -137,11 +135,6 @@ function SidebarContent({ user, onNavigate }) {
           <NavLink key={to} to={to} end={end} className={link} onClick={onNavigate}>
             <Icon />
             {label}
-            {to === '/admin/inbox' && unreadCount > 0 && (
-              <span className="ml-auto rounded-full bg-amber-400 px-2 py-0.5 text-xs font-semibold text-gray-900" aria-label={`${unreadCount} new`}>
-                {unreadCount}
-              </span>
-            )}
           </NavLink>
         ))}
       </nav>
@@ -172,7 +165,7 @@ function SidebarContent({ user, onNavigate }) {
 }
 
 export default function AdminLayout() {
-  const { user, unreadCount } = useLoaderData()
+  const { user } = useLoaderData()
   const [open, setOpen] = useState(false)
   const { pathname } = useLocation()
 

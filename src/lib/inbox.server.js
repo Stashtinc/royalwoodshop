@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { desc, eq, inArray } from 'drizzle-orm'
 import { getDb } from './db.server.js'
 import { contactMessages, quoteRequests, quoteItems, quoteFiles } from '../db/schema.js'
 
@@ -38,7 +38,6 @@ export async function listInbox() {
       email: r.email,
       createdAt: r.createdAt,
       status: emailStatus(r),
-      unread: !r.readAt,
     })),
     ...quotes.map((r) => ({
       kind: 'quote',
@@ -48,7 +47,6 @@ export async function listInbox() {
       email: r.email,
       createdAt: r.createdAt,
       status: emailStatus(r),
-      unread: !r.readAt,
     })),
   ]
   rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -100,24 +98,6 @@ export async function getInboxItem(kind, id) {
     }
   }
   return null
-}
-
-/** How many entries nobody has opened yet. Shown as a counter in the admin sidebar. */
-export async function countUnread() {
-  const db = await getDb()
-  const [a, b] = await Promise.all([
-    db.select({ n: sql`count(*)::int` }).from(contactMessages).where(isNull(contactMessages.readAt)),
-    db.select({ n: sql`count(*)::int` }).from(quoteRequests).where(isNull(quoteRequests.readAt)),
-  ])
-  return (a[0]?.n ?? 0) + (b[0]?.n ?? 0)
-}
-
-/** Marks an entry as opened. Only the first open counts, so it stays read after that. */
-export async function markRead(kind, id) {
-  const db = await getDb()
-  const table = kind === 'enquiry' ? contactMessages : kind === 'quote' ? quoteRequests : null
-  if (!table) return
-  await db.update(table).set({ readAt: new Date() }).where(and(eq(table.id, id), isNull(table.readAt)))
 }
 
 export async function getQuoteFile(id) {
