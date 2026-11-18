@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router'
+import { Form, Link, useActionData, useLoaderData, useNavigate, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { listInbox, deleteInboxItems } from '../../lib/inbox.server.js'
 import { log } from '../../lib/activity.server.js'
@@ -34,6 +34,7 @@ export default function Inbox() {
   const { rows } = useLoaderData()
   const result = useActionData()
   const nav = useNavigation()
+  const navigate = useNavigate()
   const busy = nav.state !== 'idle'
   const [picked, setPicked] = useState(() => new Set())
   const [filter, setFilter] = useState('All')
@@ -164,7 +165,15 @@ export default function Inbox() {
                 {visible.map((r) => {
                   const key = keyOf(r)
                   return (
-                    <tr key={key} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
+                    <tr
+                      key={key}
+                      onClick={(e) => {
+                        // Clicking the checkbox, or a link or button in the row, keeps its own action.
+                        if (e.target.closest('input, a, button')) return
+                        navigate(`/admin/inbox/${r.kind}/${r.id}`)
+                      }}
+                      className="cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
+                    >
                       <td className="px-4 py-3">
                         <input
                           type="checkbox"
