@@ -290,6 +290,8 @@ export const contactMessages = pgTable('contact_messages', {
   ip: varchar('ip', { length: 64 }),
   emailedAt: timestamp('emailed_at', { withTimezone: true }),
   emailError: text('email_error'),
+  /** Set when someone opens the entry in the admin inbox. Null means new. */
+  readAt: timestamp('read_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   createdIdx: index('contact_messages_created_idx').on(t.createdAt),
@@ -460,6 +462,8 @@ export const quoteRequests = pgTable('quote_requests', {
   ip: varchar('ip', { length: 64 }),
   emailedAt: timestamp('emailed_at', { withTimezone: true }),
   emailError: text('email_error'),
+  /** Set when someone opens the request in the admin inbox. Null means new. */
+  readAt: timestamp('read_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   createdIdx: index('quote_requests_created_idx').on(t.createdAt),
