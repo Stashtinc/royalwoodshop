@@ -36,10 +36,15 @@ export default function Inbox() {
   const nav = useNavigation()
   const busy = nav.state !== 'idle'
   const [picked, setPicked] = useState(() => new Set())
+  const [filter, setFilter] = useState('All')
   const selectAll = useRef(null)
 
+  // The kinds of entry present, in the order they first appear, for the filter buttons.
+  const types = [...new Set(rows.map((r) => r.type))]
+  const visible = filter === 'All' ? rows : rows.filter((r) => r.type === filter)
+
   const keyOf = (r) => `${r.kind}:${r.id}`
-  const allPicked = rows.length > 0 && picked.size === rows.length
+  const allPicked = visible.length > 0 && visible.every((r) => picked.has(keyOf(r)))
   const somePicked = picked.size > 0 && !allPicked
 
   // Keep the select-all box in its "some selected" state.
@@ -59,7 +64,13 @@ export default function Inbox() {
     return next
   })
 
-  const toggleAll = () => setPicked(allPicked ? new Set() : new Set(rows.map(keyOf)))
+  // Select-all applies to the rows currently shown, so a filtered view deletes only what you can see.
+  const toggleAll = () => setPicked((prev) => {
+    const next = new Set(prev)
+    if (allPicked) visible.forEach((r) => next.delete(keyOf(r)))
+    else visible.forEach((r) => next.add(keyOf(r)))
+    return next
+  })
 
   return (
     <div className="flex flex-col gap-6">
@@ -96,6 +107,24 @@ export default function Inbox() {
           }}
           className="flex flex-col gap-3"
         >
+          <div className="flex flex-wrap gap-2">
+            {['All', ...types].map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setFilter(t)}
+                className={`rounded-full px-3 py-1.5 font-sans text-sm transition-colors ${
+                  filter === t ? 'bg-royal-blue text-white' : 'bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {t}
+                <span className="ml-1.5 opacity-70">
+                  {t === 'All' ? rows.length : rows.filter((r) => r.type === t).length}
+                </span>
+              </button>
+            ))}
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-3">
             <label className="flex items-center gap-2 font-sans text-sm text-gray-700">
               <input
@@ -108,13 +137,15 @@ export default function Inbox() {
               />
               {picked.size > 0 ? `${picked.size} selected` : 'Select all'}
             </label>
-            <button
-              type="submit"
-              disabled={picked.size === 0 || busy}
-              className="rounded-lg bg-red-600 px-4 py-2 font-sans text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {busy ? 'Deleting…' : `Delete selected${picked.size ? ` (${picked.size})` : ''}`}
-            </button>
+            {picked.size > 0 && (
+              <button
+                type="submit"
+                disabled={busy}
+                className="rounded-lg bg-red-600 px-4 py-2 font-sans text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {busy ? 'Deleting…' : `Delete selected (${picked.size})`}
+              </button>
+            )}
           </div>
 
           <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
@@ -130,7 +161,7 @@ export default function Inbox() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => {
+                {visible.map((r) => {
                   const key = keyOf(r)
                   return (
                     <tr key={key} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
