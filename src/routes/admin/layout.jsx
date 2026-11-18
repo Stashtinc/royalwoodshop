@@ -109,7 +109,7 @@ const NAV = [
   { to: '/admin/logs', label: 'Logs', Icon: LogsIcon },
 ]
 
-function SidebarContent({ user, onNavigate }) {
+function SidebarContent({ user, unreadCount, onNavigate }) {
   const link = ({ isActive }) =>
     `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
       isActive
@@ -180,7 +180,7 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-gray-50">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-gray-200 bg-white lg:block">
-        <SidebarContent user={user} />
+        <SidebarContent user={user} unreadCount={unreadCount} />
       </aside>
 
       {/* Mobile bar */}
@@ -208,7 +208,7 @@ export default function AdminLayout() {
             >
               <CloseIcon />
             </button>
-            <SidebarContent user={user} onNavigate={() => setOpen(false)} />
+            <SidebarContent user={user} unreadCount={unreadCount} onNavigate={() => setOpen(false)} />
           </aside>
         </div>
       )}
