@@ -49,6 +49,23 @@ export default function Posts() {
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-royal-blue" />
       </Form>
 
+      <div className="flex flex-wrap gap-2">
+        {[['all', 'All'], ['published', 'Published'], ['draft', 'Draft']].map(([value, label]) => {
+          const next = new URLSearchParams(params)
+          next.set('status', value)
+          next.delete('page')
+          const active = (params.get('status') ?? 'all') === value
+          return (
+            <Link key={value} to={`?${next}`} preventScrollReset
+              className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
+                active ? 'bg-royal-blue text-white' : 'bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50'
+              }`}>
+              {label}
+            </Link>
+          )
+        })}
+      </div>
+
       <Pagination page={page} pages={pages} total={total} perPage={perPage} />
 
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
