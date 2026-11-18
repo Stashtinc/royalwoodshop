@@ -271,3 +271,29 @@ that are not in the text.`
     seoDescription: String(data.seoDescription ?? '').trim().slice(0, 300),
   }
 }
+
+/**
+ * Suggests one article idea for the blog, grounded in the catalogue. Returns
+ * { topic, notes } for the editor to fill in. Nothing is saved.
+ */
+export async function suggestTopic() {
+  const system = `${BUSINESS}${await catalogueContext()}
+
+You suggest one blog article idea for The Royal Wood Shop's website. Pick something a homeowner, designer or contractor would search for, that the catalogue can support, and that is not a generic overview of mouldings or doors.
+
+Return JSON only, in this exact shape:
+{"topic": "...", "notes": "..."}
+
+"topic" is a short article title or question, under 80 characters.
+"notes" is three short points to cover, one per line, separated by newlines.`
+
+  const text = await callText({
+    system,
+    maxTokens: 400,
+    messages: [{ role: 'user', content: 'Suggest one article idea.' }],
+  })
+  const data = parseJson(text)
+  const topic = String(data.topic ?? '').trim().slice(0, 200)
+  if (!topic) throw new Error('No suggestion came back. Try again.')
+  return { topic, notes: String(data.notes ?? '').trim().slice(0, 1000) }
+}
