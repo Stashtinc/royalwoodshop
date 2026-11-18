@@ -1,12 +1,14 @@
 import { Link, useLoaderData } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { getInboxItem } from '../../lib/inbox.server.js'
+import { getInboxItem, markRead } from '../../lib/inbox.server.js'
 import StatusBadge from '../../components/admin/StatusBadge'
 
 export async function loader({ request, params }) {
   await requireUser(request)
   const item = await getInboxItem(params.kind, Number(params.id))
   if (!item) throw new Response('Not found', { status: 404 })
+  // Opening the entry marks it read, which clears its yellow highlight and the sidebar counter.
+  await markRead(params.kind, item.id)
   return { item }
 }
 
