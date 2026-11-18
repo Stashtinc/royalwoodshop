@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Form, useActionData, useNavigation, useSearchParams } from 'react-router'
 import ProductPicker from '../components/quote/ProductPicker'
 import Thumb from '../components/quote/Thumb'
@@ -48,6 +48,11 @@ export default function GetAQuote({ parts }) {
   const errors = data?.errors ?? {}
   const values = data?.values ?? {}
   const submitted = data?.ok
+
+  // The submit button sits at the bottom of a long form, so bring the confirmation to the top of the screen.
+  useEffect(() => {
+    if (submitted) window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [submitted])
 
   // A product page's row links here with ?add=<key>: that line starts the quote.
   const [searchParams] = useSearchParams()
