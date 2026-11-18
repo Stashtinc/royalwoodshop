@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Form, Link, useActionData, useLoaderData, useNavigate, useNavigation } from 'react-router'
+import { Form, Link, useActionData, useLoaderData, useNavigate, useNavigation, useRevalidator } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { listInbox, deleteInboxItems } from '../../lib/inbox.server.js'
 import { log } from '../../lib/activity.server.js'
@@ -35,6 +35,21 @@ export default function Inbox() {
   const result = useActionData()
   const nav = useNavigation()
   const navigate = useNavigate()
+  const revalidator = useRevalidator()
+
+  // New enquiries arrive without a reload: re-read the list every 20 seconds, and
+  // whenever the tab comes back into view. This also refreshes the sidebar count.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible' && revalidator.state === 'idle') revalidator.revalidate()
+    }
+    const timer = setInterval(refresh, 20000)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [revalidator])
   const busy = nav.state !== 'idle'
   const [picked, setPicked] = useState(() => new Set())
   const [filter, setFilter] = useState('All')
