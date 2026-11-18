@@ -110,6 +110,13 @@ export default function AiAssist({
       setErrors((e) => ({ ...e, image: null }))
       return
     }
+    if (data.ai?.kind === 'topic') {
+      // A suggested idea fills the form; nothing is generated until Brad taps Generate.
+      setTopic(data.ai.topic)
+      setNotes(data.ai.notes)
+      setErrors((e) => ({ ...e, article: null }))
+      return
+    }
     if (data.ai) {
       const tab = TAB_OF[data.ai.kind]
       if (!tab) return
@@ -270,6 +277,12 @@ export default function AiAssist({
                   disabled={busy} className={input}
                   placeholder="Choosing baseboard height for a 1960s bungalow" />
               </Field>
+              <div className="-mt-3 flex justify-end">
+                <button type="button" onClick={() => send({ intent: 'ai-topic' })} disabled={busy}
+                  className="text-sm font-medium text-royal-blue hover:underline disabled:opacity-50">
+                  Suggest an article
+                </button>
+              </div>
 
               <Field label="Anything it must cover?" hint="optional — one point per line">
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4}

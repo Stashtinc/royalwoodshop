@@ -103,6 +103,17 @@ export async function action({ request, params }) {
     }
   }
 
+  if (intent === 'ai-topic') {
+    try {
+      const { suggestTopic } = await import('../../lib/ai.server.js')
+      const s = await suggestTopic()
+      await log(user, 'ai.topic', { entityType: 'post', details: { topic: s.topic } })
+      return { ai: { kind: 'topic', ...s } }
+    } catch (e) {
+      return { aiError: e.message }
+    }
+  }
+
   if (intent === 'ai-article' || intent === 'ai-metadata') {
     try {
       if (intent === 'ai-article') {
