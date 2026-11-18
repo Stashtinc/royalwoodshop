@@ -141,3 +141,15 @@ export async function slugTaken(slug, exceptId = null) {
   const rows = await db.select({ id: posts.id }).from(posts).where(eq(posts.slug, slug)).limit(1)
   return rows.length > 0 && String(rows[0].id) !== String(exceptId)
 }
+
+/**
+ * Permanently deletes a draft article. Published articles are never removed
+ * here: they must be changed to Draft first. Returns the number removed (0 or 1).
+ */
+export async function deleteDraftPost(id) {
+  const db = await getDb()
+  const rows = await db.delete(posts)
+    .where(and(eq(posts.id, id), eq(posts.status, 'draft')))
+    .returning({ id: posts.id })
+  return rows.length
+}
