@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import Toast from '../../components/admin/Toast'
-import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router'
+import { Form, Link, redirect, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
-import { getPostById, savePost, listCategories, slugTaken } from '../../lib/posts.server'
+import { getPostById, savePost, listCategories, slugTaken, deleteDraftPost } from '../../lib/posts.server'
 import { saveUpload } from '../../lib/uploads.server'
 import { log } from '../../lib/activity.server'
 import { draftArticle, draftMetadata, isConfigured as aiConfigured } from '../../lib/ai.server'
@@ -35,6 +35,15 @@ export async function action({ request, params }) {
   // AI Assist posts to this same action. Handled first and returned early:
   // generating a draft must never write anything.
   const intent = String(f.get('intent') ?? '')
+
+  // Delete: drafts only. A published article must be changed to Draft before it can be removed.
+  if (intent === 'delete-draft') {
+    const id = Number(params.id)
+    const removed = await deleteDraftPost(id)
+    if (!removed) return { error: 'Only drafts can be deleted. Change the status to Draft first, then delete.' }
+    await log(user, 'post.delete', { entityType: 'post', entityId: id, details: { status: 'draft' } })
+    return redirect('/admin/posts?deleted=1')
+  }
 
   if (intent.startsWith('ai-image')) {
     try {
@@ -458,6 +467,13 @@ export default function PostEdit() {
             className="rounded-lg border border-royal-blue bg-royal-blue px-6 py-2.5 text-sm font-medium text-white hover:border-royal-blue-dark hover:bg-royal-blue-dark disabled:opacity-60">
             {saving ? 'Saving…' : isNew ? 'Create article' : 'Save changes'}
           </button>
+          {!isNew && post?.status === 'draft' && (
+            <button type="submit" name="intent" value="delete-draft"
+              onClick={(e) => { if (!window.confirm('Delete this draft permanently? This cannot be undone.')) e.preventDefault() }}
+              className="mr-auto rounded-lg border border-red-300 px-6 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50">
+              Delete draft
+            </button>
+          )}
           <Link to="/admin/posts" className="rounded-lg border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50">Cancel</Link>
         </div>
       </Form>
