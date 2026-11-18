@@ -501,6 +501,12 @@ export default function AiAssist({
                 className="mr-auto text-sm text-gray-500 hover:underline">
                 Start over
               </button>
+              {mode !== 'image' && (
+                <button type="button" onClick={runText} disabled={busy}
+                  className="text-sm font-medium text-royal-blue hover:underline disabled:opacity-50">
+                  Suggest another
+                </button>
+              )}
               <button type="button" onClick={onClose} className="text-sm text-gray-600 hover:underline">
                 Discard
               </button>
