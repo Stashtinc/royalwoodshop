@@ -159,6 +159,23 @@ export function sanitiseHtml(input) {
 /** JSON mode should make this exact, but a stray sentence around the object is
  *  a known failure on models that do not support it, and not worth failing the
  *  whole request over. */
+/**
+ * Models occasionally return JSON that will not parse (usually an unescaped
+ * character inside the article HTML). Ask once more before giving up.
+ */
+async function jsonWithRetry(ask) {
+  let last
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return parseJson(await ask())
+    } catch (e) {
+      last = e
+      if (!/malformed|usable/.test(e.message)) throw e
+    }
+  }
+  throw last
+}
+
 function parseJson(text) {
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
@@ -213,13 +230,11 @@ depends on instead. Where a genuine measurement is standard in the trade
 (for example that baseboard is commonly 3 to 5 inches tall) it is fine to say so.`
 
   const notesLine = notes.trim() ? `\n\nPoints to cover:\n${notes.trim()}` : ''
-  const text = await callText({
+  const data = await jsonWithRetry(() => callText({
     system,
     maxTokens: 4000,
     messages: [{ role: 'user', content: `Topic: ${topic.trim()}${notesLine}` }],
-  })
-
-  const data = parseJson(text)
+  }))
   const html = sanitiseHtml(data.html)
   if (!html) throw new Error('The model returned an empty article. Try again.')
 
@@ -287,12 +302,11 @@ Return JSON only, in this exact shape:
 "topic" is a short article title or question, under 80 characters.
 "notes" is three short points to cover, one per line, separated by newlines.`
 
-  const text = await callText({
+  const data = await jsonWithRetry(() => callText({
     system,
     maxTokens: 400,
     messages: [{ role: 'user', content: 'Suggest one article idea.' }],
-  })
-  const data = parseJson(text)
+  }))
   const topic = String(data.topic ?? '').trim().slice(0, 200)
   if (!topic) throw new Error('No suggestion came back. Try again.')
   return { topic, notes: String(data.notes ?? '').trim().slice(0, 1000) }
