@@ -52,6 +52,7 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
     if (editor.current && !editor.current.innerHTML) {
       editor.current.innerHTML = defaultValue || '<p></p>'
     }
+    if (hidden.current && editor.current) hidden.current.value = editor.current.innerHTML
   }, [defaultValue])
 
   const sync = () => {
@@ -268,7 +269,8 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
         className="prose-royal min-h-0 flex-1 overflow-y-auto max-w-none bg-white px-4 py-3 outline-none"
       />
 
-      <input ref={hidden} type="hidden" name={name} defaultValue={defaultValue} />
+      {/* No defaultValue: React would reset this field on re-render, wiping the content sent on save. sync() keeps it current. */}
+      <input ref={hidden} type="hidden" name={name} />
     </div>
   )
 }
