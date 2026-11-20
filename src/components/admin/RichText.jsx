@@ -358,9 +358,15 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
           <Btn title="Full width" onClick={() => resizeImg(editor.current.clientWidth - 24)}><MI name="fullscreen" /></Btn>
           <Btn title="Original size" onClick={resetImg}><MI name="restart_alt" /></Btn>
           <span className="mx-1 h-5 w-px bg-gray-300" />
-          <Btn title="Wrap text on the left" onClick={() => wrapImg('left')}><MI name="format_align_left" /></Btn>
-          <Btn title="No text wrap" onClick={() => wrapImg('none')}><MI name="format_align_center" /></Btn>
-          <Btn title="Wrap text on the right" onClick={() => wrapImg('right')}><MI name="format_align_right" /></Btn>
+          <Btn title="Text wraps around the image, on the left" onClick={() => wrapImg('left')}>
+            <span className="flex items-center gap-1 text-xs"><MI name="float_left" />Wrap left</span>
+          </Btn>
+          <Btn title="Image sits on its own line, no wrap" onClick={() => wrapImg('none')}>
+            <span className="flex items-center gap-1 text-xs"><MI name="block" />No wrap</span>
+          </Btn>
+          <Btn title="Text wraps around the image, on the right" onClick={() => wrapImg('right')}>
+            <span className="flex items-center gap-1 text-xs"><MI name="float_right" />Wrap right</span>
+          </Btn>
           <span className="mx-1 h-5 w-px bg-gray-300" />
           <Btn title="Remove image" onClick={removeImg}><MI name="delete" /></Btn>
         </div>
