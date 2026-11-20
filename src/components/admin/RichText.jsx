@@ -315,6 +315,8 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
 
   return (
     <div className="flex h-[70vh] min-h-[26rem] flex-col overflow-hidden rounded-lg border border-gray-300 focus-within:border-royal-blue">
+      {/* The passage being changed with Edit with AI. Set here, not in the stylesheet, so the build cannot drop it. */}
+      <style>{'::highlight(rws-ai-edit){background-color:#bfdbfe;color:inherit}'}</style>
       <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-gray-200 bg-gray-50 px-2 py-1.5">
         <div className={`flex flex-wrap items-center gap-1 ${htmlMode ? 'pointer-events-none opacity-40' : ''}`} aria-disabled={htmlMode}>
         <select
