@@ -59,6 +59,15 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
   const [aiOpen, setAiOpen] = useState(false)
   const [aiInstruction, setAiInstruction] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
+
+  // Keep the highlighted passage visibly selected while the change box has focus.
+  // The CSS Custom Highlight API paints it without changing the article text.
+  useEffect(() => {
+    if (typeof CSS === 'undefined' || !CSS.highlights || typeof Highlight === 'undefined') return
+    if (aiOpen && savedRange.current) CSS.highlights.set('rws-ai-edit', new Highlight(savedRange.current))
+    else CSS.highlights.delete('rws-ai-edit')
+    return () => CSS.highlights?.delete('rws-ai-edit')
+  }, [aiOpen])
   const [aiError, setAiError] = useState('')
 
   useEffect(() => {
@@ -375,7 +384,7 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
             <input autoFocus value={aiInstruction} disabled={aiBusy}
               onChange={(e) => setAiInstruction(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); runAi() } if (e.key === 'Escape') closeAi() }}
-              placeholder="e.g. Add pros and cons"
+              placeholder="Add change request here..."
               className="flex-1 rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-royal-blue" />
             <button type="button" onClick={runAi} disabled={aiBusy || !aiInstruction.trim()}
               className="shrink-0 rounded-lg bg-royal-blue px-3 py-2 font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">

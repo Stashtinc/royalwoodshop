@@ -358,7 +358,7 @@ export default function AiAssist({
                   <div className="flex gap-2">
                     <input value={revision} onChange={(e) => setRevision(e.target.value)} disabled={busy} autoFocus
                       onKeyDown={(e) => { if (e.key === 'Enter' && revision.trim() && !busy) { e.preventDefault(); reviseNow() } if (e.key === 'Escape') setPick(null) }}
-                      placeholder="e.g. Add pros and cons"
+                      placeholder="Add change request here..."
                       className={`${input} flex-1`} />
                     <button type="button" onClick={reviseNow} disabled={busy || !revision.trim()}
                       className="shrink-0 rounded-lg bg-royal-blue px-3 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">
