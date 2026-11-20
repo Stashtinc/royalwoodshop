@@ -238,11 +238,22 @@ async function openaiEdit(baseBuffer, instruction) {
  * returned as data URLs and held in the browser — nothing is written to disk
  * until someone picks one, so discarded options leave no files behind.
  */
+/** One distinct view per image in a set. */
+const DISTINCT_VIEWS = [
+  'Composition for this image: a wide, full-room view showing the whole space and the trim across several walls.',
+  'Composition for this image: a close-up macro detail of the moulding profile and the wood grain, shallow depth of field.',
+  'Composition for this image: a styled vignette at a doorway, with warm natural daylight and simple lifestyle props.',
+  'Composition for this image: a bright, minimal modern space photographed from a high overhead angle.',
+]
+
 export async function generateImages({ prompt, count = 3 }) {
   if (!prompt?.trim()) throw new Error('There is no prompt to generate from.')
 
+  // Each image gets its own composition, so the set is genuinely different rather than
+  // three near-copies of one prompt.
   const results = await Promise.allSettled(
-    Array.from({ length: Math.min(Math.max(count, 1), 4) }, () => openaiImage(prompt)),
+    Array.from({ length: Math.min(Math.max(count, 1), 4) }, (_, i) =>
+      openaiImage(`${prompt}\n\n${DISTINCT_VIEWS[i % DISTINCT_VIEWS.length]}`)),
   )
 
   const images = results
