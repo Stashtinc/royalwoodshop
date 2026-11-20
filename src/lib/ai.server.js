@@ -229,7 +229,12 @@ awards or customer quotes. If a specific figure would help, describe what it
 depends on instead. Where a genuine measurement is standard in the trade
 (for example that baseboard is commonly 3 to 5 inches tall) it is fine to say so.`
 
-  const notesLine = notes.trim() ? `\n\nPoints to cover:\n${notes.trim()}` : ''
+  // The points are requirements, not suggestions: each one must appear in the article as its own
+  // clearly labelled part, so a request such as "pros and cons" is visibly answered.
+  const points = notes.split('\n').map((p) => p.trim()).filter(Boolean)
+  const notesLine = points.length
+    ? `\n\nREQUIRED. Cover every one of these points, each as a clearly headed section or a labelled list. Do not skip any:\n${points.map((p, i) => `${i + 1}. ${p}`).join('\n')}`
+    : ''
   const data = await jsonWithRetry(() => callText({
     system,
     maxTokens: 4000,
@@ -310,4 +315,36 @@ Return JSON only, in this exact shape:
   const topic = String(data.topic ?? '').trim().slice(0, 200)
   if (!topic) throw new Error('No suggestion came back. Try again.')
   return { topic, notes: String(data.notes ?? '').trim().slice(0, 1000) }
+}
+
+/**
+ * Applies one requested change to an existing draft. The rest of the article
+ * is kept as it is. Returns the same shape as draftArticle.
+ */
+export async function reviseArticle({ title, html, instruction }) {
+  if (!instruction?.trim()) throw new Error('Say what should change.')
+  if (!html?.trim()) throw new Error('There is no article to change yet.')
+
+  const system = `${BUSINESS}${await catalogueContext()}
+
+You are revising a blog article for The Royal Wood Shop's website. Make only the change requested. Keep every other part of the article as it is, including wording, headings and order, unless the change requires otherwise.
+
+Return JSON only, in this exact shape:
+{"title": "...", "html": "..."}
+
+"html" is the full revised article body only, with no <h1>. Only these tags are permitted: <p> <h2> <h3> <ul> <ol> <li> <blockquote> <strong> <em> <a>. No attributes except href on a link, and no images.
+
+Do not invent prices, dimensions, product codes, delivery times, warranties, awards or customer quotes.`
+
+  const data = await jsonWithRetry(() => callText({
+    system,
+    maxTokens: 4000,
+    messages: [{
+      role: 'user',
+      content: `Current title: ${title ?? ''}\n\nCurrent article HTML:\n${html}\n\nChange requested: ${instruction.trim()}`,
+    }],
+  }))
+  const revised = sanitiseHtml(data.html)
+  if (!revised) throw new Error('The revised article came back empty. Try again.')
+  return { title: String(data.title ?? title ?? '').trim().slice(0, 200) || title, html: revised, words: revised.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length }
 }
