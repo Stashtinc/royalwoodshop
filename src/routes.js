@@ -34,6 +34,7 @@ export default [
   route('admin/login', 'routes/admin/login.jsx'),
   route('admin/preview', 'routes/admin/preview.jsx'),
   route('admin/editor-images', 'routes/admin/editor-images.js'),
+  route('admin/editor-ai', 'routes/admin/editor-ai.js'),
   route('admin/logout', 'routes/admin/logout.js'),
   route('admin', 'routes/admin/layout.jsx', [
     index('routes/admin/dashboard.jsx'),

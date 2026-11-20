@@ -348,3 +348,33 @@ Do not invent prices, dimensions, product codes, delivery times, warranties, awa
   if (!revised) throw new Error('The revised article came back empty. Try again.')
   return { title: String(data.title ?? title ?? '').trim().slice(0, 200) || title, html: revised, words: revised.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length }
 }
+
+/**
+ * Rewrites one highlighted passage of an article, as inline HTML that can be
+ * placed back in the same paragraph. Nothing outside the passage is touched.
+ */
+export async function rewritePassage({ passage, instruction, context = '' }) {
+  if (!passage?.trim()) throw new Error('Highlight some text first.')
+  if (!instruction?.trim()) throw new Error('Say what should change.')
+
+  const system = `${BUSINESS}
+
+You are editing one passage of a blog article for The Royal Wood Shop. Rewrite ONLY the passage, as requested. The passage will be placed back into the same paragraph, so return inline content only: no <p>, <h2>, <h3>, <ul>, <li> or other block tags. Allowed tags: <strong>, <em>, <a href="...">.
+
+Return JSON only, in this exact shape:
+{"html": "..."}
+
+Do not invent prices, dimensions, product codes, delivery times, warranties, awards or customer quotes.`
+
+  const data = await jsonWithRetry(() => callText({
+    system,
+    maxTokens: 1200,
+    messages: [{
+      role: 'user',
+      content: `Passage to rewrite:\n${passage.trim()}\n\nChange requested: ${instruction.trim()}${context ? `\n\nSurrounding text, for context only (do not rewrite it):\n${context.slice(0, 1500)}` : ''}`,
+    }],
+  }))
+  const html = sanitiseHtml(String(data.html ?? ''))
+  if (!html) throw new Error('The rewrite came back empty. Try again.')
+  return { html }
+}
