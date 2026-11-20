@@ -52,6 +52,12 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
   const [imageBusy, setImageBusy] = useState(false)
   const [imageError, setImageError] = useState('')
   const savedRange = useRef(null)
+  // Edit with AI: the highlighted text, where its button sits, and the change box.
+  const [sel, setSel] = useState(null)
+  const [aiOpen, setAiOpen] = useState(false)
+  const [aiInstruction, setAiInstruction] = useState('')
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiError, setAiError] = useState('')
 
   useEffect(() => {
     if (editor.current && !editor.current.innerHTML) {
@@ -130,6 +136,66 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
     setPicker('menu')
   }
 
+  // Highlighting text in the editor shows an Edit with AI button beside it.
+  const readEditorSelection = () => {
+    if (aiOpen) return
+    const s = window.getSelection()
+    const el = editor.current
+    if (!s || s.isCollapsed || !el || !el.contains(s.anchorNode)) { setSel(null); return }
+    const text = s.toString().trim()
+    if (text.length < 3) { setSel(null); return }
+    const range = s.getRangeAt(0)
+    savedRange.current = range.cloneRange()
+    const rect = range.getBoundingClientRect()
+    setSel({ text, top: rect.bottom + 6, left: Math.max(8, rect.left) })
+    setAiError('')
+  }
+
+  const restoreSelection = () => {
+    editor.current?.focus()
+    if (!savedRange.current) return
+    const s = window.getSelection()
+    s.removeAllRanges()
+    s.addRange(savedRange.current)
+  }
+
+  const closeAi = () => {
+    setAiOpen(false)
+    setAiInstruction('')
+    setAiError('')
+  }
+
+  // Rewrites only the highlighted passage, then puts it back in the same place.
+  const runAi = async () => {
+    if (!sel || !aiInstruction.trim() || aiBusy) return
+    setAiBusy(true)
+    setAiError('')
+    try {
+      const res = await fetch('/admin/editor-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          passage: sel.text,
+          instruction: aiInstruction.trim(),
+          context: editor.current?.innerText ?? '',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.html) throw new Error(data.error || 'The change could not be made. Try again.')
+      restoreSelection()
+      document.execCommand('insertHTML', false, data.html)
+      sync()
+      setSel(null)
+      closeAi()
+      window.getSelection()?.removeAllRanges()
+    } catch (e) {
+      setAiError(e.message)
+    } finally {
+      setAiBusy(false)
+    }
+  }
+
   const insertImage = (url) => {
     editor.current?.focus()
     if (savedRange.current) {
@@ -204,6 +270,38 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
         </Btn>
       </div>
 
+      {sel && !aiOpen && (
+        <button type="button" style={{ position: 'fixed', top: sel.top, left: sel.left }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setAiOpen(true)}
+          className="fixed z-[70] flex items-center gap-1.5 rounded-full bg-royal-blue px-3 py-1.5 font-sans text-sm font-medium text-white shadow-lg hover:bg-royal-blue-dark">
+          <MI name="auto_awesome" /> Edit with AI
+        </button>
+      )}
+
+      {aiOpen && sel && (
+        <div role="dialog" aria-label="Edit with AI"
+          style={{ position: 'fixed', top: sel.top, left: Math.min(sel.left, window.innerWidth - 340) }}
+          className="fixed z-[70] flex w-[min(90vw,330px)] flex-col gap-2 rounded-lg border border-royal-blue bg-white p-3 font-sans text-sm shadow-xl">
+          <p className="text-xs text-gray-500">
+            Change: “{sel.text.length > 90 ? `${sel.text.slice(0, 90)}…` : sel.text}”
+          </p>
+          <div className="flex gap-2">
+            <input autoFocus value={aiInstruction} disabled={aiBusy}
+              onChange={(e) => setAiInstruction(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); runAi() } if (e.key === 'Escape') closeAi() }}
+              placeholder="e.g. Add pros and cons"
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-royal-blue" />
+            <button type="button" onClick={runAi} disabled={aiBusy || !aiInstruction.trim()}
+              className="shrink-0 rounded-lg bg-royal-blue px-3 py-2 font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">
+              {aiBusy ? 'Changing…' : 'Change'}
+            </button>
+          </div>
+          {aiError && <p className="text-red-600">{aiError}</p>}
+          <button type="button" onClick={closeAi} className="self-end text-gray-500 hover:underline">Cancel</button>
+        </div>
+      )}
+
       {picker && (
         <div className="flex shrink-0 flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 font-sans text-sm">
           {picker === 'menu' && (
@@ -262,8 +360,8 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
         suppressContentEditableWarning
         onInput={sync}
         onBlur={sync}
-        onKeyUp={readBlock}
-        onMouseUp={readBlock}
+        onKeyUp={() => { readBlock(); readEditorSelection() }}
+        onMouseUp={() => { readBlock(); readEditorSelection() }}
         // Paste as plain text, so pasting from Word does not import its markup.
         onPaste={(e) => {
           e.preventDefault()
