@@ -59,6 +59,15 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
   const [aiOpen, setAiOpen] = useState(false)
   const [aiInstruction, setAiInstruction] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
+
+  // Keep the highlighted passage visibly selected while the change box has focus.
+  // The CSS Custom Highlight API paints it without changing the article text.
+  useEffect(() => {
+    if (typeof CSS === 'undefined' || !CSS.highlights || typeof Highlight === 'undefined') return
+    if (aiOpen && savedRange.current) CSS.highlights.set('rws-ai-edit', new Highlight(savedRange.current))
+    else CSS.highlights.delete('rws-ai-edit')
+    return () => CSS.highlights?.delete('rws-ai-edit')
+  }, [aiOpen])
   const [aiError, setAiError] = useState('')
 
   useEffect(() => {
