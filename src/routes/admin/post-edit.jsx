@@ -112,6 +112,21 @@ export async function action({ request, params }) {
     }
   }
 
+  if (intent === 'ai-revise') {
+    try {
+      const { reviseArticle } = await import('../../lib/ai.server.js')
+      const draft = await reviseArticle({
+        title: String(f.get('title') ?? ''),
+        html: String(f.get('html') ?? ''),
+        instruction: String(f.get('instruction') ?? ''),
+      })
+      await log(user, 'ai.revise', { entityType: 'post', details: { instruction: String(f.get('instruction') ?? '').slice(0, 200) } })
+      return { ai: { kind: 'article', ...draft } }
+    } catch (e) {
+      return { aiError: e.message }
+    }
+  }
+
   if (intent === 'ai-topic') {
     try {
       const { suggestTopic } = await import('../../lib/ai.server.js')
