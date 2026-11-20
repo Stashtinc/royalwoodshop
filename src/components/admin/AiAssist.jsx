@@ -66,6 +66,7 @@ export default function AiAssist({
   const fetcher = useFetcher()
   const [mode, setMode] = useState('article')
   const [topic, setTopic] = useState('')
+  const [revision, setRevision] = useState('')
   const [notes, setNotes] = useState('')
   const [length, setLength] = useState('medium')
   const [chosen, setChosen] = useState(null)
@@ -156,6 +157,13 @@ export default function AiAssist({
     const draft = results.article
     if (draft) return { title: draft.title, contentHtml: draft.html }
     return state
+  }
+
+  // Applies one requested change to the current draft; the rest of the article is kept.
+  const reviseNow = () => {
+    if (!result || result.kind !== 'article' || !revision.trim()) return
+    send({ intent: 'ai-revise', title: result.title, html: result.html, instruction: revision.trim() })
+    setRevision('')
   }
 
   const send = (payload) =>
@@ -315,6 +323,22 @@ export default function AiAssist({
               </div>
               <div className="prose-royal max-h-[45vh] max-w-none overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
                 dangerouslySetInnerHTML={{ __html: result.html }} />
+              <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3">
+                <label htmlFor="ai-revision" className="text-sm font-medium text-gray-700">
+                  What should change? <span className="font-normal text-gray-400">the rest stays as it is</span>
+                </label>
+                <div className="flex gap-2">
+                  <input id="ai-revision" value={revision} onChange={(e) => setRevision(e.target.value)}
+                    disabled={busy}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && revision.trim() && !busy) { e.preventDefault(); reviseNow() } }}
+                    placeholder="Add a Cons section for MDF"
+                    className={`${input} flex-1`} />
+                  <button type="button" onClick={reviseNow} disabled={busy || !revision.trim()}
+                    className="shrink-0 rounded-lg border border-royal-blue px-4 py-2 text-sm font-medium text-royal-blue hover:bg-royal-blue hover:text-white disabled:opacity-50">
+                    Make this change
+                  </button>
+                </div>
+              </div>
               <p className="text-xs text-gray-500">
                 Accepting replaces the article body. Read it first — it can be confidently
                 wrong about specifics, and anything about products, prices or lead times
