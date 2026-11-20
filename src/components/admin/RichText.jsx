@@ -17,6 +17,11 @@ const BLOCKS = [
   ['blockquote', 'Quote'],
 ]
 
+/** Material Symbols icon. The font is loaded by the site head. */
+function MI({ name }) {
+  return <span aria-hidden="true" className="material-symbols-outlined text-[20px] leading-none">{name}</span>
+}
+
 function Btn({ onClick, title, active, children }) {
   return (
     <button
@@ -180,22 +185,22 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
         </select>
 
         <span className="mx-1 h-5 w-px bg-gray-300" />
-        <Btn title="Bold" onClick={() => exec('bold')}><b>B</b></Btn>
-        <Btn title="Italic" onClick={() => exec('italic')}><i>I</i></Btn>
+        <Btn title="Bold" onClick={() => exec('bold')}><MI name="format_bold" /></Btn>
+        <Btn title="Italic" onClick={() => exec('italic')}><MI name="format_italic" /></Btn>
         <span className="mx-1 h-5 w-px bg-gray-300" />
-        <Btn title="Bulleted list" onClick={() => exec('insertUnorderedList')}>•</Btn>
-        <Btn title="Numbered list" onClick={() => exec('insertOrderedList')}>1.</Btn>
+        <Btn title="Bulleted list" onClick={() => exec('insertUnorderedList')}><MI name="format_list_bulleted" /></Btn>
+        <Btn title="Numbered list" onClick={() => exec('insertOrderedList')}><MI name="format_list_numbered" /></Btn>
         <span className="mx-1 h-5 w-px bg-gray-300" />
-        <Btn title="Insert image" onClick={openPicker}>🖼</Btn>
-        <Btn title="Add link" onClick={addLink}>🔗</Btn>
-        <Btn title="Remove link" onClick={() => exec('unlink')}>⌫</Btn>
+        <Btn title="Insert image" onClick={openPicker}><MI name="image" /></Btn>
+        <Btn title="Add link" onClick={addLink}><MI name="link" /></Btn>
+        <Btn title="Remove link" onClick={() => exec('unlink')}><MI name="link_off" /></Btn>
         <span className="mx-1 h-5 w-px bg-gray-300" />
-        <Btn title="Clear formatting" onClick={() => exec('removeFormat')}>✕</Btn>
+        <Btn title="Clear formatting" onClick={() => exec('removeFormat')}><MI name="format_clear" /></Btn>
         </div>
 
         <span className="mx-1 ml-auto h-5 w-px bg-gray-300" />
         <Btn title={htmlMode ? 'Back to the visual editor' : 'Edit the HTML source'} active={htmlMode} onClick={toggleHtml}>
-          <span className="font-mono text-xs font-semibold">&lt;/&gt; HTML</span>
+          <span className="flex items-center gap-1 font-mono text-xs font-semibold"><MI name="code" />HTML</span>
         </Btn>
       </div>
 
