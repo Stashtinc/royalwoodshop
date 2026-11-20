@@ -384,7 +384,7 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
             <input autoFocus value={aiInstruction} disabled={aiBusy}
               onChange={(e) => setAiInstruction(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); runAi() } if (e.key === 'Escape') closeAi() }}
-              placeholder="e.g. Add pros and cons"
+              placeholder="Add change request here..."
               className="flex-1 rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-royal-blue" />
             <button type="button" onClick={runAi} disabled={aiBusy || !aiInstruction.trim()}
               className="shrink-0 rounded-lg bg-royal-blue px-3 py-2 font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">
