@@ -187,3 +187,9 @@ select:not([multiple]):not([size]) {
   background-position: right 1rem center;
   background-size: 12px 12px;
 }
+
+/* The passage being changed with Edit with AI stays highlighted. */
+::highlight(rws-ai-edit) {
+  background-color: #bfdbfe;
+  color: inherit;
+}
