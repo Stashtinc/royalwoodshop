@@ -229,7 +229,12 @@ awards or customer quotes. If a specific figure would help, describe what it
 depends on instead. Where a genuine measurement is standard in the trade
 (for example that baseboard is commonly 3 to 5 inches tall) it is fine to say so.`
 
-  const notesLine = notes.trim() ? `\n\nPoints to cover:\n${notes.trim()}` : ''
+  // The points are requirements, not suggestions: each one must appear in the article as its own
+  // clearly labelled part, so a request such as "pros and cons" is visibly answered.
+  const points = notes.split('\n').map((p) => p.trim()).filter(Boolean)
+  const notesLine = points.length
+    ? `\n\nREQUIRED. Cover every one of these points, each as a clearly headed section or a labelled list. Do not skip any:\n${points.map((p, i) => `${i + 1}. ${p}`).join('\n')}`
+    : ''
   const data = await jsonWithRetry(() => callText({
     system,
     maxTokens: 4000,
