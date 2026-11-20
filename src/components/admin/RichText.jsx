@@ -225,6 +225,25 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
     placeImgPanel(el)
   }
 
+  // Text wrap: 'left' and 'right' float the image so text runs beside it; 'none' keeps it on its own line.
+  const wrapImg = (mode) => {
+    const el = imgSel?.el
+    if (!el) return
+    if (mode === 'left') {
+      el.style.float = 'left'
+      el.style.margin = '0.25em 1.25em 0.75em 0'
+    } else if (mode === 'right') {
+      el.style.float = 'right'
+      el.style.margin = '0.25em 0 0.75em 1.25em'
+    } else {
+      el.style.float = 'none'
+      el.style.display = 'block'
+      el.style.margin = '0.75em auto'
+    }
+    sync()
+    placeImgPanel(el)
+  }
+
   const resetImg = () => {
     const el = imgSel?.el
     if (!el) return
@@ -327,6 +346,10 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
           <span className="mx-1 h-5 w-px bg-gray-300" />
           <Btn title="Full width" onClick={() => resizeImg(editor.current.clientWidth - 24)}><MI name="fullscreen" /></Btn>
           <Btn title="Original size" onClick={resetImg}><MI name="restart_alt" /></Btn>
+          <span className="mx-1 h-5 w-px bg-gray-300" />
+          <Btn title="Wrap text on the left" onClick={() => wrapImg('left')}><MI name="format_align_left" /></Btn>
+          <Btn title="No text wrap" onClick={() => wrapImg('none')}><MI name="format_align_center" /></Btn>
+          <Btn title="Wrap text on the right" onClick={() => wrapImg('right')}><MI name="format_align_right" /></Btn>
           <span className="mx-1 h-5 w-px bg-gray-300" />
           <Btn title="Remove image" onClick={removeImg}><MI name="delete" /></Btn>
         </div>
