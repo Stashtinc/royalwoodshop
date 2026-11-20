@@ -67,6 +67,9 @@ export default function AiAssist({
   const [mode, setMode] = useState('article')
   const [topic, setTopic] = useState('')
   const [revision, setRevision] = useState('')
+  // The passage highlighted in the draft, and where the change box sits.
+  const [pick, setPick] = useState(null)
+  const previewRef = useRef(null)
   const [notes, setNotes] = useState('')
   const [length, setLength] = useState('medium')
   const [chosen, setChosen] = useState(null)
@@ -159,10 +162,30 @@ export default function AiAssist({
     return state
   }
 
-  // Applies one requested change to the current draft; the rest of the article is kept.
+  // Applies the requested change to the highlighted passage; the rest of the article is kept.
   const reviseNow = () => {
     if (!result || result.kind !== 'article' || !revision.trim()) return
-    send({ intent: 'ai-revise', title: result.title, html: result.html, instruction: revision.trim() })
+    const instruction = pick
+      ? `Change only this passage: "${pick.text}". Requested change: ${revision.trim()}`
+      : revision.trim()
+    send({ intent: 'ai-revise', title: result.title, html: result.html, instruction })
+    setRevision('')
+    setPick(null)
+    window.getSelection()?.removeAllRanges()
+  }
+
+  // Highlighting text in the draft opens a change box right beside it.
+  const readSelection = () => {
+    const sel = window.getSelection()
+    const el = previewRef.current
+    if (!sel || sel.isCollapsed || !el || !el.contains(sel.anchorNode)) return
+    const text = sel.toString().trim()
+    if (text.length < 3) return
+    const rect = sel.getRangeAt(0).getBoundingClientRect()
+    const width = Math.min(window.innerWidth * 0.9, 380)
+    const below = rect.bottom + 8
+    const top = below + 140 > window.innerHeight ? Math.max(8, rect.top - 140) : below
+    setPick({ text, top, left: Math.min(Math.max(8, rect.left), window.innerWidth - width - 8) })
     setRevision('')
   }
 
@@ -321,24 +344,29 @@ export default function AiAssist({
                 <p className="font-serif text-lg font-bold text-tundora">{result.title}</p>
                 <span className="shrink-0 text-xs text-gray-400">{result.words} words</span>
               </div>
-              <div className="prose-royal max-h-[45vh] max-w-none overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+              <div ref={previewRef} onMouseUp={readSelection} onKeyUp={readSelection}
+                onScroll={() => setPick(null)}
+                className="prose-royal max-h-[45vh] max-w-none select-text overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
                 dangerouslySetInnerHTML={{ __html: result.html }} />
-              <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3">
-                <label htmlFor="ai-revision" className="text-sm font-medium text-gray-700">
-                  What should change? <span className="font-normal text-gray-400">the rest stays as it is</span>
-                </label>
-                <div className="flex gap-2">
-                  <input id="ai-revision" value={revision} onChange={(e) => setRevision(e.target.value)}
-                    disabled={busy}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && revision.trim() && !busy) { e.preventDefault(); reviseNow() } }}
-                    placeholder="Add a Cons section for MDF"
-                    className={`${input} flex-1`} />
-                  <button type="button" onClick={reviseNow} disabled={busy || !revision.trim()}
-                    className="shrink-0 rounded-lg border border-royal-blue px-4 py-2 text-sm font-medium text-royal-blue hover:bg-royal-blue hover:text-white disabled:opacity-50">
-                    Make this change
-                  </button>
+              {pick && (
+                <div role="dialog" aria-label="Change this passage"
+                  className="fixed z-[60] flex w-[min(90vw,380px)] flex-col gap-2 rounded-lg border border-royal-blue bg-white p-3 shadow-xl"
+                  style={{ top: pick.top, left: pick.left }}>
+                  <p className="text-xs text-gray-500">
+                    Change: “{pick.text.length > 90 ? `${pick.text.slice(0, 90)}…` : pick.text}”
+                  </p>
+                  <div className="flex gap-2">
+                    <input value={revision} onChange={(e) => setRevision(e.target.value)} disabled={busy} autoFocus
+                      onKeyDown={(e) => { if (e.key === 'Enter' && revision.trim() && !busy) { e.preventDefault(); reviseNow() } if (e.key === 'Escape') setPick(null) }}
+                      placeholder="e.g. Add pros and cons"
+                      className={`${input} flex-1`} />
+                    <button type="button" onClick={reviseNow} disabled={busy || !revision.trim()}
+                      className="shrink-0 rounded-lg bg-royal-blue px-3 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">
+                      Change
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
               <p className="text-xs text-gray-500">
                 Accepting replaces the article body. Read it first — it can be confidently
                 wrong about specifics, and anything about products, prices or lead times
