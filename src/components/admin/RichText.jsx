@@ -52,6 +52,14 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
   const [imageBusy, setImageBusy] = useState(false)
   const [imageError, setImageError] = useState('')
   const savedRange = useRef(null)
+  // Edit with AI: the highlighted text, where its button sits, and the change box.
+  const [sel, setSel] = useState(null)
+  // Image size controls: the image tapped in the editor and where its panel sits.
+  const [imgSel, setImgSel] = useState(null)
+  const [aiOpen, setAiOpen] = useState(false)
+  const [aiInstruction, setAiInstruction] = useState('')
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiError, setAiError] = useState('')
 
   useEffect(() => {
     if (editor.current && !editor.current.innerHTML) {
@@ -130,6 +138,130 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
     setPicker('menu')
   }
 
+  // Highlighting text in the editor shows an Edit with AI button beside it.
+  const readEditorSelection = () => {
+    if (aiOpen) return
+    const s = window.getSelection()
+    const el = editor.current
+    if (!s || s.isCollapsed || !el || !el.contains(s.anchorNode)) { setSel(null); return }
+    const text = s.toString().trim()
+    if (text.length < 3) { setSel(null); return }
+    const range = s.getRangeAt(0)
+    savedRange.current = range.cloneRange()
+    const rect = range.getBoundingClientRect()
+    setSel({ text, top: rect.bottom + 6, left: Math.max(8, rect.left) })
+    setAiError('')
+  }
+
+  const restoreSelection = () => {
+    editor.current?.focus()
+    if (!savedRange.current) return
+    const s = window.getSelection()
+    s.removeAllRanges()
+    s.addRange(savedRange.current)
+  }
+
+  const closeAi = () => {
+    setAiOpen(false)
+    setAiInstruction('')
+    setAiError('')
+  }
+
+  // Rewrites only the highlighted passage, then puts it back in the same place.
+  const runAi = async () => {
+    if (!sel || !aiInstruction.trim() || aiBusy) return
+    setAiBusy(true)
+    setAiError('')
+    try {
+      const res = await fetch('/admin/editor-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          passage: sel.text,
+          instruction: aiInstruction.trim(),
+          context: editor.current?.innerText ?? '',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.html) throw new Error(data.error || 'The change could not be made. Try again.')
+      restoreSelection()
+      document.execCommand('insertHTML', false, data.html)
+      sync()
+      setSel(null)
+      closeAi()
+      window.getSelection()?.removeAllRanges()
+    } catch (e) {
+      setAiError(e.message)
+    } finally {
+      setAiBusy(false)
+    }
+  }
+
+  // Tapping an image in the editor opens its size controls; tapping anything else closes them.
+  const pickImage = (e) => {
+    const t = e.target
+    if (t && t.tagName === 'IMG' && editor.current?.contains(t)) {
+      const r = t.getBoundingClientRect()
+      setImgSel({ el: t, top: r.bottom + 8, left: Math.max(8, r.left) })
+    } else {
+      setImgSel(null)
+    }
+  }
+
+  const placeImgPanel = (el) => {
+    const r = el.getBoundingClientRect()
+    setImgSel({ el, top: r.bottom + 8, left: Math.max(8, r.left) })
+  }
+
+  const resizeImg = (px) => {
+    const el = imgSel?.el
+    if (!el || !editor.current) return
+    const max = editor.current.clientWidth - 24
+    el.style.width = `${Math.max(40, Math.min(max, Math.round(px)))}px`
+    el.style.height = 'auto'
+    el.style.maxWidth = '100%'
+    sync()
+    placeImgPanel(el)
+  }
+
+  // Text wrap: 'left' and 'right' float the image so text runs beside it; 'none' keeps it on its own line.
+  const wrapImg = (mode) => {
+    const el = imgSel?.el
+    if (!el) return
+    if (mode === 'left') {
+      el.style.float = 'left'
+      el.style.margin = '0.25em 1.25em 0.75em 0'
+    } else if (mode === 'right') {
+      el.style.float = 'right'
+      el.style.margin = '0.25em 0 0.75em 1.25em'
+    } else {
+      el.style.float = 'none'
+      el.style.display = 'block'
+      el.style.margin = '0.75em auto'
+    }
+    sync()
+    placeImgPanel(el)
+  }
+
+  const resetImg = () => {
+    const el = imgSel?.el
+    if (!el) return
+    el.style.width = ''
+    el.style.height = ''
+    el.style.maxWidth = ''
+    sync()
+    placeImgPanel(el)
+  }
+
+  const removeImg = () => {
+    const el = imgSel?.el
+    if (!el) return
+    el.remove()
+    sync()
+    setImgSel(null)
+  }
+
   const insertImage = (url) => {
     editor.current?.focus()
     if (savedRange.current) {
@@ -204,6 +336,57 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
         </Btn>
       </div>
 
+      {imgSel && (
+        <div role="toolbar" aria-label="Image size"
+          style={{ position: 'fixed', top: imgSel.top, left: Math.min(imgSel.left, window.innerWidth - 330) }}
+          className="fixed z-[70] flex flex-wrap items-center gap-1 rounded-lg border border-gray-300 bg-white p-1.5 font-sans text-sm shadow-xl">
+          <Btn title="Smaller" onClick={() => resizeImg(imgSel.el.getBoundingClientRect().width - 40)}><MI name="remove" /></Btn>
+          <span className="min-w-[4.5rem] text-center text-gray-700">{Math.round(imgSel.el.getBoundingClientRect().width)} px</span>
+          <Btn title="Larger" onClick={() => resizeImg(imgSel.el.getBoundingClientRect().width + 40)}><MI name="add" /></Btn>
+          <span className="mx-1 h-5 w-px bg-gray-300" />
+          <Btn title="Full width" onClick={() => resizeImg(editor.current.clientWidth - 24)}><MI name="fullscreen" /></Btn>
+          <Btn title="Original size" onClick={resetImg}><MI name="restart_alt" /></Btn>
+          <span className="mx-1 h-5 w-px bg-gray-300" />
+          <Btn title="Wrap text on the left" onClick={() => wrapImg('left')}><MI name="format_align_left" /></Btn>
+          <Btn title="No text wrap" onClick={() => wrapImg('none')}><MI name="format_align_center" /></Btn>
+          <Btn title="Wrap text on the right" onClick={() => wrapImg('right')}><MI name="format_align_right" /></Btn>
+          <span className="mx-1 h-5 w-px bg-gray-300" />
+          <Btn title="Remove image" onClick={removeImg}><MI name="delete" /></Btn>
+        </div>
+      )}
+
+      {sel && !aiOpen && (
+        <button type="button" style={{ position: 'fixed', top: sel.top, left: sel.left }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setAiOpen(true)}
+          className="fixed z-[70] flex items-center gap-1.5 rounded-full bg-royal-blue px-3 py-1.5 font-sans text-sm font-medium text-white shadow-lg hover:bg-royal-blue-dark">
+          <MI name="auto_awesome" /> Edit with AI
+        </button>
+      )}
+
+      {aiOpen && sel && (
+        <div role="dialog" aria-label="Edit with AI"
+          style={{ position: 'fixed', top: sel.top, left: Math.min(sel.left, window.innerWidth - 340) }}
+          className="fixed z-[70] flex w-[min(90vw,330px)] flex-col gap-2 rounded-lg border border-royal-blue bg-white p-3 font-sans text-sm shadow-xl">
+          <p className="text-xs text-gray-500">
+            Change: “{sel.text.length > 90 ? `${sel.text.slice(0, 90)}…` : sel.text}”
+          </p>
+          <div className="flex gap-2">
+            <input autoFocus value={aiInstruction} disabled={aiBusy}
+              onChange={(e) => setAiInstruction(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); runAi() } if (e.key === 'Escape') closeAi() }}
+              placeholder="e.g. Add pros and cons"
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-royal-blue" />
+            <button type="button" onClick={runAi} disabled={aiBusy || !aiInstruction.trim()}
+              className="shrink-0 rounded-lg bg-royal-blue px-3 py-2 font-medium text-white hover:bg-royal-blue-dark disabled:opacity-50">
+              {aiBusy ? 'Changing…' : 'Change'}
+            </button>
+          </div>
+          {aiError && <p className="text-red-600">{aiError}</p>}
+          <button type="button" onClick={closeAi} className="self-end text-gray-500 hover:underline">Cancel</button>
+        </div>
+      )}
+
       {picker && (
         <div className="flex shrink-0 flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 font-sans text-sm">
           {picker === 'menu' && (
@@ -262,8 +445,9 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
         suppressContentEditableWarning
         onInput={sync}
         onBlur={sync}
-        onKeyUp={readBlock}
-        onMouseUp={readBlock}
+        onClick={pickImage}
+        onKeyUp={() => { readBlock(); readEditorSelection() }}
+        onMouseUp={() => { readBlock(); readEditorSelection() }}
         // Paste as plain text, so pasting from Word does not import its markup.
         onPaste={(e) => {
           e.preventDefault()
