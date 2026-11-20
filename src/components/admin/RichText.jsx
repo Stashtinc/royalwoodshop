@@ -54,6 +54,8 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
   const savedRange = useRef(null)
   // Edit with AI: the highlighted text, where its button sits, and the change box.
   const [sel, setSel] = useState(null)
+  // Image size controls: the image tapped in the editor and where its panel sits.
+  const [imgSel, setImgSel] = useState(null)
   const [aiOpen, setAiOpen] = useState(false)
   const [aiInstruction, setAiInstruction] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
@@ -196,6 +198,51 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
     }
   }
 
+  // Tapping an image in the editor opens its size controls; tapping anything else closes them.
+  const pickImage = (e) => {
+    const t = e.target
+    if (t && t.tagName === 'IMG' && editor.current?.contains(t)) {
+      const r = t.getBoundingClientRect()
+      setImgSel({ el: t, top: r.bottom + 8, left: Math.max(8, r.left) })
+    } else {
+      setImgSel(null)
+    }
+  }
+
+  const placeImgPanel = (el) => {
+    const r = el.getBoundingClientRect()
+    setImgSel({ el, top: r.bottom + 8, left: Math.max(8, r.left) })
+  }
+
+  const resizeImg = (px) => {
+    const el = imgSel?.el
+    if (!el || !editor.current) return
+    const max = editor.current.clientWidth - 24
+    el.style.width = `${Math.max(40, Math.min(max, Math.round(px)))}px`
+    el.style.height = 'auto'
+    el.style.maxWidth = '100%'
+    sync()
+    placeImgPanel(el)
+  }
+
+  const resetImg = () => {
+    const el = imgSel?.el
+    if (!el) return
+    el.style.width = ''
+    el.style.height = ''
+    el.style.maxWidth = ''
+    sync()
+    placeImgPanel(el)
+  }
+
+  const removeImg = () => {
+    const el = imgSel?.el
+    if (!el) return
+    el.remove()
+    sync()
+    setImgSel(null)
+  }
+
   const insertImage = (url) => {
     editor.current?.focus()
     if (savedRange.current) {
@@ -269,6 +316,21 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
           <span className="flex items-center gap-1 font-mono text-xs font-semibold"><MI name="code" />HTML</span>
         </Btn>
       </div>
+
+      {imgSel && (
+        <div role="toolbar" aria-label="Image size"
+          style={{ position: 'fixed', top: imgSel.top, left: Math.min(imgSel.left, window.innerWidth - 330) }}
+          className="fixed z-[70] flex flex-wrap items-center gap-1 rounded-lg border border-gray-300 bg-white p-1.5 font-sans text-sm shadow-xl">
+          <Btn title="Smaller" onClick={() => resizeImg(imgSel.el.getBoundingClientRect().width - 40)}><MI name="remove" /></Btn>
+          <span className="min-w-[4.5rem] text-center text-gray-700">{Math.round(imgSel.el.getBoundingClientRect().width)} px</span>
+          <Btn title="Larger" onClick={() => resizeImg(imgSel.el.getBoundingClientRect().width + 40)}><MI name="add" /></Btn>
+          <span className="mx-1 h-5 w-px bg-gray-300" />
+          <Btn title="Full width" onClick={() => resizeImg(editor.current.clientWidth - 24)}><MI name="fullscreen" /></Btn>
+          <Btn title="Original size" onClick={resetImg}><MI name="restart_alt" /></Btn>
+          <span className="mx-1 h-5 w-px bg-gray-300" />
+          <Btn title="Remove image" onClick={removeImg}><MI name="delete" /></Btn>
+        </div>
+      )}
 
       {sel && !aiOpen && (
         <button type="button" style={{ position: 'fixed', top: sel.top, left: sel.left }}
@@ -360,6 +422,7 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
         suppressContentEditableWarning
         onInput={sync}
         onBlur={sync}
+        onClick={pickImage}
         onKeyUp={() => { readBlock(); readEditorSelection() }}
         onMouseUp={() => { readBlock(); readEditorSelection() }}
         // Paste as plain text, so pasting from Word does not import its markup.
