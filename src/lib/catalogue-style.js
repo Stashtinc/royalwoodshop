@@ -59,6 +59,7 @@ export const DEFAULT_STYLE = {
   rowPadding: 0, // space inside each product row, around its content
   coverTitleSize: 30,
   coverTitleColor: '#24140D',
+  subtitle: '', // a line under the cover title, e.g. "All Products"
 }
 
 const clamp = (v, min, max, fallback) => {
@@ -96,6 +97,7 @@ export function normalizeStyle(raw) {
     rowPadding: clamp(s.rowPadding, 0, 80, d.rowPadding),
     coverTitleSize: clamp(s.coverTitleSize, 14, 60, d.coverTitleSize),
     coverTitleColor: color(s.coverTitleColor, d.coverTitleColor),
+    subtitle: typeof s.subtitle === 'string' ? s.subtitle.slice(0, 200) : d.subtitle,
   }
 }
 
