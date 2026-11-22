@@ -314,10 +314,10 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
   }
 
   return (
-    <div className="flex h-[70vh] min-h-[26rem] flex-col overflow-hidden rounded-lg border border-gray-300 focus-within:border-royal-blue">
+    <div className="flex flex-col rounded-lg border border-gray-300 focus-within:border-royal-blue">
       {/* The passage being changed with Edit with AI. Set here, not in the stylesheet, so the build cannot drop it. */}
       <style>{'::highlight(rws-ai-edit){background-color:#bfdbfe;color:inherit}'}</style>
-      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-gray-200 bg-gray-50 px-2 py-1.5">
+      <div className="sticky top-0 z-10 flex shrink-0 flex-wrap items-center gap-1 border-b border-gray-200 bg-gray-50 px-2 py-1.5">
         <div className={`flex flex-wrap items-center gap-1 ${htmlMode ? 'pointer-events-none opacity-40' : ''}`} aria-disabled={htmlMode}>
         <select
           value={block}
@@ -358,9 +358,15 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
           <Btn title="Full width" onClick={() => resizeImg(editor.current.clientWidth - 24)}><MI name="fullscreen" /></Btn>
           <Btn title="Original size" onClick={resetImg}><MI name="restart_alt" /></Btn>
           <span className="mx-1 h-5 w-px bg-gray-300" />
-          <Btn title="Wrap text on the left" onClick={() => wrapImg('left')}><MI name="format_align_left" /></Btn>
-          <Btn title="No text wrap" onClick={() => wrapImg('none')}><MI name="format_align_center" /></Btn>
-          <Btn title="Wrap text on the right" onClick={() => wrapImg('right')}><MI name="format_align_right" /></Btn>
+          <Btn title="Text wraps around the image, on the left" onClick={() => wrapImg('left')}>
+            <span className="flex items-center gap-1 text-xs"><MI name="float_left" />Wrap left</span>
+          </Btn>
+          <Btn title="Image sits on its own line, no wrap" onClick={() => wrapImg('none')}>
+            <span className="flex items-center gap-1 text-xs"><MI name="block" />No wrap</span>
+          </Btn>
+          <Btn title="Text wraps around the image, on the right" onClick={() => wrapImg('right')}>
+            <span className="flex items-center gap-1 text-xs"><MI name="float_right" />Wrap right</span>
+          </Btn>
           <span className="mx-1 h-5 w-px bg-gray-300" />
           <Btn title="Remove image" onClick={removeImg}><MI name="delete" /></Btn>
         </div>
@@ -445,7 +451,7 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
           spellCheck={false}
           placeholder="Paste or write HTML here"
           aria-label="HTML source"
-          className="min-h-0 flex-1 resize-none overflow-y-auto bg-white px-4 py-3 font-mono text-[13px] leading-relaxed text-gray-800 outline-none"
+          className="min-h-[24rem] resize-y bg-white px-4 py-3 font-mono text-[13px] leading-relaxed text-gray-800 outline-none"
         />
       )}
 
@@ -466,7 +472,7 @@ export default function RichText({ name = 'contentHtml', defaultValue = '', onDi
           document.execCommand('insertText', false, text)
           sync()
         }}
-        className="prose-royal min-h-0 flex-1 overflow-y-auto max-w-none bg-white px-4 py-3 outline-none"
+        className="prose-royal min-h-[24rem] max-w-none bg-white px-4 py-3 outline-none"
       />
 
       {/* No defaultValue: React would reset this field on re-render, wiping the content sent on save. sync() keeps it current. */}

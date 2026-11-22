@@ -1,6 +1,6 @@
 import {
   pgTable, pgEnum, serial, integer, text, varchar, boolean, numeric,
-  timestamp, primaryKey, uniqueIndex, index,
+  timestamp, primaryKey, uniqueIndex, index, jsonb,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { customType } from 'drizzle-orm/pg-core'
@@ -496,4 +496,31 @@ export const quoteFiles = pgTable('quote_files', {
   data: bytea('data').notNull(),
 }, (t) => ({
   requestIdx: index('quote_files_request_idx').on(t.requestId),
+}))
+
+/* ------------------------------------------------------ print catalogues */
+
+/** A saved selection of products, printed as one PDF. Items hold product IDs
+ *  only, so a reprint shows the current product details. */
+export const printCatalogues = pgTable('print_catalogues', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 200 }).notNull().default('Product Catalogue'),
+  showPrices: boolean('show_prices').notNull().default(false),
+  coverImageKey: text('cover_image_key'),
+  coverDate: varchar('cover_date', { length: 60 }),
+  style: jsonb('style'),
+  createdByEmail: varchar('created_by_email', { length: 255 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const printCatalogueItems = pgTable('print_catalogue_items', {
+  id: serial('id').primaryKey(),
+  catalogueId: integer('catalogue_id').notNull().references(() => printCatalogues.id, { onDelete: 'cascade' }),
+  productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniq: uniqueIndex('print_catalogue_items_unique').on(t.catalogueId, t.productId),
+  orderIdx: index('print_catalogue_items_order_idx').on(t.catalogueId, t.sortOrder),
 }))
