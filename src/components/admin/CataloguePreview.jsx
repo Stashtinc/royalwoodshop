@@ -87,6 +87,9 @@ function CoverContent({ title, date, background, style }) {
       <div style={{ position: 'relative', background: background ? 'rgba(255,255,255,0.9)' : 'transparent', padding: background ? '24px 28px' : 0 }}>
         <img src={logoBlue} alt="" style={{ width: 130, display: 'block', margin: '0 auto' }} />
         <div style={{ ...fontFor(style, style.headingFont), fontWeight: 700, fontSize: style.coverTitleSize, color: style.coverTitleColor, marginTop: 28 }}>{title}</div>
+        {style.subtitle && (
+          <div style={{ ...fontFor(style, style.bodyFont), fontSize: Math.max(12, style.coverTitleSize * 0.5), color: style.textColor, marginTop: 8 }}>{style.subtitle}</div>
+        )}
       </div>
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 10, color: '#555' }}>{date || dateText()}</div>
     </div>

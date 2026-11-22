@@ -152,18 +152,23 @@ function drawCover(doc, cat, st, background, logo) {
   const titleW = PAGE_W - m * 2
   doc.font(face(st.headingFont, true)).fontSize(st.coverTitleSize)
   const titleH = doc.heightOfString(title, { width: titleW, align: 'center' })
+  const titleTextW = doc.widthOfString(title) // measured now, while the heading font is set
   const logoW = 130
   const logoImg = logo ? doc.openImage(logo) : null
   const logoH = logoImg ? logoImg.height * (logoW / logoImg.width) : 0
-  const blockH = logoH + 28 + titleH
+  // The subtitle, if any, sits under the title.
+  const subSize = Math.max(12, st.coverTitleSize * 0.5)
+  const subH = st.subtitle ? (doc.font(face(st.bodyFont)).fontSize(subSize), 8 + doc.heightOfString(st.subtitle, { width: titleW, align: 'center' })) : 0
+  const blockH = logoH + 28 + titleH + subH
   const top = (PAGE_H - blockH) / 2
 
   if (background) {
-    const boxW = Math.min(titleW, Math.max(logoW, doc.widthOfString(title)) + 56)
+    const boxW = Math.min(titleW, Math.max(logoW, titleTextW) + 56)
     doc.save().fillOpacity(0.9).rect((PAGE_W - boxW) / 2, top - 24, boxW, blockH + 48).fill('#ffffff').restore()
   }
   if (logo) doc.image(logo, (PAGE_W - logoW) / 2, top, { width: logoW })
   text(doc, true, title, m, top + logoH + 28, { fontName: face(st.headingFont, true), size: st.coverTitleSize, color: st.coverTitleColor, width: titleW, align: 'center' })
+  if (st.subtitle) text(doc, true, st.subtitle, m, top + logoH + 28 + titleH, { fontName: face(st.bodyFont), size: subSize, color: st.textColor, width: titleW, align: 'center', marginTop: 8 })
 
   text(doc, true, cat.coverDate || dateText(), m, PAGE_H - m - 12, { fontName: face('site'), size: 10, color: COVER_DATE_COLOR, width: titleW, align: 'center' })
 }

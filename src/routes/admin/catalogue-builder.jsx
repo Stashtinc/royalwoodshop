@@ -378,6 +378,11 @@ export default function CatalogueBuilder() {
                   className={input}
                 />
               </label>
+              <label className="flex flex-col gap-1 text-sm text-gray-600">
+                Subtitle
+                <input value={globalStyle.subtitle} onChange={(e) => setGlobalStyle({ ...globalStyle, subtitle: e.target.value })}
+                  placeholder="e.g. All Products" className={input} />
+              </label>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm text-gray-700">Show prices</span>
                 <button
@@ -420,6 +425,11 @@ export default function CatalogueBuilder() {
                       <label className="flex flex-col gap-1 text-sm text-gray-600">
                         Title
                         <input name="title" value={coverTitle} onChange={(e) => setCoverTitle(e.target.value)} className={input} />
+                      </label>
+                      <label className="flex flex-col gap-1 text-sm text-gray-600">
+                        Subtitle
+                        <input value={globalStyle.subtitle} onChange={(e) => setGlobalStyle({ ...globalStyle, subtitle: e.target.value })}
+                          placeholder="e.g. All Products" className={input} />
                       </label>
                       <label className="flex flex-col gap-1 text-sm text-gray-600">
                         Date
