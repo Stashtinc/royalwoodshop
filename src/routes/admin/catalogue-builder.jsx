@@ -4,7 +4,7 @@ import { requireUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
 import { saveUpload } from '../../lib/uploads.server'
 import { thumbSrc } from '../../lib/images'
-import { AVAILABILITY_LABEL, SPECIES } from '../../lib/catalogue-constants'
+import { AVAILABILITY, AVAILABILITY_LABEL, SPECIES } from '../../lib/catalogue-constants'
 import {
   getPrintCatalogue, updatePrintCatalogue, addProductsToCatalogue,
   removeItemFromCatalogue, searchProductsForCatalogue, reorderCatalogueItems, listCategoryOptions,
@@ -14,10 +14,10 @@ import SectionTabs from '../../components/admin/SectionTabs'
 import CataloguePreview from '../../components/admin/CataloguePreview'
 import { CoverStyleFields, FontFields, StyleSaveBar } from '../../components/admin/CatalogueStyleForm'
 import { DEFAULT_STYLE, normalizeStoredStyle, normalizeStyle } from '../../lib/catalogue-style'
-import FilterPill from '../../components/admin/FilterPill'
 import { useDragReorder } from '../../components/admin/useDragReorder'
 
 const PICKER_PAGE = 50
+const SORT_LABEL = { name: 'Name', code: 'Product code', views: 'Most viewed', category: 'Category' }
 
 export async function loader({ request, params }) {
   await requireUser(request)
@@ -115,18 +115,22 @@ export default function CatalogueBuilder() {
   const inCatalogue = new Set(catalogue.items.map((i) => i.productId))
 
   // Picker: batches load as you scroll. A new search or filter starts again from the first batch.
-  const [search, setSearch] = useState({ q: initialQ, category: '', species: '', status: '' })
+  const [search, setSearch] = useState({ q: initialQ, category: '', subcategory: '', species: '', availability: '', sort: 'name' })
+  // The "Sort by" row: sort order and the advanced filters. Closed until tapped.
+  const [sortOpen, setSortOpen] = useState(false)
   const [results, setResults] = useState(firstPage)
   const [hasMore, setHasMore] = useState(firstHasMore)
   const [loading, setLoading] = useState(false)
   const latestRef = useRef(search)
   const sentinelRef = useRef(null)
   const skipFirstSearch = useRef(true)
-  const sameSearch = (x, y) => x.q === y.q && x.category === y.category && x.species === y.species && x.status === y.status
+  const sameSearch = (x, y) => JSON.stringify(x) === JSON.stringify(y)
+  // The search and filters, as query parameters (paging is added where needed).
+  const filterParams = (s) => ({ q: s.q, category: s.category, subcategory: s.subcategory, species: s.species, availability: s.availability, sort: s.sort })
 
   const loadBatch = async (s, offset, replace) => {
     setLoading(true)
-    const sp = new URLSearchParams({ q: s.q, offset: String(offset), category: s.category, species: s.species, status: s.status })
+    const sp = new URLSearchParams({ ...filterParams(s), offset: String(offset) })
     const res = await fetch(`/admin/catalogue-products?${sp}`)
     const data = await res.json()
     // Ignore a batch that arrives after the search has changed.
@@ -140,7 +144,12 @@ export default function CatalogueBuilder() {
     setLoading(false)
   }
 
-  const setFilter = (key, value) => setSearch((prev) => ({ ...prev, [key]: value }))
+  // A new top-level category clears the sub-category, which belongs to the old one.
+  const setFilter = (key, value) => setSearch((prev) => ({ ...prev, [key]: value, ...(key === 'category' ? { subcategory: '' } : {}) }))
+  const clearFilters = () => setSearch((prev) => ({ ...prev, category: '', subcategory: '', species: '', availability: '' }))
+  const hasFilters = Boolean(search.category || search.subcategory || search.species || search.availability)
+  const topCategories = categories.filter((c) => c.parentId == null)
+  const subCategories = categories.filter((c) => search.category && String(c.parentId) === search.category)
 
   useEffect(() => {
     if (skipFirstSearch.current) { skipFirstSearch.current = false; return }
@@ -226,7 +235,7 @@ export default function CatalogueBuilder() {
   // Select all takes every product that matches the current search and filters, not just the loaded ones.
   const toggleAll = async () => {
     if (allChecked) { setSelected(new Map()); return }
-    const sp = new URLSearchParams({ ids_only: '1', q: search.q, category: search.category, species: search.species, status: search.status })
+    const sp = new URLSearchParams({ ids_only: '1', ...filterParams(search) })
     const data = await fetch(`/admin/catalogue-products?${sp}`).then((r) => r.json())
     setSelected(new Map(data.ids.map((id) => [id, { id }])))
   }
@@ -277,19 +286,57 @@ export default function CatalogueBuilder() {
                 </button>
               ))}
             </div>
-            <FilterPill
-              label="All categories"
-              value={search.category}
-              options={[{ value: '', label: 'All categories' }, ...categories.map((c) => ({ value: String(c.id), label: c.name }))]}
-              onChange={(v) => setFilter('category', v)}
-            />
-            <FilterPill
-              label="All species"
-              value={search.species}
-              options={[{ value: '', label: 'All species' }, ...SPECIES.map((sp) => ({ value: sp, label: sp }))]}
-              onChange={(v) => setFilter('species', v)}
-            />
+            <button type="button" onClick={() => setSortOpen((o) => !o)} aria-expanded={sortOpen}
+              className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${sortOpen || hasFilters ? 'border-royal-blue bg-royal-blue text-white' : 'border-gray-300 text-gray-600 hover:border-royal-blue'}`}>
+              Sort by: {SORT_LABEL[search.sort]}
+              <span aria-hidden="true">{sortOpen ? '▴' : '▾'}</span>
+            </button>
           </div>
+
+          {sortOpen && (
+            <div className="mt-3 grid gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5">
+              <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Sort by
+                <select value={search.sort} onChange={(e) => setFilter('sort', e.target.value)} className={input}>
+                  {Object.entries(SORT_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Category
+                <select value={search.category} onChange={(e) => setFilter('category', e.target.value)} className={input}>
+                  <option value="">All categories</option>
+                  {topCategories.map((c) => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Sub-category
+                <select value={search.subcategory} onChange={(e) => setFilter('subcategory', e.target.value)} className={input}
+                  disabled={subCategories.length === 0}>
+                  <option value="">{search.category ? 'All sub-categories' : 'Choose a category first'}</option>
+                  {subCategories.map((c) => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Species
+                <select value={search.species} onChange={(e) => setFilter('species', e.target.value)} className={input}>
+                  <option value="">All species</option>
+                  {SPECIES.map((sp) => <option key={sp} value={sp}>{sp}</option>)}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Availability
+                <select value={search.availability} onChange={(e) => setFilter('availability', e.target.value)} className={input}>
+                  <option value="">Any availability</option>
+                  {AVAILABILITY.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                </select>
+              </label>
+              {hasFilters && (
+                <div className="sm:col-span-2 lg:col-span-5">
+                  <button type="button" onClick={clearFilters} className="text-sm text-gray-500 hover:text-gray-800">Clear filters</button>
+                </div>
+              )}
+            </div>
+          )}
 
           {changed && (
             <Form method="post" className="mt-4 flex flex-wrap items-center gap-3">

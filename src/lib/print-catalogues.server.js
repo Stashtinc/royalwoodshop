@@ -111,7 +111,7 @@ export async function removeItemFromCatalogue(catalogueId, itemId) {
 export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filters = {}) {
   const term = `%${String(q ?? "").trim()}%`
   const hasQuery = String(q ?? "").trim() !== ""
-  const { category = "", species = "", status = "", ids = null } = filters
+  const { category = "", subcategory = "", species = "", status = "", availability = "", sort = "name", ids = null } = filters
   const db = await getDb()
   return db.select({
     id: products.id,
@@ -128,8 +128,11 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filt
     .where(and(
       ne(products.status, "archived"),
       status ? eq(products.status, status) : undefined,
+      availability ? eq(products.availability, availability) : undefined,
       ids ? inArray(products.id, ids) : undefined,
-      category ? sql`(products.primary_category_id = ${Number(category)} or exists (select 1 from product_categories pc where pc.product_id = products.id and pc.category_id = ${Number(category)}))` : undefined,
+      // A top-level category includes its sub-categories.
+      category ? sql`(products.primary_category_id in (select c.id from categories c where c.id = ${Number(category)} or c.parent_id = ${Number(category)}) or exists (select 1 from product_categories pc join categories c on c.id = pc.category_id where pc.product_id = products.id and (c.id = ${Number(category)} or c.parent_id = ${Number(category)})))` : undefined,
+      subcategory ? sql`(products.primary_category_id = ${Number(subcategory)} or exists (select 1 from product_categories pc where pc.product_id = products.id and pc.category_id = ${Number(subcategory)}))` : undefined,
       species ? sql`exists (select 1 from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species' and av.value = ${species})` : undefined,
       hasQuery ? or(
         ilike(products.name, term),
@@ -138,7 +141,10 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filt
         sql`exists (select 1 from product_part_ids pp where pp.product_id = products.id and pp.part_id ilike ${term})`,
       ) : undefined,
     ))
-    .orderBy(asc(products.name), asc(products.id))
+    .orderBy(...(sort === "code" ? [asc(products.productCode), asc(products.id)]
+      : sort === "views" ? [desc(products.views), asc(products.name)]
+      : sort === "category" ? [sql`category`, asc(products.name)]
+      : [asc(products.name), asc(products.id)]))
     .limit(limit)
     .offset(offset)
 }
@@ -182,9 +188,10 @@ export async function reorderCatalogueItems(catalogueId, itemIds) {
 }
 
 /** Categories for the picker's filter, A to Z. */
+/** Every category, with its parent, so the picker can tell top-level categories from sub-categories. */
 export async function listCategoryOptions() {
   const db = await getDb()
-  return db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.name))
+  return db.select({ id: categories.id, name: categories.name, parentId: categories.parentId }).from(categories).orderBy(asc(categories.name))
 }
 
 /** Cover options: title and date stamp. An empty date means the print date. */
