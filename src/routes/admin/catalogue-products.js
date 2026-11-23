@@ -22,6 +22,12 @@ export async function loader({ request }) {
     const picked = ids.length ? await searchProductsForCatalogue('', ids.length, 0, { ids }) : []
     return Response.json({ results: picked, hasMore: false })
   }
+  // ?ids_only= returns the ids of every product that matches the filters, for Select all
+  if (url.searchParams.has('ids_only')) {
+    const q = url.searchParams.get('q') ?? ''
+    const all = await searchProductsForCatalogue(q, 100000, 0, pickerFilters(url.searchParams))
+    return Response.json({ ids: all.map((p) => p.id) })
+  }
   const q = url.searchParams.get('q') ?? ''
   const offset = Math.max(0, Number(url.searchParams.get('offset') ?? 0) || 0)
   const results = await searchProductsForCatalogue(q, PICKER_PAGE, offset, pickerFilters(url.searchParams))

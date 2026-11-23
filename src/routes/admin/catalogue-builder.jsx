@@ -156,7 +156,7 @@ export default function CatalogueBuilder() {
     if (!el || !hasMore) return
     const io = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && !loading) loadBatch(latestRef.current, results.length, false)
-    }, { rootMargin: '200px' })
+    }, { rootMargin: '800px' }) // start the next batch well before the end, so scrolling never stops
     io.observe(el)
     return () => io.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -223,7 +223,13 @@ export default function CatalogueBuilder() {
     else next.set(p.id, p)
     return next
   })
-  const toggleAll = () => setSelected(allChecked ? new Map() : new Map(results.map((p) => [p.id, p])))
+  // Select all takes every product that matches the current search and filters, not just the loaded ones.
+  const toggleAll = async () => {
+    if (allChecked) { setSelected(new Map()); return }
+    const sp = new URLSearchParams({ ids_only: '1', q: search.q, category: search.category, species: search.species, status: search.status })
+    const data = await fetch(`/admin/catalogue-products?${sp}`).then((r) => r.json())
+    setSelected(new Map(data.ids.map((id) => [id, { id }])))
+  }
   const addIds = [...selected.keys()].filter((id) => !inCatalogue.has(id))
   const removeIds = [...inCatalogue].filter((id) => !selected.has(id))
   const changed = addIds.length + removeIds.length > 0
@@ -349,8 +355,8 @@ export default function CatalogueBuilder() {
               </tbody>
             </table>
           </div>
-          <div ref={sentinelRef} className="py-3 text-center text-xs text-gray-500">
-            {loading ? 'Loading…' : hasMore ? 'Scroll for more' : `${results.length} product${results.length === 1 ? '' : 's'} · archived products are not listed`}
+          <div ref={sentinelRef} className="py-3 text-center text-xs text-gray-500" aria-live="polite">
+            {loading ? 'Loading more products…' : hasMore ? 'Keep scrolling for more' : `${results.length} product${results.length === 1 ? '' : 's'} · archived products are not listed`}
           </div>
         </div>
 

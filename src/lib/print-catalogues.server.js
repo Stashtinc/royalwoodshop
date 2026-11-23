@@ -145,7 +145,20 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filt
 
 /** Adds several products in one go. Ones already in the catalogue are skipped. */
 export async function addProductsToCatalogue(catalogueId, productIds) {
-  for (const productId of productIds) await addProductToCatalogue(catalogueId, productId)
+  const ids = [...new Set(productIds.map(Number).filter(Boolean))]
+  if (!ids.length) return
+  const db = await getDb()
+  const cid = Number(catalogueId)
+  const [{ max }] = await db.select({
+    max: sql`coalesce(max(${printCatalogueItems.sortOrder}), 0)`.mapWith(Number),
+  }).from(printCatalogueItems).where(eq(printCatalogueItems.catalogueId, cid))
+  // Gaps of 10 leave room to reorder without renumbering everything. Inserted in chunks, so
+  // selecting every product at once is a handful of statements, not one per product.
+  const rows = ids.map((productId, i) => ({ catalogueId: cid, productId, sortOrder: max + (i + 1) * 10 }))
+  for (let i = 0; i < rows.length; i += 200) {
+    await db.insert(printCatalogueItems).values(rows.slice(i, i + 200)).onConflictDoNothing()
+  }
+  await touchCatalogue(cid)
 }
 
 async function touchCatalogue(id) {
