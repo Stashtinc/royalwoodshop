@@ -3,12 +3,15 @@ import { searchProductsForCatalogue } from '../../lib/print-catalogues.server'
 
 export const PICKER_PAGE = 50
 
-/** The picker's filters, read from the query string. */
+/** The picker's filters and sort order, read from the query string. */
 export function pickerFilters(searchParams) {
   return {
     category: searchParams.get('category') ?? '',
+    subcategory: searchParams.get('subcategory') ?? '',
     species: searchParams.get('species') ?? '',
+    availability: searchParams.get('availability') ?? '',
     status: searchParams.get('status') ?? '',
+    sort: searchParams.get('sort') ?? 'name',
   }
 }
 

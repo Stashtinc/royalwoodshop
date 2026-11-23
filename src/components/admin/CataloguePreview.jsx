@@ -271,6 +271,56 @@ function PageEditor({ index, count, page, showPrices, itemProps, removeForm, sty
   )
 }
 
+/** The cover, large, with its options beside it. Opened from the cover's Edit button. */
+function CoverEditor({ title, coverDate, coverImage, style, options, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  // Fit the cover to the window height and the canvas width.
+  const canvasRef = useRef(null)
+  const [canvasW, setCanvasW] = useState(0)
+  useLayoutEffect(() => {
+    const el = canvasRef.current
+    if (!el) return undefined
+    const ro = new ResizeObserver(([entry]) => setCanvasW(entry.contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 900
+  const scale = Math.max(0.3, Math.min(1.1, (vh - 170) / PAGE_H, canvasW ? canvasW / PAGE_W : Infinity))
+
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Edit cover" onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/70 p-4">
+      <div onClick={(e) => e.stopPropagation()}
+        className="flex h-full max-h-[calc(100vh-2rem)] w-full max-w-7xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-5 py-3">
+          <span className="font-serif text-lg font-bold text-gray-900">Cover</span>
+          <button type="button" onClick={onClose} className="rounded-md bg-royal-blue px-4 py-1.5 text-sm font-medium text-white hover:bg-royal-blue-dark">Done</button>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+          <div className="relative flex min-h-0 shrink-0 lg:w-3/4">
+            <div ref={canvasRef} className="flex min-h-0 flex-1 bg-gray-200 p-6 lg:overflow-auto">
+              <div className="m-auto">
+                <Page scale={scale} framed={style.pageBorder} margin={style.pageMargin} ruleColor={style.ruleColor}>
+                  <CoverContent title={title} date={coverDate} background={coverImage} style={style} />
+                </Page>
+              </div>
+            </div>
+          </div>
+          <div className="min-h-0 overflow-y-auto p-5 lg:w-1/4 lg:border-l lg:border-gray-200">
+            {options}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function CataloguePreview({ title, coverDate, coverImage, coverOptions, order, showPrices, itemProps, removeForm, style: rawStyle, onGlobalStyleChange, onPageStyleChange, styleBar }) {
   const stored = useMemo(() => normalizeStoredStyle(rawStyle), [rawStyle])
   const globalSt = useMemo(() => normalizeStyle(stored), [stored])
@@ -325,7 +375,6 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
   }, [order, heights, overrides, globalSt])
 
   const scale = boxW ? Math.min(0.6, (boxW - 16) / 2 / PAGE_W) : 0.3
-  const coverScale = boxW ? (boxW - 16) / PAGE_W : 0.5
   const cellW = PAGE_W * scale
   const cellH = PAGE_H * scale
   const chosen = selected != null && selected < pages.length ? selected : null
@@ -355,14 +404,7 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
           </div>
         ))}
 
-        {coverOpen ? (
-          // The cover takes over the pane at full width
-          <div className="mx-auto" style={{ width: PAGE_W * coverScale }}>
-            <Page scale={coverScale} framed={globalSt.pageBorder} margin={globalSt.pageMargin} ruleColor={globalSt.ruleColor}>
-              <CoverContent title={title} date={coverDate} background={coverImage} style={globalSt} />
-            </Page>
-          </div>
-        ) : (
+        {(
           <div className="relative mx-auto grid grid-cols-2 gap-y-4" style={{ width: cellW * 2 }}>
             <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-px bg-gray-200" />
 
@@ -395,17 +437,8 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
         )}
       </div>
 
-      {coverOpen ? (
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Cover</p>
-          <button type="button" onClick={() => setCoverOpen(false)} className="text-sm text-royal-blue hover:underline">Back to layout</button>
-        </div>
-      ) : null}
-
-      {coverOpen && <div className="mt-4">{coverOptions}</div>}
-
       {/* Only the tapped page's products are listed below the pane */}
-      {!coverOpen && (
+      {(
         <div className="mt-4">
           {order.length === 0 && <p className="text-xs text-gray-500">No products yet. Add some from the table on the left.</p>}
           {order.length > 0 && chosen == null && <p className="text-xs text-gray-500">Tap a page to list what is on it below.</p>}
@@ -434,6 +467,17 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
             </div>
           )}
         </div>
+      )}
+
+      {coverOpen && (
+        <CoverEditor
+          title={title}
+          coverDate={coverDate}
+          coverImage={coverImage}
+          style={globalSt}
+          options={coverOptions}
+          onClose={() => setCoverOpen(false)}
+        />
       )}
 
       {editingPage && (
