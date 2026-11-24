@@ -1,4 +1,4 @@
-import { Form, Link, useLoaderData } from 'react-router'
+import { Form, Link, redirect, useLoaderData } from 'react-router'
 import { requireUser } from '../../lib/auth.server'
 import { log } from '../../lib/activity.server'
 import { listPrintCatalogues, createPrintCatalogue, deletePrintCatalogue } from '../../lib/print-catalogues.server'
@@ -18,7 +18,8 @@ export async function action({ request }) {
   if (intent === 'create') {
     const id = await createPrintCatalogue(user.email)
     await log(user, 'print_catalogue.create', { entityType: 'print_catalogue', entityId: id, entityLabel: 'Product Catalogue' })
-    return null
+    // Open the new catalogue's builder straight away.
+    return redirect(`/admin/catalogue/${id}`)
   }
 
   if (intent === 'delete') {
