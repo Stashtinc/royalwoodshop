@@ -6,6 +6,7 @@ export const PICKER_PAGE = 50
 /** The picker's filters and sort order, read from the query string. */
 export function pickerFilters(searchParams) {
   return {
+    // Each of these is a comma-separated list, e.g. category=3,7
     category: searchParams.get('category') ?? '',
     subcategory: searchParams.get('subcategory') ?? '',
     species: searchParams.get('species') ?? '',

@@ -5,6 +5,7 @@ import { log } from '../../lib/activity.server'
 import { saveUpload } from '../../lib/uploads.server'
 import { thumbSrc } from '../../lib/images'
 import { AVAILABILITY, AVAILABILITY_LABEL, SPECIES } from '../../lib/catalogue-constants'
+import MultiSelect from '../../components/admin/MultiSelect'
 import {
   getPrintCatalogue, updatePrintCatalogue, addProductsToCatalogue,
   removeItemFromCatalogue, searchProductsForCatalogue, reorderCatalogueItems, listCategoryOptions,
@@ -115,7 +116,8 @@ export default function CatalogueBuilder() {
   const inCatalogue = new Set(catalogue.items.map((i) => i.productId))
 
   // Picker: batches load as you scroll. A new search or filter starts again from the first batch.
-  const [search, setSearch] = useState({ q: initialQ, category: '', subcategory: '', species: '', availability: '', sort: 'name' })
+  // Each filter is a list of chosen values; empty means no filter on it.
+  const [search, setSearch] = useState({ q: initialQ, category: [], subcategory: [], species: [], availability: [], sort: 'name' })
   // The "Sort by" row: sort order and the advanced filters. Closed until tapped.
   const [sortOpen, setSortOpen] = useState(false)
   const [results, setResults] = useState(firstPage)
@@ -126,7 +128,7 @@ export default function CatalogueBuilder() {
   const skipFirstSearch = useRef(true)
   const sameSearch = (x, y) => JSON.stringify(x) === JSON.stringify(y)
   // The search and filters, as query parameters (paging is added where needed).
-  const filterParams = (s) => ({ q: s.q, category: s.category, subcategory: s.subcategory, species: s.species, availability: s.availability, sort: s.sort })
+  const filterParams = (s) => ({ q: s.q, category: s.category.join(','), subcategory: s.subcategory.join(','), species: s.species.join(','), availability: s.availability.join(','), sort: s.sort })
 
   const loadBatch = async (s, offset, replace) => {
     setLoading(true)
@@ -144,12 +146,16 @@ export default function CatalogueBuilder() {
     setLoading(false)
   }
 
-  // A new top-level category clears the sub-category, which belongs to the old one.
-  const setFilter = (key, value) => setSearch((prev) => ({ ...prev, [key]: value, ...(key === 'category' ? { subcategory: '' } : {}) }))
-  const clearFilters = () => setSearch((prev) => ({ ...prev, category: '', subcategory: '', species: '', availability: '' }))
-  const hasFilters = Boolean(search.category || search.subcategory || search.species || search.availability)
+  const setFilter = (key, value) => setSearch((prev) => {
+    const next = { ...prev, [key]: value }
+    // Sub-categories stay only while their parent category is still chosen.
+    if (key === 'category') next.subcategory = prev.subcategory.filter((id) => categories.some((c) => String(c.id) === id && value.includes(String(c.parentId))))
+    return next
+  })
+  const clearFilters = () => setSearch((prev) => ({ ...prev, category: [], subcategory: [], species: [], availability: [] }))
+  const hasFilters = Boolean(search.category.length || search.subcategory.length || search.species.length || search.availability.length)
   const topCategories = categories.filter((c) => c.parentId == null)
-  const subCategories = categories.filter((c) => search.category && String(c.parentId) === search.category)
+  const subCategories = categories.filter((c) => c.parentId != null && search.category.includes(String(c.parentId)))
 
   useEffect(() => {
     if (skipFirstSearch.current) { skipFirstSearch.current = false; return }
@@ -301,35 +307,26 @@ export default function CatalogueBuilder() {
                   {Object.entries(SORT_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
                 </select>
               </label>
-              <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Category
-                <select value={search.category} onChange={(e) => setFilter('category', e.target.value)} className={input}>
-                  <option value="">All categories</option>
-                  {topCategories.map((c) => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <MultiSelect label="Categories" allLabel="All categories" selected={search.category} onChange={(v) => setFilter('category', v)}
+                  options={topCategories.map((c) => ({ value: String(c.id), label: c.name }))} />
+              </div>
+              <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Sub-category
-                <select value={search.subcategory} onChange={(e) => setFilter('subcategory', e.target.value)} className={input}
-                  disabled={subCategories.length === 0}>
-                  <option value="">{search.category ? 'All sub-categories' : 'Choose a category first'}</option>
-                  {subCategories.map((c) => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <MultiSelect label="Sub-categories" allLabel={search.category.length ? 'All sub-categories' : 'Choose a category first'} selected={search.subcategory}
+                  onChange={(v) => setFilter('subcategory', v)} options={subCategories.map((c) => ({ value: String(c.id), label: c.name }))} />
+              </div>
+              <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Species
-                <select value={search.species} onChange={(e) => setFilter('species', e.target.value)} className={input}>
-                  <option value="">All species</option>
-                  {SPECIES.map((sp) => <option key={sp} value={sp}>{sp}</option>)}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <MultiSelect label="Species" allLabel="All species" selected={search.species} onChange={(v) => setFilter('species', v)}
+                  options={SPECIES.map((sp) => ({ value: sp, label: sp }))} />
+              </div>
+              <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Availability
-                <select value={search.availability} onChange={(e) => setFilter('availability', e.target.value)} className={input}>
-                  <option value="">Any availability</option>
-                  {AVAILABILITY.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                </select>
-              </label>
+                <MultiSelect label="Availability" allLabel="Any availability" selected={search.availability} onChange={(v) => setFilter('availability', v)}
+                  options={AVAILABILITY.map(([key, label]) => ({ value: key, label }))} />
+              </div>
               {hasFilters && (
                 <div className="sm:col-span-2 lg:col-span-5">
                   <button type="button" onClick={clearFilters} className="text-sm text-gray-500 hover:text-gray-800">Clear filters</button>
