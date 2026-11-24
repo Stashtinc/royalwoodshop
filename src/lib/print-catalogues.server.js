@@ -111,7 +111,12 @@ export async function removeItemFromCatalogue(catalogueId, itemId) {
 export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filters = {}) {
   const term = `%${String(q ?? "").trim()}%`
   const hasQuery = String(q ?? "").trim() !== ""
-  const { category = "", subcategory = "", species = "", status = "", availability = "", sort = "name", ids = null } = filters
+  const { status = "", sort = "name", ids = null } = filters
+  // Each filter takes a list of values; a product matches if it has any of them.
+  const categoryIds = toNumberList(filters.category)
+  const subcategoryIds = toNumberList(filters.subcategory)
+  const speciesValues = toList(filters.species)
+  const availabilityValues = toList(filters.availability)
   const db = await getDb()
   return db.select({
     id: products.id,
@@ -128,12 +133,12 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filt
     .where(and(
       ne(products.status, "archived"),
       status ? eq(products.status, status) : undefined,
-      availability ? eq(products.availability, availability) : undefined,
+      availabilityValues.length ? inArray(products.availability, availabilityValues) : undefined,
       ids ? inArray(products.id, ids) : undefined,
       // A top-level category includes its sub-categories.
-      category ? sql`(products.primary_category_id in (select c.id from categories c where c.id = ${Number(category)} or c.parent_id = ${Number(category)}) or exists (select 1 from product_categories pc join categories c on c.id = pc.category_id where pc.product_id = products.id and (c.id = ${Number(category)} or c.parent_id = ${Number(category)})))` : undefined,
-      subcategory ? sql`(products.primary_category_id = ${Number(subcategory)} or exists (select 1 from product_categories pc where pc.product_id = products.id and pc.category_id = ${Number(subcategory)}))` : undefined,
-      species ? sql`exists (select 1 from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species' and av.value = ${species})` : undefined,
+      categoryIds.length ? sql`(products.primary_category_id in (select c.id from categories c where c.id in (${inList(categoryIds)}) or c.parent_id in (${inList(categoryIds)})) or exists (select 1 from product_categories pc join categories c on c.id = pc.category_id where pc.product_id = products.id and (c.id in (${inList(categoryIds)}) or c.parent_id in (${inList(categoryIds)}))))` : undefined,
+      subcategoryIds.length ? sql`(products.primary_category_id in (${inList(subcategoryIds)}) or exists (select 1 from product_categories pc where pc.product_id = products.id and pc.category_id in (${inList(subcategoryIds)})))` : undefined,
+      speciesValues.length ? sql`exists (select 1 from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species' and av.value in (${inList(speciesValues)}))` : undefined,
       hasQuery ? or(
         ilike(products.name, term),
         ilike(products.productCode, term),
@@ -188,6 +193,15 @@ export async function reorderCatalogueItems(catalogueId, itemIds) {
 }
 
 /** Categories for the picker's filter, A to Z. */
+/** A query-string list ("a,b") or a single value, as trimmed strings without blanks. */
+export function toList(v) {
+  if (Array.isArray(v)) return v.map(String).map((s) => s.trim()).filter(Boolean)
+  return String(v ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+}
+export const toNumberList = (v) => toList(v).map(Number).filter(Number.isFinite)
+/** A comma-separated list of values as SQL, for use inside `in (...)`. */
+const inList = (values) => sql.join(values.map((v) => sql`${v}`), sql`, `)
+
 /** Every category, with its parent, so the picker can tell top-level categories from sub-categories. */
 export async function listCategoryOptions() {
   const db = await getDb()
