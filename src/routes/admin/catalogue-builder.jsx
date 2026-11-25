@@ -185,7 +185,6 @@ export default function CatalogueBuilder() {
       : [...prev.sorts, { key, dir: 'asc' }]
     return { ...prev, sorts }
   })
-  const resetSort = () => setSearch((prev) => ({ ...prev, sorts: DEFAULT_SORTS }))
   const clearFilters = () => setSearch((prev) => ({ ...prev, category: [], subcategory: [], species: [], availability: [] }))
   const hasFilters = Boolean(search.category.length || search.subcategory.length || search.species.length || search.availability.length)
   const topCategories = categories.filter((c) => c.parentId == null)
