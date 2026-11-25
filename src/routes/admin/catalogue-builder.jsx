@@ -18,7 +18,7 @@ import { DEFAULT_STYLE, normalizeStoredStyle, normalizeStyle } from '../../lib/c
 import { useDragReorder } from '../../components/admin/useDragReorder'
 
 const PICKER_PAGE = 50
-const SORT_LABEL = { name: 'Name', code: 'Product code', category: 'Category', subcategory: 'Sub-category', species: 'Species', availability: 'Availability', price: 'Price' }
+const SORT_LABEL = { default: 'Category, sub-category, code', name: 'Name', code: 'Product code', category: 'Category', subcategory: 'Sub-category', species: 'Species', availability: 'Availability', price: 'Price' }
 const money = (v) => `$${Number(v).toFixed(2)}`
 
 /** A column heading that sorts the whole picker list (on the server), and shows the direction. */
@@ -131,7 +131,7 @@ export default function CatalogueBuilder() {
 
   // Picker: batches load as you scroll. A new search or filter starts again from the first batch.
   // Each filter is a list of chosen values; empty means no filter on it.
-  const [search, setSearch] = useState({ q: initialQ, category: [], subcategory: [], species: [], availability: [], sort: 'name', dir: 'asc' })
+  const [search, setSearch] = useState({ q: initialQ, category: [], subcategory: [], species: [], availability: [], sort: 'default', dir: 'asc' })
   // The "Sort by" row: sort order and the advanced filters. Closed until tapped.
   const [sortOpen, setSortOpen] = useState(false)
   const [results, setResults] = useState(firstPage)
@@ -391,10 +391,10 @@ export default function CatalogueBuilder() {
                       disabled={results.length === 0} className="h-4 w-4 rounded border-gray-300 accent-royal-blue" />
                   </th>
                   <th className="px-2 py-3"><span className="sr-only">Picture</span></th>
-                  <SortHeader label="Code" sortKey="code" search={search} onSort={sortByColumn} />
-                  <SortHeader label="Name" sortKey="name" search={search} onSort={sortByColumn} />
                   <SortHeader label="Category" sortKey="category" search={search} onSort={sortByColumn} />
                   <SortHeader label="Sub-category" sortKey="subcategory" search={search} onSort={sortByColumn} />
+                  <SortHeader label="Code" sortKey="code" search={search} onSort={sortByColumn} />
+                  <SortHeader label="Name" sortKey="name" search={search} onSort={sortByColumn} />
                   <SortHeader label="Species" sortKey="species" search={search} onSort={sortByColumn} />
                   <SortHeader label="Availability" sortKey="availability" search={search} onSort={sortByColumn} />
                   <SortHeader label="Price" sortKey="price" search={search} onSort={sortByColumn} />
@@ -420,14 +420,14 @@ export default function CatalogueBuilder() {
                           </div>
                         ) : <div className="h-11 w-11 rounded-lg bg-gray-100" />}
                       </td>
+                      <td className="px-4 py-2 text-gray-600">{p.category ?? '—'}</td>
+                      <td className="px-4 py-2 text-gray-600">{p.subcategory ?? '—'}</td>
                       <td className="px-4 py-2 font-mono text-xs text-gray-600">{p.productCode ?? '—'}</td>
                       <td className="px-4 py-2 text-gray-800">
                         {p.name}
                         {added && <span className="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-800">In catalogue</span>}
                         {p.status === 'archived' && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived</span>}
                       </td>
-                      <td className="px-4 py-2 text-gray-600">{p.category ?? '—'}</td>
-                      <td className="px-4 py-2 text-gray-600">{p.subcategory ?? '—'}</td>
                       <td className="px-4 py-2 text-gray-600">{p.species ?? '—'}</td>
                       <td className="px-4 py-2 text-gray-600">{p.availability ? (AVAILABILITY_LABEL[p.availability] ?? p.availability) : '—'}</td>
                       <td className="px-4 py-2 text-gray-600">

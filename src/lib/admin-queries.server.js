@@ -251,6 +251,7 @@ export async function getProduct(id) {
   const db = await getDb()
   const [row] = await db.select({
     id: products.id, slug: products.slug, productCode: products.productCode,
+    hiddenFromSite: products.hiddenFromSite,
     name: products.name, description: products.description,
     sizeDisplay: products.sizeDisplay, thicknessIn: products.thicknessIn,
     widthIn: products.widthIn, heightIn: products.heightIn, availability: products.availability,
@@ -286,6 +287,7 @@ export async function getProduct(id) {
 }
 
 const LABELS = {
+  hiddenFromSite: 'hidden from site',
   name: 'name', productCode: 'product code', description: 'description',
   sizeDisplay: 'size', thicknessIn: 'thickness', widthIn: 'width',
   availability: 'availability', leadTime: 'lead time', flexAvailable: 'flex',
@@ -387,6 +389,7 @@ export async function saveProduct(id, data) {
   const db = await getDb()
 
   await db.update(products).set({
+    hiddenFromSite: Boolean(data.hiddenFromSite),
     name: data.name,
     productCode: data.productCode || null,
     description: data.description || null,
