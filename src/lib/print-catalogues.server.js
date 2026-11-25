@@ -154,7 +154,13 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filt
     ))
     .orderBy(
       // Each level sorts within the one before it, like sorting in a spreadsheet. Empty values go last.
-      ...sortLevels.map(({ key, dir }) => sql`${SORT_KEYS[key]} ${sql.raw(dir)} nulls last`),
+      ...sortLevels.flatMap(({ key, dir }) => key === "code"
+        // CAS- and BAS- codes sort as one group, so they stay together; the code orders within the group.
+        ? [
+          sql`(case when upper(${products.productCode}) ~ '^(CAS|BAS)-' then 'CAS-BAS' else upper(${products.productCode}) end) ${sql.raw(dir)} nulls last`,
+          sql`upper(${products.productCode}) ${sql.raw(dir)} nulls last`,
+        ]
+        : [sql`${SORT_KEYS[key]} ${sql.raw(dir)} nulls last`]),
       asc(products.name),
       asc(products.id),
     )
