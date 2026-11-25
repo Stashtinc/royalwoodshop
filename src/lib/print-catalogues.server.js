@@ -129,7 +129,8 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filt
     // Category is the top-level category; a product filed under a sub-category shows its parent here.
     category: sql`(select coalesce(p.name, c.name) from categories c left join categories p on p.id = c.parent_id where c.id = products.primary_category_id)`.as("category"),
     // The sub-category, when the product is filed under one.
-    subcategory: sql`(select c.name from categories c where c.id = products.primary_category_id and c.parent_id is not null)`.as("subcategory"),
+    // Every sub-category the product is filed under, as a list: its main category, if that is a sub-category, and any extra categories.
+    subcategory: sql`(select string_agg(distinct c.name, ', ' order by c.name) from categories c where c.parent_id is not null and (c.id = products.primary_category_id or exists (select 1 from product_categories pc where pc.product_id = products.id and pc.category_id = c.id)))`.as("subcategory"),
     species: sql`(select string_agg(av.value, ', ' order by av.sort_order) from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species')`.as("species"),
     image: sql`(select pi.storage_key from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as("image"),
     imageWidth: sql`(select pi.width from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as("imageWidth"),
