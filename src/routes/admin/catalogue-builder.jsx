@@ -18,7 +18,8 @@ import { DEFAULT_STYLE, normalizeStoredStyle, normalizeStyle } from '../../lib/c
 import { useDragReorder } from '../../components/admin/useDragReorder'
 
 const PICKER_PAGE = 50
-const SORT_LABEL = { name: 'Name', code: 'Product code', category: 'Category', subcategory: 'Sub-category', species: 'Species', availability: 'Availability', views: 'Most viewed' }
+const SORT_LABEL = { name: 'Name', code: 'Product code', category: 'Category', subcategory: 'Sub-category', species: 'Species', availability: 'Availability', price: 'Price' }
+const money = (v) => `$${Number(v).toFixed(2)}`
 
 /** A column heading that sorts the whole picker list (on the server), and shows the direction. */
 function SortHeader({ label, sortKey, search, onSort }) {
@@ -27,7 +28,7 @@ function SortHeader({ label, sortKey, search, onSort }) {
     <th className="px-4 py-3" aria-sort={active ? (search.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
       <button type="button" onClick={() => onSort(sortKey)} className="flex items-center gap-1 uppercase hover:text-gray-800">
         {label}
-        <span aria-hidden="true" className={`text-[10px] ${active ? 'text-royal-blue' : 'text-gray-300'}`}>{active ? (search.dir === 'asc' ? '▲' : '▼') : '↕'}</span>
+        <span aria-hidden="true" className={`text-xs font-bold ${active ? 'text-royal-blue' : 'text-gray-500'}`}>{active ? (search.dir === 'asc' ? '▲' : '▼') : '↕'}</span>
       </button>
     </th>
   )
@@ -382,7 +383,7 @@ export default function CatalogueBuilder() {
                   <SortHeader label="Sub-category" sortKey="subcategory" search={search} onSort={sortByColumn} />
                   <SortHeader label="Species" sortKey="species" search={search} onSort={sortByColumn} />
                   <SortHeader label="Availability" sortKey="availability" search={search} onSort={sortByColumn} />
-                  <SortHeader label="Views" sortKey="views" search={search} onSort={sortByColumn} />
+                  <SortHeader label="Price" sortKey="price" search={search} onSort={sortByColumn} />
                 </tr>
               </thead>
               <tbody>
@@ -415,7 +416,11 @@ export default function CatalogueBuilder() {
                       <td className="px-4 py-2 text-gray-600">{p.subcategory ?? '—'}</td>
                       <td className="px-4 py-2 text-gray-600">{p.species ?? '—'}</td>
                       <td className="px-4 py-2 text-gray-600">{p.availability ? (AVAILABILITY_LABEL[p.availability] ?? p.availability) : '—'}</td>
-                      <td className="px-4 py-2 text-gray-600">{p.views ?? 0}</td>
+                      <td className="px-4 py-2 text-gray-600">
+                        {p.price == null ? '—' : p.salePrice != null ? (
+                          <span><span className="mr-1.5 text-gray-400 line-through">{money(p.price)}</span><span className="font-semibold text-gray-800">{money(p.salePrice)}</span></span>
+                        ) : money(p.price)}
+                      </td>
                     </tr>
                   )
                 })}

@@ -123,7 +123,8 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filt
     name: products.name,
     productCode: products.productCode,
     status: products.status,
-    views: products.views,
+    price: products.price,
+    salePrice: products.salePrice,
     availability: products.availability,
     // Category is the top-level category; a product filed under a sub-category shows its parent here.
     category: sql`(select coalesce(p.name, c.name) from categories c left join categories p on p.id = c.parent_id where c.id = products.primary_category_id)`.as("category"),
@@ -206,7 +207,7 @@ const SORT_KEYS = {
   subcategory: sql`subcategory`,
   species: sql`species`,
   availability: sql`${products.availability}`,
-  views: sql`${products.views}`,
+  price: sql`${products.price}`,
 }
 
 /** A query-string list ("a,b") or a single value, as trimmed strings without blanks. */
