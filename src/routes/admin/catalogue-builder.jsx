@@ -353,7 +353,6 @@ export default function CatalogueBuilder() {
 
           {sortOpen && (
             <div className="mt-3 grid gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5">
-              </div>
               <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Category
                 <MultiSelect label="Categories" allLabel="All categories" selected={search.category} onChange={(v) => setFilter('category', v)}
