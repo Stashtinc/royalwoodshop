@@ -188,7 +188,10 @@ export default function CatalogueBuilder() {
   const clearFilters = () => setSearch((prev) => ({ ...prev, category: [], subcategory: [], species: [], availability: [] }))
   const hasFilters = Boolean(search.category.length || search.subcategory.length || search.species.length || search.availability.length)
   const topCategories = categories.filter((c) => c.parentId == null)
-  const subCategories = categories.filter((c) => c.parentId != null && search.category.includes(String(c.parentId)))
+  // All sub-categories, or only those of the chosen categories. Named with their parent when the list is mixed.
+  const subCategories = categories
+    .filter((c) => c.parentId != null && (search.category.length === 0 || search.category.includes(String(c.parentId))))
+    .map((c) => ({ ...c, label: search.category.length === 0 ? `${categories.find((p) => p.id === c.parentId)?.name ?? ''}: ${c.name}` : c.name }))
 
   useEffect(() => {
     if (skipFirstSearch.current) { skipFirstSearch.current = false; return }
@@ -360,8 +363,8 @@ export default function CatalogueBuilder() {
               </div>
               <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Sub-category
-                <MultiSelect label="Sub-categories" allLabel={search.category.length ? 'All sub-categories' : 'Choose a category first'} selected={search.subcategory}
-                  onChange={(v) => setFilter('subcategory', v)} options={subCategories.map((c) => ({ value: String(c.id), label: c.name }))} />
+                <MultiSelect label="Sub-categories" allLabel="All sub-categories" selected={search.subcategory}
+                  onChange={(v) => setFilter('subcategory', v)} options={subCategories.map((c) => ({ value: String(c.id), label: c.label }))} />
               </div>
               <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Species
