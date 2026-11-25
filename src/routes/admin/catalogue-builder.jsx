@@ -217,6 +217,11 @@ export default function CatalogueBuilder() {
   const fromCatalogue = () => new Map(catalogue.items.map((i) => [i.productId, { id: i.productId, name: i.name, image: i.image, imageWidth: i.imageWidth }]))
   const [selected, setSelected] = useState(fromCatalogue)
   const [view, setView] = useState('all')
+  // Saved products that are now archived are not in the picker's list. Show them here as well, so they can be unticked.
+  const archivedSaved = catalogue.items
+    .filter((i) => i.status === 'archived' && (view === 'all' || selected.has(i.productId)))
+    .map((i) => ({ id: i.productId, name: i.name, productCode: i.productCode, image: i.image, imageWidth: i.imageWidth, category: i.category, species: i.species, availability: i.availability, status: 'archived' }))
+  const displayRows = [...archivedSaved, ...results]
   const selectedKey = [...selected.keys()].sort((x, y) => x - y).join(',')
   useEffect(() => {
     if (view !== 'selected') return
@@ -365,10 +370,10 @@ export default function CatalogueBuilder() {
                 </tr>
               </thead>
               <tbody>
-                {results.length === 0 && (
+                {displayRows.length === 0 && (
                   <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
                 )}
-                {results.map((p) => {
+                {displayRows.map((p) => {
                   const added = inCatalogue.has(p.id)
                   return (
                     <tr key={p.id} className="border-b border-gray-100 last:border-0 hover:bg-amber-50">
@@ -388,6 +393,7 @@ export default function CatalogueBuilder() {
                       <td className="px-4 py-2 text-gray-800">
                         {p.name}
                         {added && <span className="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-800">In catalogue</span>}
+                        {p.status === 'archived' && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived</span>}
                       </td>
                       <td className="px-4 py-2 text-gray-600">{p.category ?? '—'}</td>
                       <td className="px-4 py-2 text-gray-600">{p.species ?? '—'}</td>
