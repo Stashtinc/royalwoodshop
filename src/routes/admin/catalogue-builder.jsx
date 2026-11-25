@@ -25,7 +25,7 @@ const money = (v) => `$${Number(v).toFixed(2)}`
 const DEFAULT_SORTS = [{ key: 'category', dir: 'asc' }, { key: 'subcategory', dir: 'asc' }, { key: 'code', dir: 'asc' }]
 
 /**
- * A column heading. Its sort level (1, 2, 3...) shows when it is part of the sort, with the direction.
+ * A column heading. It shows an arrow for its direction when it is part of the sort, like a spreadsheet.
  * Clicking it reverses its direction, or adds it as the next level if it is not in the sort yet.
  */
 function SortHeader({ label, sortKey, sorts, onSort }) {
@@ -38,7 +38,6 @@ function SortHeader({ label, sortKey, sorts, onSort }) {
         {label}
         <span aria-hidden="true" className={`text-xs font-bold ${active ? 'text-royal-blue' : 'text-gray-500'}`}>
           {active ? (dir === 'asc' ? '▲' : '▼') : '↕'}
-          {active && sorts.length > 1 && <sup className="ml-0.5 text-[9px]">{level + 1}</sup>}
         </span>
       </button>
     </th>
@@ -358,8 +357,8 @@ export default function CatalogueBuilder() {
               <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:col-span-2 lg:col-span-5">
                 Sort order (click column headings to add levels)
                 <div className="flex flex-wrap items-center gap-2 normal-case text-sm text-gray-700">
-                  {search.sorts.map((x, i) => (
-                    <span key={x.key} className="rounded-full bg-gray-100 px-2.5 py-1">{i + 1}. {SORT_LABEL[x.key]} {x.dir === 'asc' ? '▲' : '▼'}</span>
+                  {search.sorts.map((x) => (
+                    <span key={x.key} className="rounded-full bg-gray-100 px-2.5 py-1">{SORT_LABEL[x.key]} {x.dir === 'asc' ? '▲' : '▼'}</span>
                   ))}
                   <button type="button" onClick={resetSort} className="text-sm text-royal-blue hover:underline">Reset</button>
                 </div>
