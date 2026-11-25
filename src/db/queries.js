@@ -131,7 +131,7 @@ export async function getAllProducts(db) {
     })
     .from(products)
     .leftJoin(categories, eq(categories.id, products.primaryCategoryId))
-    .where(eq(products.status, 'published'))
+    .where(and(eq(products.status, 'published'), eq(products.hiddenFromSite, false)))
     .orderBy(asc(products.productCode), asc(products.name))
 
   // Lowest per-material price and its sale price, for the catalogue card.

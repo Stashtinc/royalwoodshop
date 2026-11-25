@@ -202,6 +202,7 @@ export async function action({ request, params }) {
     price: f.has('price') ? num(f.get('price')) : before.price,
     salePrice: f.has('salePrice') ? num(f.get('salePrice')) : before.salePrice,
     status: ['draft', 'published', 'archived'].includes(String(f.get('status'))) ? String(f.get('status')) : 'draft',
+    hiddenFromSite: f.get('hiddenFromSite') === 'on',
     seoTitle: String(f.get('seoTitle') ?? '').trim(),
     seoDescription: String(f.get('seoDescription') ?? '').trim(),
     species,
@@ -461,6 +462,13 @@ export default function ProductEdit() {
                 <option value="archived">Archived</option>
               </select></label>
           </div>
+          <label className="flex items-start gap-3 text-sm text-gray-700">
+            <input type="checkbox" name="hiddenFromSite" defaultChecked={Boolean(product.hiddenFromSite)} className="mt-0.5 h-4 w-4 accent-royal-blue" />
+            <span>
+              Hide from site
+              <span className="block text-xs text-gray-500">Stays in the admin and can still be added to print catalogues.</span>
+            </span>
+          </label>
           <label className="flex flex-col gap-1.5"><Label>Description</Label>
             <textarea name="description" rows={5} defaultValue={product.description ?? ''} className={field} /></label>
         </section>

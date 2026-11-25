@@ -102,6 +102,8 @@ export const products = pgTable('products', {
   salePrice: numeric('sale_price', { precision: 10, scale: 2 }),
 
   status: productStatusEnum('status').notNull().default('draft'),
+  /** Hidden from the public site, but still in the admin and in print catalogues. */
+  hiddenFromSite: boolean('hidden_from_site').notNull().default(false),
 
   seoTitle: varchar('seo_title', { length: 200 }),
   seoDescription: text('seo_description'),
