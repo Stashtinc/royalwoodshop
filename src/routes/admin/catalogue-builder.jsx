@@ -269,9 +269,23 @@ export default function CatalogueBuilder() {
   const addIds = [...selected.keys()].filter((id) => !inCatalogue.has(id))
   const removeIds = [...inCatalogue].filter((id) => !selected.has(id))
   const changed = addIds.length + removeIds.length > 0
+  // The order the table lists products in (the server's sort and filters). Ticked products follow it,
+  // so the preview and the saved order match the table.
+  const [tableOrder, setTableOrder] = useState([])
+  const tableKey = JSON.stringify(filterParams(search))
+  useEffect(() => {
+    let live = true
+    const sp = new URLSearchParams({ ids_only: '1', ...filterParams(search) })
+    fetch(`/admin/catalogue-products?${sp}`).then((r) => r.json()).then((d) => { if (live) setTableOrder(d.ids) })
+    return () => { live = false }
+    // filterParams is rebuilt each render; the search values are what matter here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableKey])
+  const rankOf = useMemo(() => new Map(tableOrder.map((id, i) => [id, i])), [tableOrder])
+  const orderedAddIds = [...addIds].sort((a, b) => (rankOf.get(a) ?? 1e9) - (rankOf.get(b) ?? 1e9))
   // The preview shows ticks as they are made: saved products minus unticked ones, plus ticked ones.
   const [pendingItems, setPendingItems] = useState({})
-  const addKey = addIds.join(",")
+  const addKey = orderedAddIds.join(",")
   const removeKey = removeIds.join(",")
   useEffect(() => {
     const missing = addIds.filter((id) => !pendingItems[id])
@@ -283,7 +297,7 @@ export default function CatalogueBuilder() {
   }, [addKey])
   const previewOrder = useMemo(() => {
     const kept = order.filter((item) => !removeIds.includes(item.productId))
-    const pending = addIds.filter((id) => pendingItems[id]).map((id) => pendingItems[id])
+    const pending = orderedAddIds.filter((id) => pendingItems[id]).map((id) => pendingItems[id])
     return [...kept, ...pending]
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order, addKey, removeKey, pendingItems])
@@ -359,7 +373,7 @@ export default function CatalogueBuilder() {
           {changed && (
             <Form method="post" className="mt-4 flex flex-wrap items-center gap-3">
               <input type="hidden" name="intent" value="sync-products" />
-              <input type="hidden" name="addIds" value={addIds.join(",")} />
+              <input type="hidden" name="addIds" value={orderedAddIds.join(",")} />
               <input type="hidden" name="removeIds" value={removeIds.join(",")} />
               <button type="submit" className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-medium text-white hover:bg-royal-blue-dark">
                 Save changes
