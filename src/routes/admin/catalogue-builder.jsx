@@ -18,7 +18,20 @@ import { DEFAULT_STYLE, normalizeStoredStyle, normalizeStyle } from '../../lib/c
 import { useDragReorder } from '../../components/admin/useDragReorder'
 
 const PICKER_PAGE = 50
-const SORT_LABEL = { name: 'Name', code: 'Product code', views: 'Most viewed', category: 'Category' }
+const SORT_LABEL = { name: 'Name', code: 'Product code', category: 'Category', subcategory: 'Sub-category', species: 'Species', availability: 'Availability', views: 'Most viewed' }
+
+/** A column heading that sorts the whole picker list (on the server), and shows the direction. */
+function SortHeader({ label, sortKey, search, onSort }) {
+  const active = search.sort === sortKey
+  return (
+    <th className="px-4 py-3" aria-sort={active ? (search.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+      <button type="button" onClick={() => onSort(sortKey)} className="flex items-center gap-1 uppercase hover:text-gray-800">
+        {label}
+        <span aria-hidden="true" className={`text-[10px] ${active ? 'text-royal-blue' : 'text-gray-300'}`}>{active ? (search.dir === 'asc' ? '▲' : '▼') : '↕'}</span>
+      </button>
+    </th>
+  )
+}
 
 export async function loader({ request, params }) {
   await requireUser(request)
@@ -117,7 +130,7 @@ export default function CatalogueBuilder() {
 
   // Picker: batches load as you scroll. A new search or filter starts again from the first batch.
   // Each filter is a list of chosen values; empty means no filter on it.
-  const [search, setSearch] = useState({ q: initialQ, category: [], subcategory: [], species: [], availability: [], sort: 'name' })
+  const [search, setSearch] = useState({ q: initialQ, category: [], subcategory: [], species: [], availability: [], sort: 'name', dir: 'asc' })
   // The "Sort by" row: sort order and the advanced filters. Closed until tapped.
   const [sortOpen, setSortOpen] = useState(false)
   const [results, setResults] = useState(firstPage)
@@ -128,7 +141,7 @@ export default function CatalogueBuilder() {
   const skipFirstSearch = useRef(true)
   const sameSearch = (x, y) => JSON.stringify(x) === JSON.stringify(y)
   // The search and filters, as query parameters (paging is added where needed).
-  const filterParams = (s) => ({ q: s.q, category: s.category.join(','), subcategory: s.subcategory.join(','), species: s.species.join(','), availability: s.availability.join(','), sort: s.sort })
+  const filterParams = (s) => ({ q: s.q, category: s.category.join(','), subcategory: s.subcategory.join(','), species: s.species.join(','), availability: s.availability.join(','), sort: s.sort, dir: s.dir })
 
   const loadBatch = async (s, offset, replace) => {
     setLoading(true)
@@ -152,6 +165,8 @@ export default function CatalogueBuilder() {
     if (key === 'category') next.subcategory = prev.subcategory.filter((id) => categories.some((c) => String(c.id) === id && value.includes(String(c.parentId))))
     return next
   })
+  // Clicking a column heading sorts by it; clicking the same heading again reverses the order.
+  const sortByColumn = (key) => setSearch((prev) => ({ ...prev, sort: key, dir: prev.sort === key && prev.dir === 'asc' ? 'desc' : 'asc' }))
   const clearFilters = () => setSearch((prev) => ({ ...prev, category: [], subcategory: [], species: [], availability: [] }))
   const hasFilters = Boolean(search.category.length || search.subcategory.length || search.species.length || search.availability.length)
   const topCategories = categories.filter((c) => c.parentId == null)
@@ -353,7 +368,7 @@ export default function CatalogueBuilder() {
             </Form>
           )}
           <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200 bg-white">
-            <table className="min-w-[860px] w-full text-left text-xs">
+            <table className="min-w-[960px] w-full text-left text-xs">
               <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase text-gray-500">
                 <tr>
                   <th className="w-10 px-4 py-3">
@@ -361,17 +376,18 @@ export default function CatalogueBuilder() {
                       disabled={results.length === 0} className="h-4 w-4 rounded border-gray-300 accent-royal-blue" />
                   </th>
                   <th className="px-2 py-3"><span className="sr-only">Picture</span></th>
-                  <th className="px-4 py-3">Code</th>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Species</th>
-                  <th className="px-4 py-3">Availability</th>
-                  <th className="px-4 py-3">Views</th>
+                  <SortHeader label="Code" sortKey="code" search={search} onSort={sortByColumn} />
+                  <SortHeader label="Name" sortKey="name" search={search} onSort={sortByColumn} />
+                  <SortHeader label="Category" sortKey="category" search={search} onSort={sortByColumn} />
+                  <SortHeader label="Sub-category" sortKey="subcategory" search={search} onSort={sortByColumn} />
+                  <SortHeader label="Species" sortKey="species" search={search} onSort={sortByColumn} />
+                  <SortHeader label="Availability" sortKey="availability" search={search} onSort={sortByColumn} />
+                  <SortHeader label="Views" sortKey="views" search={search} onSort={sortByColumn} />
                 </tr>
               </thead>
               <tbody>
                 {displayRows.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-10 text-center text-gray-500">No products match.</td></tr>
                 )}
                 {displayRows.map((p) => {
                   const added = inCatalogue.has(p.id)
@@ -396,6 +412,7 @@ export default function CatalogueBuilder() {
                         {p.status === 'archived' && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Archived</span>}
                       </td>
                       <td className="px-4 py-2 text-gray-600">{p.category ?? '—'}</td>
+                      <td className="px-4 py-2 text-gray-600">{p.subcategory ?? '—'}</td>
                       <td className="px-4 py-2 text-gray-600">{p.species ?? '—'}</td>
                       <td className="px-4 py-2 text-gray-600">{p.availability ? (AVAILABILITY_LABEL[p.availability] ?? p.availability) : '—'}</td>
                       <td className="px-4 py-2 text-gray-600">{p.views ?? 0}</td>

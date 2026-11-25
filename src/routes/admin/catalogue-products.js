@@ -13,6 +13,7 @@ export function pickerFilters(searchParams) {
     availability: searchParams.get('availability') ?? '',
     status: searchParams.get('status') ?? '',
     sort: searchParams.get('sort') ?? 'name',
+    dir: searchParams.get('dir') ?? 'asc',
   }
 }
 
