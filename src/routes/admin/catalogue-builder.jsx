@@ -25,7 +25,7 @@ const money = (v) => `$${Number(v).toFixed(2)}`
 const DEFAULT_SORTS = [{ key: 'category', dir: 'asc' }, { key: 'subcategory', dir: 'asc' }, { key: 'code', dir: 'asc' }]
 
 /**
- * A column heading. Its sort level (1, 2, 3...) shows when it is part of the sort, with the direction.
+ * A column heading. It shows an arrow for its direction when it is part of the sort, like a spreadsheet.
  * Clicking it reverses its direction, or adds it as the next level if it is not in the sort yet.
  */
 function SortHeader({ label, sortKey, sorts, onSort }) {
@@ -38,7 +38,6 @@ function SortHeader({ label, sortKey, sorts, onSort }) {
         {label}
         <span aria-hidden="true" className={`text-xs font-bold ${active ? 'text-royal-blue' : 'text-gray-500'}`}>
           {active ? (dir === 'asc' ? '▲' : '▼') : '↕'}
-          {active && sorts.length > 1 && <sup className="ml-0.5 text-[9px]">{level + 1}</sup>}
         </span>
       </button>
     </th>
@@ -186,11 +185,13 @@ export default function CatalogueBuilder() {
       : [...prev.sorts, { key, dir: 'asc' }]
     return { ...prev, sorts }
   })
-  const resetSort = () => setSearch((prev) => ({ ...prev, sorts: DEFAULT_SORTS }))
   const clearFilters = () => setSearch((prev) => ({ ...prev, category: [], subcategory: [], species: [], availability: [] }))
   const hasFilters = Boolean(search.category.length || search.subcategory.length || search.species.length || search.availability.length)
   const topCategories = categories.filter((c) => c.parentId == null)
-  const subCategories = categories.filter((c) => c.parentId != null && search.category.includes(String(c.parentId)))
+  // All sub-categories, or only those of the chosen categories. Named with their parent when the list is mixed.
+  const subCategories = categories
+    .filter((c) => c.parentId != null && (search.category.length === 0 || search.category.includes(String(c.parentId))))
+    .map((c) => ({ ...c, label: search.category.length === 0 ? `${categories.find((p) => p.id === c.parentId)?.name ?? ''}: ${c.name}` : c.name }))
 
   useEffect(() => {
     if (skipFirstSearch.current) { skipFirstSearch.current = false; return }
@@ -348,22 +349,13 @@ export default function CatalogueBuilder() {
             </div>
             <button type="button" onClick={() => setSortOpen((o) => !o)} aria-expanded={sortOpen}
               className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${sortOpen || hasFilters ? 'border-royal-blue bg-royal-blue text-white' : 'border-gray-300 text-gray-600 hover:border-royal-blue'}`}>
-              Sort by: {search.sorts.map((x) => SORT_LABEL[x.key]).join(' › ')}
+              Sort & filter
               <span aria-hidden="true">{sortOpen ? '▴' : '▾'}</span>
             </button>
           </div>
 
           {sortOpen && (
             <div className="mt-3 grid gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5">
-              <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:col-span-2 lg:col-span-5">
-                Sort order (click column headings to add levels)
-                <div className="flex flex-wrap items-center gap-2 normal-case text-sm text-gray-700">
-                  {search.sorts.map((x, i) => (
-                    <span key={x.key} className="rounded-full bg-gray-100 px-2.5 py-1">{i + 1}. {SORT_LABEL[x.key]} {x.dir === 'asc' ? '▲' : '▼'}</span>
-                  ))}
-                  <button type="button" onClick={resetSort} className="text-sm text-royal-blue hover:underline">Reset</button>
-                </div>
-              </div>
               <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Category
                 <MultiSelect label="Categories" allLabel="All categories" selected={search.category} onChange={(v) => setFilter('category', v)}
@@ -371,8 +363,8 @@ export default function CatalogueBuilder() {
               </div>
               <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Sub-category
-                <MultiSelect label="Sub-categories" allLabel={search.category.length ? 'All sub-categories' : 'Choose a category first'} selected={search.subcategory}
-                  onChange={(v) => setFilter('subcategory', v)} options={subCategories.map((c) => ({ value: String(c.id), label: c.name }))} />
+                <MultiSelect label="Sub-categories" allLabel="All sub-categories" selected={search.subcategory}
+                  onChange={(v) => setFilter('subcategory', v)} options={subCategories.map((c) => ({ value: String(c.id), label: c.label }))} />
               </div>
               <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Species
