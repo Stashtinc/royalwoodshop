@@ -111,7 +111,8 @@ export async function removeItemFromCatalogue(catalogueId, itemId) {
 export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filters = {}) {
   const term = `%${String(q ?? "").trim()}%`
   const hasQuery = String(q ?? "").trim() !== ""
-  const { status = "", sort = "default", dir = "asc", ids = null } = filters
+  const { status = "", sorts = "", ids = null } = filters
+  const sortLevels = parseSorts(sorts)
   // Each filter takes a list of values; a product matches if it has any of them.
   const categoryIds = toNumberList(filters.category)
   const subcategoryIds = toNumberList(filters.subcategory)
@@ -152,10 +153,10 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filt
       ) : undefined,
     ))
     .orderBy(
-      // The default: by category, then sub-category, then product code.
-      ...(sort === "default"
-        ? [sql`category asc nulls last`, sql`subcategory asc nulls last`, asc(products.productCode), asc(products.name), asc(products.id)]
-        : [sql`${SORT_KEYS[sort] ?? SORT_KEYS.name} ${sql.raw(dir === "desc" ? "desc" : "asc")} nulls last`, asc(products.name), asc(products.id)]),
+      // Each level sorts within the one before it, like sorting in a spreadsheet. Empty values go last.
+      ...sortLevels.map(({ key, dir }) => sql`${SORT_KEYS[key]} ${sql.raw(dir)} nulls last`),
+      asc(products.name),
+      asc(products.id),
     )
     .limit(limit)
     .offset(offset)
@@ -209,6 +210,18 @@ const SORT_KEYS = {
   species: sql`species`,
   availability: sql`${products.availability}`,
   price: sql`${products.price}`,
+}
+
+/** The default sort: category, then sub-category, then code. */
+export const DEFAULT_SORTS = "category:asc,subcategory:asc,code:asc"
+
+/** "key:dir,key:dir" from the query string, as known keys only. An empty value gives the default. */
+export function parseSorts(v) {
+  const text = String(v ?? "").trim() ? String(v) : DEFAULT_SORTS
+  return text.split(",").map((item) => {
+    const [key, dir] = item.split(":").map((x) => x.trim())
+    return { key, dir: dir === "desc" ? "desc" : "asc" }
+  }).filter((level) => SORT_KEYS[level.key])
 }
 
 /** A query-string list ("a,b") or a single value, as trimmed strings without blanks. */

@@ -12,8 +12,8 @@ export function pickerFilters(searchParams) {
     species: searchParams.get('species') ?? '',
     availability: searchParams.get('availability') ?? '',
     status: searchParams.get('status') ?? '',
-    sort: searchParams.get('sort') ?? 'default',
-    dir: searchParams.get('dir') ?? 'asc',
+    // "key:dir,key:dir", e.g. category:asc,code:desc. Empty means the default.
+    sorts: searchParams.get('sorts') ?? '',
   }
 }
 
