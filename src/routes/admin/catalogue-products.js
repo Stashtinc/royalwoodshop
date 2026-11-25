@@ -12,7 +12,7 @@ export function pickerFilters(searchParams) {
     species: searchParams.get('species') ?? '',
     availability: searchParams.get('availability') ?? '',
     status: searchParams.get('status') ?? '',
-    sort: searchParams.get('sort') ?? 'name',
+    sort: searchParams.get('sort') ?? 'default',
     dir: searchParams.get('dir') ?? 'asc',
   }
 }
