@@ -1,7 +1,6 @@
 import PDFDocument from 'pdfkit'
 import sharp from 'sharp'
-import { readFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
+import logoSvg from '../assets/images/logo-blue.svg?raw'
 import { loadImage } from './pdf-images.server.js'
 import { normalizeStoredStyle, normalizeStyle } from './catalogue-style.js'
 import { PAGE_H, PAGE_W, LABEL_H, breakPages, contentWidth, insetOf, priceLines, specRows } from './catalogue-layout.js'
@@ -27,14 +26,15 @@ const MUTED_LABEL = '#9ca3af'
 const COVER_DATE_COLOR = '#555555'
 const PRICE_STRIKE = '#9ca3af'
 
-const LOGO_SVG = fileURLToPath(new URL('../assets/images/logo-blue.svg', import.meta.url))
 let logoPromise = null
-/** The blue logo as a PNG. PDFs cannot embed SVG, so it is rasterised once and kept. */
+/**
+ * The blue logo as a PNG. PDFs cannot embed SVG, so it is rasterised once and kept.
+ * The SVG is imported as text, so the build includes it: a file read from disk
+ * is not in the deployed server bundle.
+ */
 function loadLogo() {
   if (!logoPromise) {
-    logoPromise = readFile(LOGO_SVG)
-      .then((svg) => sharp(svg).resize({ width: 520 }).png().toBuffer())
-      .catch(() => null)
+    logoPromise = sharp(Buffer.from(logoSvg)).resize({ width: 520 }).png().toBuffer().catch(() => null)
   }
   return logoPromise
 }
