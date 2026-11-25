@@ -21,14 +21,25 @@ const PICKER_PAGE = 50
 const SORT_LABEL = { default: 'Category, sub-category, code', name: 'Name', code: 'Product code', category: 'Category', subcategory: 'Sub-category', species: 'Species', availability: 'Availability', price: 'Price' }
 const money = (v) => `$${Number(v).toFixed(2)}`
 
-/** A column heading that sorts the whole picker list (on the server), and shows the direction. */
-function SortHeader({ label, sortKey, search, onSort }) {
-  const active = search.sort === sortKey
+// The default sort levels: category, then sub-category, then code.
+const DEFAULT_SORTS = [{ key: 'category', dir: 'asc' }, { key: 'subcategory', dir: 'asc' }, { key: 'code', dir: 'asc' }]
+
+/**
+ * A column heading. Its sort level (1, 2, 3...) shows when it is part of the sort, with the direction.
+ * Clicking it reverses its direction, or adds it as the next level if it is not in the sort yet.
+ */
+function SortHeader({ label, sortKey, sorts, onSort }) {
+  const level = sorts.findIndex((x) => x.key === sortKey)
+  const active = level >= 0
+  const dir = active ? sorts[level].dir : null
   return (
-    <th className="px-4 py-3" aria-sort={active ? (search.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+    <th className="px-4 py-3" aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
       <button type="button" onClick={() => onSort(sortKey)} className="flex items-center gap-1 uppercase hover:text-gray-800">
         {label}
-        <span aria-hidden="true" className={`text-xs font-bold ${active ? 'text-royal-blue' : 'text-gray-500'}`}>{active ? (search.dir === 'asc' ? '▲' : '▼') : '↕'}</span>
+        <span aria-hidden="true" className={`text-xs font-bold ${active ? 'text-royal-blue' : 'text-gray-500'}`}>
+          {active ? (dir === 'asc' ? '▲' : '▼') : '↕'}
+          {active && sorts.length > 1 && <sup className="ml-0.5 text-[9px]">{level + 1}</sup>}
+        </span>
       </button>
     </th>
   )
@@ -131,7 +142,7 @@ export default function CatalogueBuilder() {
 
   // Picker: batches load as you scroll. A new search or filter starts again from the first batch.
   // Each filter is a list of chosen values; empty means no filter on it.
-  const [search, setSearch] = useState({ q: initialQ, category: [], subcategory: [], species: [], availability: [], sort: 'default', dir: 'asc' })
+  const [search, setSearch] = useState({ q: initialQ, category: [], subcategory: [], species: [], availability: [], sorts: DEFAULT_SORTS })
   // The "Sort by" row: sort order and the advanced filters. Closed until tapped.
   const [sortOpen, setSortOpen] = useState(false)
   const [results, setResults] = useState(firstPage)
@@ -142,7 +153,7 @@ export default function CatalogueBuilder() {
   const skipFirstSearch = useRef(true)
   const sameSearch = (x, y) => JSON.stringify(x) === JSON.stringify(y)
   // The search and filters, as query parameters (paging is added where needed).
-  const filterParams = (s) => ({ q: s.q, category: s.category.join(','), subcategory: s.subcategory.join(','), species: s.species.join(','), availability: s.availability.join(','), sort: s.sort, dir: s.dir })
+  const filterParams = (s) => ({ q: s.q, category: s.category.join(','), subcategory: s.subcategory.join(','), species: s.species.join(','), availability: s.availability.join(','), sorts: s.sorts.map((x) => `${x.key}:${x.dir}`).join(',') })
 
   const loadBatch = async (s, offset, replace) => {
     setLoading(true)
@@ -166,8 +177,16 @@ export default function CatalogueBuilder() {
     if (key === 'category') next.subcategory = prev.subcategory.filter((id) => categories.some((c) => String(c.id) === id && value.includes(String(c.parentId))))
     return next
   })
-  // Clicking a column heading sorts by it; clicking the same heading again reverses the order.
-  const sortByColumn = (key) => setSearch((prev) => ({ ...prev, sort: key, dir: prev.sort === key && prev.dir === 'asc' ? 'desc' : 'asc' }))
+  // Sort levels, like a spreadsheet: a heading already in the sort reverses its direction; any other heading
+  // is added as the next level. Changing a lower level leaves the levels above it alone.
+  const sortByColumn = (key) => setSearch((prev) => {
+    const i = prev.sorts.findIndex((x) => x.key === key)
+    const sorts = i >= 0
+      ? prev.sorts.map((x, j) => (j === i ? { ...x, dir: x.dir === 'asc' ? 'desc' : 'asc' } : x))
+      : [...prev.sorts, { key, dir: 'asc' }]
+    return { ...prev, sorts }
+  })
+  const resetSort = () => setSearch((prev) => ({ ...prev, sorts: DEFAULT_SORTS }))
   const clearFilters = () => setSearch((prev) => ({ ...prev, category: [], subcategory: [], species: [], availability: [] }))
   const hasFilters = Boolean(search.category.length || search.subcategory.length || search.species.length || search.availability.length)
   const topCategories = categories.filter((c) => c.parentId == null)
@@ -329,19 +348,22 @@ export default function CatalogueBuilder() {
             </div>
             <button type="button" onClick={() => setSortOpen((o) => !o)} aria-expanded={sortOpen}
               className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${sortOpen || hasFilters ? 'border-royal-blue bg-royal-blue text-white' : 'border-gray-300 text-gray-600 hover:border-royal-blue'}`}>
-              Sort by: {SORT_LABEL[search.sort]}
+              Sort by: {search.sorts.map((x) => SORT_LABEL[x.key]).join(' › ')}
               <span aria-hidden="true">{sortOpen ? '▴' : '▾'}</span>
             </button>
           </div>
 
           {sortOpen && (
             <div className="mt-3 grid gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5">
-              <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Sort by
-                <select value={search.sort} onChange={(e) => setFilter('sort', e.target.value)} className={input}>
-                  {Object.entries(SORT_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                </select>
-              </label>
+              <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:col-span-2 lg:col-span-5">
+                Sort order (click column headings to add levels)
+                <div className="flex flex-wrap items-center gap-2 normal-case text-sm text-gray-700">
+                  {search.sorts.map((x, i) => (
+                    <span key={x.key} className="rounded-full bg-gray-100 px-2.5 py-1">{i + 1}. {SORT_LABEL[x.key]} {x.dir === 'asc' ? '▲' : '▼'}</span>
+                  ))}
+                  <button type="button" onClick={resetSort} className="text-sm text-royal-blue hover:underline">Reset</button>
+                </div>
+              </div>
               <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Category
                 <MultiSelect label="Categories" allLabel="All categories" selected={search.category} onChange={(v) => setFilter('category', v)}
@@ -391,13 +413,13 @@ export default function CatalogueBuilder() {
                       disabled={results.length === 0} className="h-4 w-4 rounded border-gray-300 accent-royal-blue" />
                   </th>
                   <th className="px-2 py-3"><span className="sr-only">Picture</span></th>
-                  <SortHeader label="Category" sortKey="category" search={search} onSort={sortByColumn} />
-                  <SortHeader label="Sub-category" sortKey="subcategory" search={search} onSort={sortByColumn} />
-                  <SortHeader label="Code" sortKey="code" search={search} onSort={sortByColumn} />
-                  <SortHeader label="Name" sortKey="name" search={search} onSort={sortByColumn} />
-                  <SortHeader label="Species" sortKey="species" search={search} onSort={sortByColumn} />
-                  <SortHeader label="Availability" sortKey="availability" search={search} onSort={sortByColumn} />
-                  <SortHeader label="Price" sortKey="price" search={search} onSort={sortByColumn} />
+                  <SortHeader label="Category" sortKey="category" sorts={search.sorts} onSort={sortByColumn} />
+                  <SortHeader label="Sub-category" sortKey="subcategory" sorts={search.sorts} onSort={sortByColumn} />
+                  <SortHeader label="Code" sortKey="code" sorts={search.sorts} onSort={sortByColumn} />
+                  <SortHeader label="Name" sortKey="name" sorts={search.sorts} onSort={sortByColumn} />
+                  <SortHeader label="Species" sortKey="species" sorts={search.sorts} onSort={sortByColumn} />
+                  <SortHeader label="Availability" sortKey="availability" sorts={search.sorts} onSort={sortByColumn} />
+                  <SortHeader label="Price" sortKey="price" sorts={search.sorts} onSort={sortByColumn} />
                 </tr>
               </thead>
               <tbody>
