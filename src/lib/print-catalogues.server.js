@@ -111,7 +111,7 @@ export async function removeItemFromCatalogue(catalogueId, itemId) {
 export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filters = {}) {
   const term = `%${String(q ?? "").trim()}%`
   const hasQuery = String(q ?? "").trim() !== ""
-  const { status = "", sort = "name", ids = null } = filters
+  const { status = "", sort = "name", dir = "asc", ids = null } = filters
   // Each filter takes a list of values; a product matches if it has any of them.
   const categoryIds = toNumberList(filters.category)
   const subcategoryIds = toNumberList(filters.subcategory)
@@ -123,9 +123,13 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filt
     name: products.name,
     productCode: products.productCode,
     status: products.status,
-    views: products.views,
+    price: products.price,
+    salePrice: products.salePrice,
     availability: products.availability,
-    category: sql`(select c.name from categories c where c.id = products.primary_category_id)`.as("category"),
+    // Category is the top-level category; a product filed under a sub-category shows its parent here.
+    category: sql`(select coalesce(p.name, c.name) from categories c left join categories p on p.id = c.parent_id where c.id = products.primary_category_id)`.as("category"),
+    // The sub-category, when the product is filed under one.
+    subcategory: sql`(select c.name from categories c where c.id = products.primary_category_id and c.parent_id is not null)`.as("subcategory"),
     species: sql`(select string_agg(av.value, ', ' order by av.sort_order) from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species')`.as("species"),
     image: sql`(select pi.storage_key from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as("image"),
     imageWidth: sql`(select pi.width from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as("imageWidth"),
@@ -146,10 +150,12 @@ export async function searchProductsForCatalogue(q, limit = 50, offset = 0, filt
         sql`exists (select 1 from product_part_ids pp where pp.product_id = products.id and pp.part_id ilike ${term})`,
       ) : undefined,
     ))
-    .orderBy(...(sort === "code" ? [asc(products.productCode), asc(products.id)]
-      : sort === "views" ? [desc(products.views), asc(products.name)]
-      : sort === "category" ? [sql`category`, asc(products.name)]
-      : [asc(products.name), asc(products.id)]))
+    .orderBy(
+      // Any column can be sorted, in either direction. Empty values go last.
+      sql`${SORT_KEYS[sort] ?? SORT_KEYS.name} ${sql.raw(dir === "desc" ? "desc" : "asc")} nulls last`,
+      asc(products.name),
+      asc(products.id),
+    )
     .limit(limit)
     .offset(offset)
 }
@@ -193,6 +199,17 @@ export async function reorderCatalogueItems(catalogueId, itemIds) {
 }
 
 /** Categories for the picker's filter, A to Z. */
+/** The column each sort key orders by. Category, subcategory and species are output aliases of the query. */
+const SORT_KEYS = {
+  name: sql`${products.name}`,
+  code: sql`${products.productCode}`,
+  category: sql`category`,
+  subcategory: sql`subcategory`,
+  species: sql`species`,
+  availability: sql`${products.availability}`,
+  price: sql`${products.price}`,
+}
+
 /** A query-string list ("a,b") or a single value, as trimmed strings without blanks. */
 export function toList(v) {
   if (Array.isArray(v)) return v.map(String).map((s) => s.trim()).filter(Boolean)
