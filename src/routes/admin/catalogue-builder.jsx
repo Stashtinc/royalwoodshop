@@ -347,21 +347,13 @@ export default function CatalogueBuilder() {
             </div>
             <button type="button" onClick={() => setSortOpen((o) => !o)} aria-expanded={sortOpen}
               className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${sortOpen || hasFilters ? 'border-royal-blue bg-royal-blue text-white' : 'border-gray-300 text-gray-600 hover:border-royal-blue'}`}>
-              Sort by: {search.sorts.map((x) => SORT_LABEL[x.key]).join(' › ')}
+              Sort & filter
               <span aria-hidden="true">{sortOpen ? '▴' : '▾'}</span>
             </button>
           </div>
 
           {sortOpen && (
             <div className="mt-3 grid gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5">
-              <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500 sm:col-span-2 lg:col-span-5">
-                Sort order (click column headings to add levels)
-                <div className="flex flex-wrap items-center gap-2 normal-case text-sm text-gray-700">
-                  {search.sorts.map((x) => (
-                    <span key={x.key} className="rounded-full bg-gray-100 px-2.5 py-1">{SORT_LABEL[x.key]} {x.dir === 'asc' ? '▲' : '▼'}</span>
-                  ))}
-                  <button type="button" onClick={resetSort} className="text-sm text-royal-blue hover:underline">Reset</button>
-                </div>
               </div>
               <div className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Category
