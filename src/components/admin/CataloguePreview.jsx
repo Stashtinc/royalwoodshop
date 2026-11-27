@@ -20,12 +20,16 @@ const dateText = () => new Date().toLocaleDateString('en-CA', { year: 'numeric',
 
 const fontFor = (style, key) => (FONT_STACK[key] ? { fontFamily: FONT_STACK[key] } : {})
 
-function ProductRow({ item, showPrices, rowRef, style, ruled = false }) {
+function ProductRow({ item, showPrices, rowRef, textRef, textH = 0, style, ruled = false }) {
   const specs = specRows(item)
   const prices = showPrices && style.showPrices ? priceLines(item) : []
   const top = style.imagePosition === 'top'
   // Padding and shade go around the product. A rule sits above it, in the space before the padding.
   const pad = style.rowPadding
+  // A picture beside its text shrinks to the text's height when the text is shorter.
+  const full = pictureSize(item, style.imageSize)
+  const shrink = item.image && !top && textH > 0 ? Math.min(1, textH / full.h) : 1
+  const picShown = item.image ? { w: full.w * shrink, h: full.h * shrink } : { w: 0, h: 0 }
   const rule = ruled ? { borderTop: `${style.ruleWeight}px solid ${style.ruleColor}`, paddingTop: style.spacing / 2 + pad } : {}
   return (
     <div ref={rowRef} style={{
@@ -35,10 +39,10 @@ function ProductRow({ item, showPrices, rowRef, style, ruled = false }) {
       ...rule,
     }}>
       {/* The picture box only takes height when the product has a picture; otherwise the row is as tall as its text. */}
-      <div style={{ width: style.imageSize, height: item.image ? pictureSize(item, style.imageSize).h : 0, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {item.image && <img src={item.image} alt="" style={{ width: pictureSize(item, style.imageSize).w, height: pictureSize(item, style.imageSize).h, objectFit: 'contain' }} />}
+      <div style={{ width: style.imageSize, height: picShown.h, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {item.image && <img src={item.image} alt="" style={{ width: picShown.w, height: picShown.h, objectFit: 'contain' }} />}
       </div>
-      <div style={{ flex: 1, minWidth: 0, width: top ? '100%' : undefined }}>
+      <div ref={textRef} style={{ flex: 1, minWidth: 0, width: top ? '100%' : undefined }}>
         <div style={{ ...fontFor(style, style.headingFont), fontWeight: 700, fontSize: style.nameSize, lineHeight: 1.2, color: style.titleColor }}>{item.name}</div>
         {item.productCode && (
           <div style={{ fontFamily: 'Menlo, Consolas, monospace', fontSize: 9, color: style.codeColor, marginTop: 2 }}>{item.productCode}</div>
@@ -123,12 +127,12 @@ function SectionHeading({ heading, style }) {
 }
 
 /** One product with its headings. The rule above it, when there is one, sits above the headings. */
-function BlockView({ block, showPrices, style, ruled = false, rowRef }) {
+function BlockView({ block, showPrices, style, ruled = false, rowRef, textRef, textH }) {
   const rule = ruled ? { borderTop: `${style.ruleWeight}px solid ${style.ruleColor}`, paddingTop: style.spacing / 2 } : {}
   return (
     <div ref={rowRef} style={rule}>
       {block.headings.map((h) => <SectionHeading key={h.level} heading={h} style={style} />)}
-      <ProductRow item={block.item} showPrices={showPrices} style={style} />
+      <ProductRow item={block.item} showPrices={showPrices} style={style} textRef={textRef} textH={textH} />
     </div>
   )
 }
@@ -142,7 +146,7 @@ function PageBody({ p, items, showPrices, style }) {
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: style.spacing }}>
         {items.map((block, i) => (
-          <BlockView key={block.item.itemId} block={block} showPrices={showPrices} style={style} ruled={style.rules && i > 0} />
+          <BlockView key={block.item.itemId} block={block} showPrices={showPrices} style={style} ruled={style.rules && i > 0} textH={block.textH} />
         ))}
       </div>
     </>
@@ -151,7 +155,7 @@ function PageBody({ p, items, showPrices, style }) {
 
 /** A product page drawn with its own style, frame and margin. */
 function PageFace({ scale, page, index, showPrices, selected = false, ...rest }) {
-  const items = page.items.map((i) => page.blocks[i])
+  const items = page.items.map((i) => ({ ...page.blocks[i], textH: page.textHeights[i] }))
   return (
     <Page scale={scale} selected={selected} framed={page.style.pageBorder} margin={page.style.pageMargin} inset={insetOf(page.style)} ruleColor={page.style.ruleColor} {...rest}>
       <PageBody p={index} items={items} showPrices={showPrices} style={page.style} />
@@ -361,8 +365,10 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
   }, [globalSt, overrides])
 
   const measureRefs = useRef({})
+  const textMeasure = useRef({})
   const boxRef = useRef(null)
   const [heights, setHeights] = useState({})
+  const [textHeights, setTextHeights] = useState({})
   const [boxW, setBoxW] = useState(0)
   // The page tapped in the spread, whose items are listed below. Null until one is tapped.
   const [selected, setSelected] = useState(null)
@@ -380,13 +386,22 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
     return () => ro.disconnect()
   }, [])
 
-  // Measure every product in every style in use; these heights decide the page breaks.
+  // Measure every product in every style in use. A picture beside a shorter text shrinks to it, so a
+  // block is only as tall as its text. These heights decide the page breaks.
   useLayoutEffect(() => {
     const next = {}
-    for (const k of styles.keys()) {
-      next[k] = order.map((_, i) => measureRefs.current[k]?.[i]?.offsetHeight ?? 0)
+    const texts = {}
+    for (const [k, st] of styles.entries()) {
+      texts[k] = order.map((_, i) => textMeasure.current[k]?.[i]?.offsetHeight ?? 0)
+      next[k] = order.map((item, i) => {
+        const block = measureRefs.current[k]?.[i]?.offsetHeight ?? 0
+        const text = texts[k][i]
+        const pic = item.image && st.imagePosition !== 'top' ? pictureSize(item, st.imageSize).h : 0
+        return block - Math.max(0, pic - text)
+      })
     }
     setHeights(next)
+    setTextHeights(texts)
   }, [order, showPrices, title, styles])
 
   const pages = useMemo(() => {
@@ -394,9 +409,9 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
     const overrideAt = (i) => overrides[String(order[i].itemId)] ?? null
     return breakPages(order.length, globalSt, overrideAt, heightAt).map((page) => {
       const key = String(order[page.items[0]].itemId)
-      return { ...page, order, blocks, key, custom: Boolean(overrides[key]), globalCopy: globalSt }
+      return { ...page, order, blocks, textHeights: textHeights[stableJson(page.style)] ?? [], key, custom: Boolean(overrides[key]), globalCopy: globalSt }
     })
-  }, [order, blocks, heights, overrides, globalSt])
+  }, [order, blocks, heights, textHeights, overrides, globalSt])
 
   const scale = boxW ? Math.min(0.6, (boxW - 16) / 2 / PAGE_W) : 0.3
   const cellW = PAGE_W * scale
@@ -427,7 +442,8 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
             {blocks.map((block, i) => (
               <div key={block.item.itemId} style={{ paddingBottom: st.spacing }}>
                 <BlockView block={block} showPrices={showPrices} style={st}
-                  rowRef={(el) => { (measureRefs.current[k] ??= [])[i] = el }} />
+                  rowRef={(el) => { (measureRefs.current[k] ??= [])[i] = el }}
+                  textRef={(el) => { (textMeasure.current[k] ??= [])[i] = el }} />
               </div>
             ))}
           </div>
