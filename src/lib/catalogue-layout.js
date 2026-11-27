@@ -25,7 +25,6 @@ export function specRows(item) {
   return [
     ['Size', item.sizeDisplay],
     ['Specifications', item.species],
-    ['Availability', item.availability ? (AVAILABILITY_LABEL[item.availability] ?? item.availability) : null],
     ['Lead time', item.leadTime],
   ].filter(([, v]) => v)
 }
@@ -66,6 +65,18 @@ export function ruleCost(st) {
  * One block per product: the category and sub-category headings that start at it (when they change),
  * then the product. Pages break between blocks, so a heading always sits with the product it introduces.
  */
+/**
+ * The size a product's picture is drawn at, within a square of `size`. A picture keeps its own shape,
+ * so a wide picture takes less height. It is never enlarged. Without its dimensions it is square.
+ */
+export function pictureSize(item, size) {
+  const w = item.imageWidth
+  const h = item.imageHeight
+  if (!w || !h) return { w: size, h: size }
+  const scale = Math.min(1, size / w, size / h)
+  return { w: w * scale, h: h * scale }
+}
+
 export function buildBlocks(items, showHeadings) {
   let prevCat = null
   let prevSub = null
