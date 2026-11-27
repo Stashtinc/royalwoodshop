@@ -22,7 +22,7 @@ const fontFor = (style, key) => (FONT_STACK[key] ? { fontFamily: FONT_STACK[key]
 
 function ProductRow({ item, showPrices, rowRef, style, ruled = false }) {
   const specs = specRows(item)
-  const prices = showPrices ? priceLines(item) : []
+  const prices = showPrices && style.showPrices ? priceLines(item) : []
   const top = style.imagePosition === 'top'
   // Padding and shade go around the product. A rule sits above it, in the space before the padding.
   const pad = style.rowPadding
@@ -43,7 +43,7 @@ function ProductRow({ item, showPrices, rowRef, style, ruled = false }) {
         {item.productCode && (
           <div style={{ fontFamily: 'Menlo, Consolas, monospace', fontSize: 9, color: style.codeColor, marginTop: 2 }}>{item.productCode}</div>
         )}
-        {item.description && (
+        {item.description && style.showDescriptions && (
           <div style={{ ...fontFor(style, style.bodyFont), fontSize: style.bodySize, lineHeight: 1.4, color: style.textColor, marginTop: 6 }}>{item.description}</div>
         )}
         {specs.length > 0 && (
@@ -61,7 +61,7 @@ function ProductRow({ item, showPrices, rowRef, style, ruled = false }) {
             {prices.map((p, i) => (
               <li key={i} style={{ color: style.textColor }}>
                 {p.label && <span style={{ marginRight: 8, color: style.labelColor }}>{p.label}</span>}
-                {p.sale ? (
+                {p.sale && style.showSalePrices ? (
                   <>
                     <span style={{ marginRight: 6, color: '#9ca3af', textDecoration: 'line-through' }}>{p.price}</span>
                     <span style={{ fontWeight: 700 }}>{p.sale}</span>

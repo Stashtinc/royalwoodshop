@@ -101,6 +101,12 @@ export function AppearanceFields({ style, onChange }) {
   const set = (key) => (value) => onChange({ ...style, [key]: value })
   return (
     <div className="flex flex-col gap-5">
+      <Section title="Show">
+        <Toggle label="Descriptions" checked={style.showDescriptions} onChange={set('showDescriptions')} />
+        <Toggle label="Prices" checked={style.showPrices} onChange={set('showPrices')} />
+        <Toggle label="Sale prices" checked={style.showSalePrices} onChange={set('showSalePrices')} />
+      </Section>
+
       <Section title="Colours">
         <Color label="Product name" value={style.titleColor} onChange={set('titleColor')} />
         <Color label="Description and prices" value={style.textColor} onChange={set('textColor')} />
