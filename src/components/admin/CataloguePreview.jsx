@@ -403,7 +403,12 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
   const cellH = PAGE_H * scale
   const chosen = selected != null && selected < pages.length ? selected : null
   // Close the editor if its page no longer exists (for example after the last item is removed).
-  useEffect(() => { if (editing != null && editing >= pages.length) setEditing(null) }, [editing, pages.length])
+  // A change that alters the page count (such as a heading switch) keeps the editor open on the nearest page.
+  useEffect(() => {
+    if (editing == null) return
+    if (pages.length === 0) setEditing(null)
+    else if (editing >= pages.length) setEditing(pages.length - 1)
+  }, [editing, pages.length])
 
   const editingPage = editing != null ? pages[editing] : null
   // Turning custom on copies the catalogue style to the page; off removes the copy.
