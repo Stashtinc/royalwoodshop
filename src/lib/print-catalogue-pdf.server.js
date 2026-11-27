@@ -58,15 +58,21 @@ function text(doc, draw, str, x, y, { fontName, size, color, width, lineGap = 0,
  */
 function layoutItem(doc, item, x, y, st, showPrices, draw, images) {
   const pad = st.rowPadding
-  const height = drawContent(doc, item, x + pad, y + pad, st, showPrices, false, images) + pad * 2
+  // Beside its text, a picture is drawn no taller than the text when the text is shorter.
+  let shownH
+  if (item.image && st.imagePosition !== 'top') {
+    const textH = drawContent(doc, item, x + pad, y + pad, st, showPrices, false, images, 0)
+    shownH = Math.min(pictureSize(item, st.imageSize).h, textH)
+  }
+  const height = drawContent(doc, item, x + pad, y + pad, st, showPrices, false, images, shownH) + pad * 2
   if (!draw) return height
   if (st.rowShade) doc.save().fillColor(st.rowShade).rect(x, y, contentWidth(st), height).fill().restore()
-  drawContent(doc, item, x + pad, y + pad, st, showPrices, true, images)
+  drawContent(doc, item, x + pad, y + pad, st, showPrices, true, images, shownH)
   return height
 }
 
 /** The product's picture and text, from (x, y). Returns the height of the content, without the row padding. */
-function drawContent(doc, item, x, y, st, showPrices, draw, images) {
+function drawContent(doc, item, x, y, st, showPrices, draw, images, shownH) {
   const top = st.imagePosition === 'top'
   const box = st.imageSize
   const innerW = contentWidth(st) - st.rowPadding * 2
@@ -80,8 +86,10 @@ function drawContent(doc, item, x, y, st, showPrices, draw, images) {
   const pic = item.image ? images.get(item.image) : null
   // The picture box only takes height when the product has a picture.
   const dims = pictureSize(item, box)
-  const picH = item.image ? dims.h : 0
-  if (draw && pic) doc.image(pic, x, y, { width: dims.w, height: dims.h })
+  const shown = shownH == null ? dims.h : shownH
+  const scale = dims.h ? shown / dims.h : 1
+  const picH = item.image ? shown : 0
+  if (draw && pic) doc.image(pic, x + (box - dims.w * scale) / 2, y, { width: dims.w * scale, height: shown })
 
   // Text column, from below the picture when the picture is on top
   const ty = top ? y + picH + (picH ? st.spacing : 0) : y
