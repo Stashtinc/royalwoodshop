@@ -1,35 +1,65 @@
 import { useRef, useState } from 'react'
 
+/**
+ * Signups go to Stasht, into Royal Wood's "New Website Leads" list, and each
+ * one becomes a lead there. Stasht sends the double opt-in confirmation email
+ * (CASL) and emails Brad when someone confirms.
+ *
+ * The browser calls Stasht directly, not through our server: Stasht allows 60
+ * signups an hour per IP, and a server call would put every visitor behind
+ * Railway's one address. The key is public by design; it can only add people
+ * to this one list.
+ */
+const STASHT_SIGNUP_URL =
+  import.meta.env.VITE_STASHT_SIGNUP_URL || 'https://restapi.stasht.com/api/react/public/lists/subscribe'
+const STASHT_SIGNUP_KEY =
+  import.meta.env.VITE_STASHT_SIGNUP_KEY || 'ls_3LSb6WWHSNbWfDjkonZ1kyltPxjx781LBXKtKVsq'
+
+const GENERIC_ERROR = 'Something went wrong, please try again.'
+
 export default function NewsletterSignup() {
-  const [status, setStatus] = useState('idle') // idle | loading | success | error
+  const [status, setStatus] = useState('idle') // idle | loading | success
   const [error, setError] = useState(null)
   const inputRef = useRef(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
     const email = inputRef.current?.value?.trim()
-    const company = e.currentTarget.elements.company?.value ?? ''
+    const honeypot = e.currentTarget.elements.company?.value ?? ''
     if (!email) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email address.')
+      return
+    }
     setStatus('loading')
     setError(null)
     try {
-      const endpoint = typeof window !== 'undefined' && window.location.hostname.includes('netlify')
-        ? '/.netlify/functions/newsletter'
-        : '/api/newsletter'
-      const res = await fetch(endpoint, {
+      const res = await fetch(STASHT_SIGNUP_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ email, company }),
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        // Stasht's honeypot field is "website": if it is filled in, Stasht
+        // quietly drops the signup. Never send a phone number.
+        body: JSON.stringify({ key: STASHT_SIGNUP_KEY, email, website: honeypot }),
       })
       const data = await res.json().catch(() => ({}))
-      if (data.ok) {
+      // The same 200 comes back for new, existing and unsubscribed addresses,
+      // so the form never reveals who is already on the list.
+      if (res.ok && data.ok) {
         setStatus('success')
-      } else {
-        setError(data.error || 'Could not subscribe. Please try again.')
-        setStatus('idle')
+        return
       }
-    } catch {
-      setError('Newsletter signup is unavailable right now.')
+      if (data.error === 'invalid_email') {
+        setError(data.message || 'Please enter a valid email address.')
+      } else if (data.error === 'too_many_requests' || res.status === 429) {
+        setError('Too many tries. Please wait a minute and try again.')
+      } else {
+        console.error('[newsletter] Stasht signup failed', res.status, data)
+        setError(GENERIC_ERROR)
+      }
+      setStatus('idle')
+    } catch (err) {
+      console.error('[newsletter] Stasht signup failed', err)
+      setError(GENERIC_ERROR)
       setStatus('idle')
     }
   }
@@ -87,8 +117,8 @@ export default function NewsletterSignup() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <p className="font-serif text-xl font-bold text-white">Almost there!</p>
-                <p className="font-sans text-sm text-white/60">Check your inbox and click the link to confirm your subscription to Around the Mill.</p>
+                <p className="font-serif text-xl font-bold text-white">Thanks!</p>
+                <p className="font-sans text-sm text-white/60">Check your inbox to confirm your subscription.</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="relative flex flex-col gap-3">
@@ -102,6 +132,9 @@ export default function NewsletterSignup() {
                     type="email"
                     name="email"
                     required
+                    aria-label="Email address"
+                    aria-invalid={error ? 'true' : undefined}
+                    aria-describedby={error ? 'newsletter-error' : undefined}
                     disabled={status === 'loading'}
                     placeholder="Your email address"
                     className="min-w-0 flex-1 bg-transparent px-5 py-4 font-sans text-sm text-white placeholder-white/30 outline-none disabled:opacity-50"
@@ -115,7 +148,7 @@ export default function NewsletterSignup() {
                   </button>
                 </div>
                 {error && (
-                  <p className="font-sans text-xs text-red-400">{error}</p>
+                  <p id="newsletter-error" role="alert" className="font-sans text-xs text-red-400">{error}</p>
                 )}
                 <p className="font-sans text-xs text-white/30">
                   No spam. Unsubscribe any time.
