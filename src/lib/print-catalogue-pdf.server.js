@@ -87,7 +87,7 @@ function drawContent(doc, item, x, y, st, showPrices, draw, images) {
   let th = 0
   th += text(doc, draw, item.name, tx, ty + th, { fontName: heading, size: st.nameSize, color: st.titleColor, width: textW, lineGap: st.nameSize * 0.2 })
   th += text(doc, draw, item.productCode, tx, ty + th, { fontName: CODE_FONT, size: 9, color: st.codeColor, width: textW, marginTop: 2 })
-  th += text(doc, draw, item.description, tx, ty + th, { fontName: body, size: st.bodySize, color: st.textColor, width: textW, lineGap: st.bodySize * 0.4, marginTop: 6 })
+  if (st.showDescriptions) th += text(doc, draw, item.description, tx, ty + th, { fontName: body, size: st.bodySize, color: st.textColor, width: textW, lineGap: st.bodySize * 0.4, marginTop: 6 })
 
   // Specification rows: label in a fixed column, value beside it
   const specs = specRows(item)
@@ -105,7 +105,7 @@ function drawContent(doc, item, x, y, st, showPrices, draw, images) {
   }
 
   // Prices, one line per species (or the single product price)
-  const prices = showPrices ? priceLines(item) : []
+  const prices = showPrices && st.showPrices ? priceLines(item) : []
   if (prices.length) {
     const size = st.bodySize + 0.5
     th += 6
@@ -119,7 +119,7 @@ function drawContent(doc, item, x, y, st, showPrices, draw, images) {
           doc.font(body).fontSize(size).fillColor(st.labelColor).text(p.label, px, lineY, { lineBreak: false })
           px += doc.widthOfString(p.label) + 8
         }
-        if (p.sale) {
+        if (p.sale && st.showSalePrices) {
           doc.font(body).fontSize(size).fillColor(PRICE_STRIKE)
           const w = doc.widthOfString(p.price)
           doc.text(p.price, px, lineY, { lineBreak: false })
