@@ -63,6 +63,27 @@ export function ruleCost(st) {
  *
  * Returns [{ items: [indexes], style }].
  */
+/**
+ * One block per product: the category and sub-category headings that start at it (when they change),
+ * then the product. Pages break between blocks, so a heading always sits with the product it introduces.
+ */
+export function buildBlocks(items, showHeadings) {
+  let prevCat = null
+  let prevSub = null
+  return items.map((item) => {
+    const cat = item.category || ''
+    const sub = item.subcategory || ''
+    const headings = []
+    if (showHeadings) {
+      if (cat && cat !== prevCat) headings.push({ level: 'category', text: cat })
+      if (sub && (cat !== prevCat || sub !== prevSub)) headings.push({ level: 'subcategory', text: sub })
+    }
+    prevCat = cat
+    prevSub = sub
+    return { item, headings }
+  })
+}
+
 export function breakPages(count, globalSt, overrideAt, heightAt) {
   const pages = []
   let i = 0

@@ -60,6 +60,7 @@ export const DEFAULT_STYLE = {
   coverTitleSize: 30,
   coverTitleColor: '#24140D',
   subtitle: '', // a line under the cover title, e.g. "All Products"
+  sectionHeadings: true, // a category and sub-category heading where they change
 }
 
 const clamp = (v, min, max, fallback) => {
@@ -98,6 +99,7 @@ export function normalizeStyle(raw) {
     coverTitleSize: clamp(s.coverTitleSize, 14, 60, d.coverTitleSize),
     coverTitleColor: color(s.coverTitleColor, d.coverTitleColor),
     subtitle: typeof s.subtitle === 'string' ? s.subtitle.slice(0, 200) : d.subtitle,
+    sectionHeadings: typeof s.sectionHeadings === 'boolean' ? s.sectionHeadings : d.sectionHeadings,
   }
 }
 

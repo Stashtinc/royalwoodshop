@@ -124,6 +124,7 @@ export function AppearanceFields({ style, onChange }) {
       </Section>
 
       <Section title="Product rows">
+        <Toggle label="Category and sub-category headings" checked={style.sectionHeadings} onChange={set('sectionHeadings')} />
         <OptionalColor label="Shade each product" value={style.rowShade} fallback="#F1EFEA" onChange={set('rowShade')} />
         <Range label="Padding inside each product" value={style.rowPadding} min={0} max={80} unit=" pt" onChange={set('rowPadding')} />
       </Section>
