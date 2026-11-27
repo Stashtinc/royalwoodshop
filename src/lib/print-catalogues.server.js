@@ -55,6 +55,7 @@ export async function getPrintCatalogue(id) {
     species: sql`(select string_agg(av.value, ', ' order by av.sort_order) from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species')`.as('species'),
     image: sql`(select pi.storage_key from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as('image'),
     imageWidth: sql`(select pi.width from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as('imageWidth'),
+    imageHeight: sql`(select pi.height from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as('imageHeight'),
   }).from(printCatalogueItems)
     .innerJoin(products, eq(products.id, printCatalogueItems.productId))
     .where(eq(printCatalogueItems.catalogueId, cat.id))
@@ -308,6 +309,7 @@ export async function productsForPreview(productIds) {
     species: sql`(select string_agg(av.value, ', ' order by av.sort_order) from product_attributes pa join attribute_values av on av.id = pa.attribute_value_id join attributes a on a.id = av.attribute_id where pa.product_id = products.id and a.key = 'species')`.as('species'),
     image: sql`(select pi.storage_key from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as('image'),
     imageWidth: sql`(select pi.width from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as('imageWidth'),
+    imageHeight: sql`(select pi.height from product_images pi where pi.product_id = products.id order by pi.sort_order, pi.id limit 1)`.as('imageHeight'),
   }).from(products).where(inArray(products.id, ids))
   const partRows = await db.select({ productId: productPartIds.productId, species: productPartIds.species, price: productPartIds.price, salePrice: productPartIds.salePrice })
     .from(productPartIds)
