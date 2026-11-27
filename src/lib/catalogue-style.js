@@ -61,6 +61,9 @@ export const DEFAULT_STYLE = {
   coverTitleColor: '#24140D',
   subtitle: '', // a line under the cover title, e.g. "All Products"
   sectionHeadings: true, // a category and sub-category heading where they change
+  showDescriptions: true,
+  showPrices: true, // on a page or the catalogue; the Settings switch must also be on
+  showSalePrices: true,
 }
 
 const clamp = (v, min, max, fallback) => {
@@ -100,6 +103,9 @@ export function normalizeStyle(raw) {
     coverTitleColor: color(s.coverTitleColor, d.coverTitleColor),
     subtitle: typeof s.subtitle === 'string' ? s.subtitle.slice(0, 200) : d.subtitle,
     sectionHeadings: typeof s.sectionHeadings === 'boolean' ? s.sectionHeadings : d.sectionHeadings,
+    showDescriptions: typeof s.showDescriptions === 'boolean' ? s.showDescriptions : d.showDescriptions,
+    showPrices: typeof s.showPrices === 'boolean' ? s.showPrices : d.showPrices,
+    showSalePrices: typeof s.showSalePrices === 'boolean' ? s.showSalePrices : d.showSalePrices,
   }
 }
 
