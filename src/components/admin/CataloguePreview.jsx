@@ -116,7 +116,7 @@ function Page({ scale, selected = false, framed = false, margin = 54, inset = 0,
 function SectionHeading({ heading, style }) {
   const category = heading.level === 'category'
   return (
-    <div style={{ ...fontFor(style, category ? style.headingFont : style.bodyFont), fontWeight: 700, fontSize: category ? style.nameSize + 2 : style.bodySize + 1.5, color: category ? style.titleColor : style.labelColor, marginBottom: 6 }}>
+    <div style={{ ...fontFor(style, category ? style.headingFont : style.bodyFont), fontWeight: 700, fontSize: category ? style.nameSize + 2 : style.bodySize + 1.5, color: category ? style.titleColor : style.labelColor, marginBottom: style.spacing }}>
       {heading.text}
     </div>
   )
