@@ -25,7 +25,6 @@ export function specRows(item) {
   return [
     ['Size', item.sizeDisplay],
     ['Specifications', item.species],
-    ['Category', item.category],
     ['Availability', item.availability ? (AVAILABILITY_LABEL[item.availability] ?? item.availability) : null],
     ['Lead time', item.leadTime],
   ].filter(([, v]) => v)
