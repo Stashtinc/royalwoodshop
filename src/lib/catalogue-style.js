@@ -46,7 +46,7 @@ export const DEFAULT_STYLE = {
   ruleColor: '#343333',
   nameSize: 14,
   bodySize: 9.5,
-  imageSize: 150,
+  imageSize: 120,
   spacing: 14,
   imagePosition: 'left', // 'left' or 'top'
   rules: false, // a rule between products on a page
