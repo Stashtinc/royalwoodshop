@@ -24,7 +24,7 @@ auto-deploy turned off (or be deleted) so there are never two live copies.
 | `MAIL_FROM` | `Royal Wood Shop Website <website@royalwoodshop.com>` | Sender defaults to that address |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Only if not using Resend; needs Railway Pro | — |
 | `CONTACT_TO` | `sales@royalwoodshop.com` | Every form (Contact, Consultation, Material Estimate, Get a Quote) goes to sales@royalwoodshop.com anyway |
-| `MAILCHIMP_API_KEY`, `MAILCHIMP_AUDIENCE_ID` | From Mailchimp | The newsletter form says signup is unavailable |
+| `VITE_STASHT_SIGNUP_KEY` | Optional. Only if Stasht regenerates the list's signup key (`ls_…`) | The key built into the code is used |
 
 ## For the admin dashboard panels
 
@@ -67,5 +67,6 @@ directly, and counts hits in the `redirects` table.
   a 301 to the new site.
 - The forms: a test from Contact, Consultation, Material Estimate and Get a Quote
   each arrives at `CONTACT_TO` (sales@royalwoodshop.com).
-- The newsletter: signing up sends a Mailchimp confirmation email.
+- The newsletter: signing up sends a confirmation email from Stasht; after clicking
+  it, the person shows in Stasht's "New Website Leads" list.
 - Google Analytics → Reports → Realtime shows your own visit.

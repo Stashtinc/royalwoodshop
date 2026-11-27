@@ -131,8 +131,9 @@ mentioning to Stasht.
 - Messages from the **Contact**, **Consultation**, **Material Estimate** and
   **Get a Quote** forms are emailed to sales@royalwoodshop.com. The subject line
   says which form it came from, and Reply goes straight to the customer.
-- **Newsletter** signups go to Mailchimp. People are only added once they click
-  the confirmation email Mailchimp sends them.
+- **Newsletter** signups go to Stasht, into the "New Website Leads" list, and
+  show as leads there. People are only added once they click the confirmation
+  email Stasht sends them; Brad is emailed when they do.
 
 ## Known problems
 
