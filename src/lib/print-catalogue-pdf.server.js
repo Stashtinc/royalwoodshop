@@ -3,7 +3,7 @@ import sharp from 'sharp'
 import logoSvg from '../assets/images/logo-blue.svg?raw'
 import { loadImage } from './pdf-images.server.js'
 import { normalizeStoredStyle, normalizeStyle } from './catalogue-style.js'
-import { PAGE_H, PAGE_W, LABEL_H, breakPages, buildBlocks, contentWidth, insetOf, priceLines, specRows } from './catalogue-layout.js'
+import { PAGE_H, PAGE_W, LABEL_H, breakPages, buildBlocks, contentWidth, insetOf, pictureSize, priceLines, specRows } from './catalogue-layout.js'
 
 /*
  * The printed catalogue as a PDF. It follows the admin preview: the same cover,
@@ -79,8 +79,9 @@ function drawContent(doc, item, x, y, st, showPrices, draw, images) {
   // Picture
   const pic = item.image ? images.get(item.image) : null
   // The picture box only takes height when the product has a picture.
-  const picH = item.image ? box : 0
-  if (draw && pic) doc.image(pic, x, y, { fit: [box, box], align: 'center', valign: 'center' })
+  const dims = pictureSize(item, box)
+  const picH = item.image ? dims.h : 0
+  if (draw && pic) doc.image(pic, x, y, { width: dims.w, height: dims.h })
 
   // Text column, from below the picture when the picture is on top
   const ty = top ? y + picH + (picH ? st.spacing : 0) : y

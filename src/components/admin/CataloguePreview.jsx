@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import logoBlue from '../../assets/images/logo-blue.svg'
 import { FONT_STACK, normalizeStoredStyle, normalizeStyle, stableJson } from '../../lib/catalogue-style'
-import { PAGE_H, PAGE_W, breakPages, buildBlocks, contentWidth, insetOf, priceLines, specRows } from '../../lib/catalogue-layout'
+import { PAGE_H, PAGE_W, breakPages, buildBlocks, contentWidth, insetOf, pictureSize, priceLines, specRows } from '../../lib/catalogue-layout'
 import { AppearanceFields } from './CatalogueStyleForm'
 
 /*
@@ -35,8 +35,8 @@ function ProductRow({ item, showPrices, rowRef, style, ruled = false }) {
       ...rule,
     }}>
       {/* The picture box only takes height when the product has a picture; otherwise the row is as tall as its text. */}
-      <div style={{ width: style.imageSize, height: item.image ? style.imageSize : 0, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {item.image && <img src={item.image} alt="" style={{ maxWidth: style.imageSize, maxHeight: style.imageSize, objectFit: 'contain' }} />}
+      <div style={{ width: style.imageSize, height: item.image ? pictureSize(item, style.imageSize).h : 0, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {item.image && <img src={item.image} alt="" style={{ width: pictureSize(item, style.imageSize).w, height: pictureSize(item, style.imageSize).h, objectFit: 'contain' }} />}
       </div>
       <div style={{ flex: 1, minWidth: 0, width: top ? '100%' : undefined }}>
         <div style={{ ...fontFor(style, style.headingFont), fontWeight: 700, fontSize: style.nameSize, lineHeight: 1.2, color: style.titleColor }}>{item.name}</div>
