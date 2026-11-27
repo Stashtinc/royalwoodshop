@@ -151,7 +151,7 @@ function drawHeading(doc, heading, x, y, st, draw) {
     size: category ? st.nameSize + 2 : st.bodySize + 1.5,
     color: category ? st.titleColor : st.labelColor,
     width: contentWidth(st),
-  }) + 6
+  }) + st.spacing
 }
 
 /** A product with its headings above it. Returns the height of the block. */
