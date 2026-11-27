@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import logoBlue from '../../assets/images/logo-blue.svg'
 import { FONT_STACK, normalizeStoredStyle, normalizeStyle, stableJson } from '../../lib/catalogue-style'
-import { PAGE_H, PAGE_W, breakPages, contentWidth, insetOf, priceLines, specRows } from '../../lib/catalogue-layout'
+import { PAGE_H, PAGE_W, breakPages, buildBlocks, contentWidth, insetOf, priceLines, specRows } from '../../lib/catalogue-layout'
 import { AppearanceFields } from './CatalogueStyleForm'
 
 /*
@@ -112,6 +112,27 @@ function Page({ scale, selected = false, framed = false, margin = 54, inset = 0,
   )
 }
 
+/** A category or sub-category heading above the products it introduces. */
+function SectionHeading({ heading, style }) {
+  const category = heading.level === 'category'
+  return (
+    <div style={{ ...fontFor(style, category ? style.headingFont : style.bodyFont), fontWeight: 700, fontSize: category ? style.nameSize + 2 : style.bodySize + 1.5, color: category ? style.titleColor : style.labelColor, marginBottom: 6 }}>
+      {heading.text}
+    </div>
+  )
+}
+
+/** One product with its headings. The rule above it, when there is one, sits above the headings. */
+function BlockView({ block, showPrices, style, ruled = false, rowRef }) {
+  const rule = ruled ? { borderTop: `${style.ruleWeight}px solid ${style.ruleColor}`, paddingTop: style.spacing / 2 } : {}
+  return (
+    <div ref={rowRef} style={rule}>
+      {block.headings.map((h) => <SectionHeading key={h.level} heading={h} style={style} />)}
+      <ProductRow item={block.item} showPrices={showPrices} style={style} />
+    </div>
+  )
+}
+
 /** The heading and products of one printed page, shared by the spread and the page editor. */
 function PageBody({ p, items, showPrices, style }) {
   return (
@@ -120,8 +141,8 @@ function PageBody({ p, items, showPrices, style }) {
         <div style={{ fontSize: 8, letterSpacing: 1, textTransform: 'uppercase', color: '#9ca3af', marginBottom: 8 }}>Page {p + 1}</div>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: style.spacing }}>
-        {items.map((item, i) => (
-          <ProductRow key={item.itemId} item={item} showPrices={showPrices} style={style} ruled={style.rules && i > 0} />
+        {items.map((block, i) => (
+          <BlockView key={block.item.itemId} block={block} showPrices={showPrices} style={style} ruled={style.rules && i > 0} />
         ))}
       </div>
     </>
@@ -130,7 +151,7 @@ function PageBody({ p, items, showPrices, style }) {
 
 /** A product page drawn with its own style, frame and margin. */
 function PageFace({ scale, page, index, showPrices, selected = false, ...rest }) {
-  const items = page.items.map((i) => page.order[i])
+  const items = page.items.map((i) => page.blocks[i])
   return (
     <Page scale={scale} selected={selected} framed={page.style.pageBorder} margin={page.style.pageMargin} inset={insetOf(page.style)} ruleColor={page.style.ruleColor} {...rest}>
       <PageBody p={index} items={items} showPrices={showPrices} style={page.style} />
@@ -326,6 +347,9 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
   const globalSt = useMemo(() => normalizeStyle(stored), [stored])
   const overrides = stored.pageStyles
 
+  // One block per product: its headings and the product itself.
+  const blocks = useMemo(() => buildBlocks(order, globalSt.sectionHeadings), [order, globalSt.sectionHeadings])
+
   // Every distinct style in use: the catalogue style and each custom page's style.
   // Each is measured once, at its own width, so page breaks come out right.
   const styles = useMemo(() => {
@@ -370,9 +394,9 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
     const overrideAt = (i) => overrides[String(order[i].itemId)] ?? null
     return breakPages(order.length, globalSt, overrideAt, heightAt).map((page) => {
       const key = String(order[page.items[0]].itemId)
-      return { ...page, order, key, custom: Boolean(overrides[key]), globalCopy: globalSt }
+      return { ...page, order, blocks, key, custom: Boolean(overrides[key]), globalCopy: globalSt }
     })
-  }, [order, heights, overrides, globalSt])
+  }, [order, blocks, heights, overrides, globalSt])
 
   const scale = boxW ? Math.min(0.6, (boxW - 16) / 2 / PAGE_W) : 0.3
   const cellW = PAGE_W * scale
@@ -395,9 +419,9 @@ export default function CataloguePreview({ title, coverDate, coverImage, coverOp
         {/* Hidden copies at true width, one per style in use, used only to measure products */}
         {[...styles.entries()].map(([k, st]) => (
           <div key={k} aria-hidden="true" style={{ position: 'absolute', left: -10000, top: 0, width: contentWidth(st), visibility: 'hidden' }}>
-            {order.map((item, i) => (
-              <div key={item.itemId} style={{ paddingBottom: st.spacing }}>
-                <ProductRow item={item} showPrices={showPrices} style={st}
+            {blocks.map((block, i) => (
+              <div key={block.item.itemId} style={{ paddingBottom: st.spacing }}>
+                <BlockView block={block} showPrices={showPrices} style={st}
                   rowRef={(el) => { (measureRefs.current[k] ??= [])[i] = el }} />
               </div>
             ))}

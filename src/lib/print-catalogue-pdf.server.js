@@ -3,7 +3,7 @@ import sharp from 'sharp'
 import logoSvg from '../assets/images/logo-blue.svg?raw'
 import { loadImage } from './pdf-images.server.js'
 import { normalizeStoredStyle, normalizeStyle } from './catalogue-style.js'
-import { PAGE_H, PAGE_W, LABEL_H, breakPages, contentWidth, insetOf, priceLines, specRows } from './catalogue-layout.js'
+import { PAGE_H, PAGE_W, LABEL_H, breakPages, buildBlocks, contentWidth, insetOf, priceLines, specRows } from './catalogue-layout.js'
 
 /*
  * The printed catalogue as a PDF. It follows the admin preview: the same cover,
@@ -143,6 +143,24 @@ function drawFrame(doc, st) {
   doc.rect(m, m, PAGE_W - m * 2, PAGE_H - m * 2).lineWidth(1).strokeColor(st.ruleColor).stroke()
 }
 
+/** A category or sub-category heading. Returns its height, with the space under it. */
+function drawHeading(doc, heading, x, y, st, draw) {
+  const category = heading.level === 'category'
+  return text(doc, draw, heading.text, x, y, {
+    fontName: category ? face(st.headingFont, true) : face(st.bodyFont, true),
+    size: category ? st.nameSize + 2 : st.bodySize + 1.5,
+    color: category ? st.titleColor : st.labelColor,
+    width: contentWidth(st),
+  }) + 6
+}
+
+/** A product with its headings above it. Returns the height of the block. */
+function layoutBlock(doc, block, x, y, st, showPrices, draw, images) {
+  let h = 0
+  for (const heading of block.headings) h += drawHeading(doc, heading, x, y + h, st, draw)
+  return h + layoutItem(doc, block.item, x, y + h, st, showPrices, draw, images)
+}
+
 /** The cover, as the preview draws it: background, logo, title in a light box when there is a background, and the date. */
 function drawCover(doc, cat, st, background, logo) {
   if (background) doc.image(background, 0, 0, { cover: [PAGE_W, PAGE_H], align: 'center', valign: 'center' })
@@ -174,7 +192,7 @@ function drawCover(doc, cat, st, background, logo) {
 }
 
 /** One product page: optional label, then the products with optional rules between them. */
-function drawProductPage(doc, items, pageNo, st, showPrices, images) {
+function drawProductPage(doc, blocks, pageNo, st, showPrices, images) {
   // Content starts inside the margin and, on a framed page, inside the frame's padding.
   const m = st.pageMargin + insetOf(st)
   let y = m
@@ -182,7 +200,7 @@ function drawProductPage(doc, items, pageNo, st, showPrices, images) {
     text(doc, true, `PAGE ${pageNo}`, m, y, { fontName: face('site'), size: 8, color: MUTED_LABEL, width: contentWidth(st), characterSpacing: 1 })
     y += LABEL_H
   }
-  items.forEach((item, i) => {
+  blocks.forEach((block, i) => {
     if (i > 0) {
       y += st.spacing
       if (st.rules) {
@@ -190,7 +208,7 @@ function drawProductPage(doc, items, pageNo, st, showPrices, images) {
         y += st.ruleWeight + st.spacing / 2
       }
     }
-    y += layoutItem(doc, item, m, y, st, showPrices, true, images)
+    y += layoutBlock(doc, block, m, y, st, showPrices, true, images)
   })
 }
 
@@ -201,6 +219,7 @@ export async function renderCataloguePdf(cat) {
   const overrides = stored.pageStyles
   const showPrices = Boolean(cat.showPrices)
   const order = cat.items
+  const blocks = buildBlocks(order, globalSt.sectionHeadings)
 
   // Pictures are loaded once, at the size they are printed, and shared between measuring and drawing.
   const urls = [...new Set(order.map((i) => i.image).filter(Boolean))]
@@ -221,7 +240,7 @@ export async function renderCataloguePdf(cat) {
   const measured = new Map()
   const heightAt = (i, s) => {
     const key = `${i}:${JSON.stringify(s)}`
-    if (!measured.has(key)) measured.set(key, layoutItem(doc, order[i], 0, 0, s, showPrices, false, images))
+    if (!measured.has(key)) measured.set(key, layoutBlock(doc, blocks[i], 0, 0, s, showPrices, false, images))
     return measured.get(key)
   }
   const pages = breakPages(order.length, globalSt, (i) => overrides[String(order[i].itemId)] ?? null, heightAt)
@@ -234,7 +253,7 @@ export async function renderCataloguePdf(cat) {
   pages.forEach((page, p) => {
     doc.addPage({ size: 'LETTER', margin: 0 })
     if (page.style.pageBorder) drawFrame(doc, page.style)
-    drawProductPage(doc, page.items.map((i) => order[i]), p + 1, page.style, showPrices, images)
+    drawProductPage(doc, page.items.map((i) => blocks[i]), p + 1, page.style, showPrices, images)
   })
 
   doc.end()
